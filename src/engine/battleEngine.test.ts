@@ -72,23 +72,28 @@ describe('battleEngine', () => {
     await engine.submitCommand('下雨了下雨了');
 
     const transaction = engine.getState()!.battleState.commandTransactions[0];
-    expect(transaction.status).toBe('READY_TO_INJECT');
+    expect(transaction.status).toBe('INJECTED');
     expect(transaction.frozenCost).toBe(transaction.estimatedCost);
     expect(transaction.directorBroadcast?.text).toBe('下雨了下雨了');
   });
 
   it('records successful item use in EventLog', () => {
     const engine = createBattleEngine({ actorBrainProvider: immediateProvider(), maxActions: 40 });
-    engine.init('item_event_test', 2);
+    engine.init('item_event_test', 2, undefined, 1);
     engine.start();
 
     const targetActorId = engine.getState()!.battleState.actors[0].actorId;
     const result = engine.useItem('HEAL_SMALL', targetActorId);
 
     expect(result.ok).toBe(true);
+    expect(engine.getState()!.battleState.itemUsesRemaining).toBe(0);
     const event = engine.getState()!.battleState.eventLog.find((e) => e.type === 'ITEM_USED');
     expect(event).toBeDefined();
     expect(event?.targetActorId).toBe(targetActorId);
+
+    const secondResult = engine.useItem('HEAL_SMALL', targetActorId);
+    expect(secondResult.ok).toBe(false);
+    expect(engine.getState()!.battleState.eventLog.filter((e) => e.type === 'ITEM_USED')).toHaveLength(1);
   });
 
   it('rejects item use when the fridge grants zero uses for the battle', () => {

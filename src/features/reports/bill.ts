@@ -7,6 +7,7 @@ export interface BillLineItem {
   label: string;
   amount: number;
   type: 'INCOME' | 'EXPENSE';
+  appliedToSettlement?: boolean;
 }
 
 export interface EpisodeBill {
@@ -23,12 +24,13 @@ export function calculateEpisodeBill(
   bet: BetSlip | null,
   itemsUsedCount: number
 ): EpisodeBill {
+  void itemsUsedCount;
   const items: BillLineItem[] = [];
 
-  items.push({ label: '观看奖励', amount: 10, type: 'INCOME' });
+  items.push({ label: 'Viewing reward', amount: 10, type: 'INCOME' });
 
   if (battleState.actorActionIndex >= 40) {
-    items.push({ label: '完整观看奖励', amount: 5, type: 'INCOME' });
+    items.push({ label: 'Full episode reward', amount: 5, type: 'INCOME' });
   }
 
   if (bet) {
@@ -37,12 +39,8 @@ export function calculateEpisodeBill(
     const payout = calculatePayout(bet, won);
 
     if (won) {
-      items.push({ label: '押注奖金', amount: payout, type: 'INCOME' });
+      items.push({ label: 'Bet payout', amount: payout, type: 'INCOME' });
     }
-  }
-
-  if (itemsUsedCount > 0) {
-    items.push({ label: `道具使用 (×${itemsUsedCount})`, amount: itemsUsedCount * 15, type: 'EXPENSE' });
   }
 
   const commandCost = battleState.commandTransactions
@@ -50,19 +48,30 @@ export function calculateEpisodeBill(
     .reduce((sum, t) => sum + t.frozenCost, 0);
 
   if (commandCost > 0) {
-    items.push({ label: '导演指令费用', amount: commandCost, type: 'EXPENSE' });
+    items.push({
+      label: 'Director command cost (paid during battle)',
+      amount: commandCost,
+      type: 'EXPENSE',
+      appliedToSettlement: false,
+    });
   }
 
   const refundable = battleState.commandTransactions
-    .filter((t) => t.status === 'SYSTEM_FAILED_REFUND')
-    .reduce((sum, t) => sum + t.frozenCost, 0);
+    .filter((t) => (t.status === 'SYSTEM_FAILED_REFUND' || (t.status === 'CANCELLED' && t.refundedCost > 0)))
+    .reduce((sum, t) => sum + t.refundedCost, 0);
 
   if (refundable > 0) {
-    items.push({ label: '指令失败退款', amount: refundable, type: 'INCOME' });
+    items.push({
+      label: 'Command refund',
+      amount: refundable,
+      type: 'INCOME',
+      appliedToSettlement: false,
+    });
   }
 
-  const totalIncome = items.filter((i) => i.type === 'INCOME').reduce((s, i) => s + i.amount, 0);
-  const totalExpense = items.filter((i) => i.type === 'EXPENSE').reduce((s, i) => s + i.amount, 0);
+  const settlementItems = items.filter((i) => i.appliedToSettlement !== false);
+  const totalIncome = settlementItems.filter((i) => i.type === 'INCOME').reduce((s, i) => s + i.amount, 0);
+  const totalExpense = settlementItems.filter((i) => i.type === 'EXPENSE').reduce((s, i) => s + i.amount, 0);
 
   return {
     battleId: battleState.battleId,

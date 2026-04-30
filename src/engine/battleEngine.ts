@@ -2,7 +2,7 @@
  * BattleEngine - 战斗编排引擎
  */
 
-import type { BattleState, ActorBrainOutput, DirectorBroadcast, DirectorBroadcastDraft, CommitResult, DisplayItem, BattleEvent, BattleDiff } from '../core/battle/types';
+import type { BattleState, ActorBrainOutput, DirectorBroadcast, DirectorBroadcastDraft, CommitResult, BattleEvent } from '../core/battle/types';
 import type { ActorBrainProvider } from '../llm/actorBrainProvider';
 import type { Queues } from './queues';
 import { createQueues, enqueueGeneration, dequeueGeneration, enqueueCommit, dequeueCommit, enqueueDisplay } from './queues';
@@ -11,11 +11,17 @@ import { resolveLockedTarget } from '../core/battle/targetResolver';
 import { buildAllowedActionTypes } from '../core/battle/actionPolicy';
 import { validateActorBrainOutput, generateFallbackOutput } from '../core/battle/validator';
 import { combatRefereeCommit } from '../core/battle/combatReferee';
-import { shouldEndBattle, createInitialBattleState, type ActorTemplate } from '../core/battle/initialState';
-import { mapBattleEventToDisplayItem } from '../features/battle/display/displayMapper';
+import { shouldEndBattle, createInitialBattleState, type ActorTemplate, type InitialBattleSetup } from '../core/battle/initialState';
+import { mapBattleEventToDisplayEvents } from '../features/battle/display/displayMapper';
 import { ITEM_DEFS, type ItemId } from '../core/economy/items';
 import { applyGateResult, processCommand } from '../core/command/commandGate';
-import { seededRng } from '../core/battle/rng';
+import { applyPlayerItem } from '../core/battle/playerActionReferee';
+import { scanEventsForMemories, scanForStateBasedMemories, createStageBrief } from '../features/reports/reporterMemoryCollector';
+
+export type PlayerAction = 
+  | { type: 'USE_ITEM'; itemId: ItemId; targetActorId: string; eventId: string }
+  | { type: 'INJECT_BROADCAST'; broadcast: DirectorBroadcast };
+
 
 export interface BattleEngineConfig {
   actorBrainProvider: ActorBrainProvider;
@@ -37,6 +43,7 @@ export interface BattleEngineConfig {
 export interface BattleEngineState {
   battleState: BattleState;
   queues: Queues;
+  playerActionQueue: PlayerAction[];
   isRunning: boolean;
   error: string | null;
 }
@@ -51,13 +58,15 @@ export function createBattleEngine(config: BattleEngineConfig) {
     battleSeed: string,
     actorCount: number = 5,
     templates?: ActorTemplate[],
-    itemUsesRemaining: number = 3
+    itemUsesRemaining: number = 1,
+    setup: InitialBattleSetup = {}
   ): BattleEngineState {
-    const initialState = createInitialBattleState(battleSeed, actorCount, templates, itemUsesRemaining);
+    const initialState = createInitialBattleState(battleSeed, actorCount, templates, itemUsesRemaining, setup);
 
     state = {
       battleState: { ...initialState, phase: 'PREPARING' },
       queues: createQueues(),
+      playerActionQueue: [],
       isRunning: false,
       error: null,
     };
@@ -144,8 +153,10 @@ export function createBattleEngine(config: BattleEngineConfig) {
         return state;
       }
 
+      drainPlayerActions();
+
       const activeActor = selectActiveActor(
-        state.battleState.actors,
+        prepareActorsForSelection(),
         state.battleState.actorActionIndex,
         state.battleState.battleSeed
       );
@@ -226,10 +237,29 @@ export function createBattleEngine(config: BattleEngineConfig) {
         state.battleState = applyCommitResult(state.battleState, commitResult);
         state.battleState.actorActionIndex++;
 
+        // --- ReporterMemory collection ---
+        const cursor = state.battleState.reporterMemoryCursor;
+        const newMemories = scanEventsForMemories(state.battleState, cursor);
+        if (newMemories.length > 0) {
+          state.battleState.reporterMemory.push(...newMemories);
+        }
+        state.battleState.reporterMemoryCursor = state.battleState.eventLog.length;
+        if (state.battleState.actorActionIndex % 8 === 0) {
+          state.battleState.reporterMemory.push(
+            createStageBrief(state.battleState.battleId, state.battleState.actorActionIndex, state.battleState)
+          );
+        }
+        // Also scan for state-based memories (low HP, zero dodos) at key moments
+        if (state.battleState.actorActionIndex % 8 === 0) {
+          const stateMemories = scanForStateBasedMemories(state.battleState);
+          state.battleState.reporterMemory.push(...stateMemories);
+        }
+        // --- end ReporterMemory ---
+
         state.queues = dequeueCommit(state.queues, activeActor.actorId);
 
         const displayItems = commitResult.events.flatMap((e) =>
-          mapBattleEventToDisplayItem(e, state.battleState)
+          mapBattleEventToDisplayEvents(e, state.battleState)
         );
         for (const item of displayItems) {
           state.queues = enqueueDisplay(state.queues, item);
@@ -265,6 +295,50 @@ export function createBattleEngine(config: BattleEngineConfig) {
     if (!disposed) config.onStateChange?.(state.battleState);
   }
 
+  function drainPlayerActions(): void {
+    if (!state || state.playerActionQueue.length === 0) return;
+
+    for (const action of state.playerActionQueue) {
+      if (action.type === 'USE_ITEM') {
+        const result = applyPlayerItem(state.battleState, action.itemId, action.targetActorId, action.eventId);
+        for (const event of result.events) {
+          recordFactEvent(event);
+        }
+      } else if (action.type === 'INJECT_BROADCAST') {
+        state.battleState.directorBroadcasts.push(action.broadcast);
+        const tx = state.battleState.commandTransactions.find((t) => t.transactionId === action.broadcast.sourceTransactionId);
+        if (tx && tx.status === 'READY_TO_INJECT') {
+          tx.status = 'INJECTED';
+        }
+        recordFactEvent({
+          eventId: `evt_${Date.now()}_broadcast`,
+          actorActionIndex: state.battleState.actorActionIndex,
+          type: 'DIRECTOR_BROADCAST_INJECTED',
+          activeActorId: undefined,
+          directorBroadcastId: action.broadcast.broadcastId,
+          broadcastText: action.broadcast.text,
+          diffs: [{ path: 'broadcast', oldValue: '', newValue: action.broadcast.text }],
+          tags: ['BROADCAST'],
+          createdAt: Date.now(),
+        });
+      }
+    }
+    state.playerActionQueue = [];
+    if (!disposed) config.onStateChange?.(state.battleState);
+  }
+
+  function prepareActorsForSelection(): BattleState['actors'] {
+    state.battleState.actors = state.battleState.actors.map((actor) => {
+      if (!actor.isAlive) return actor;
+      return {
+        ...actor,
+        initiative: actor.initiative + actor.SPD * 10,
+        spotlightDebt: actor.spotlightDebt + 6,
+      };
+    });
+    return state.battleState.actors;
+  }
+
   function getState(): BattleEngineState | null {
     return state;
   }
@@ -274,12 +348,29 @@ export function createBattleEngine(config: BattleEngineConfig) {
     return state.queues.displayQueue[0] ?? null;
   }
 
-  function consumeDisplayItem() {
+function consumeDisplayItem() {
     if (!state) return null;
 
     const [item, ...rest] = state.queues.displayQueue;
     state.queues = { ...state.queues, displayQueue: rest };
     return item;
+  }
+
+  function recordFactEvent(event: BattleEvent): void {
+    if (!state) return;
+    // 1. 追加到 eventLog
+    state.battleState.eventLog.push(event);
+    // 2. 映射到 displayQueue
+    const displayEvents = mapBattleEventToDisplayEvents(event, state.battleState);
+    for (const de of displayEvents) {
+      state.queues = enqueueDisplay(state.queues, de);
+    }
+    // 3. 触发 reporterMemory 增量扫描
+    const newMemories = scanEventsForMemories(state.battleState, state.battleState.reporterMemoryCursor);
+    if (newMemories.length > 0) {
+      state.battleState.reporterMemory.push(...newMemories);
+    }
+    state.battleState.reporterMemoryCursor = state.battleState.eventLog.length;
   }
 
   async function submitCommand(rawInput: string): Promise<{
@@ -311,6 +402,12 @@ export function createBattleEngine(config: BattleEngineConfig) {
     try {
       const result = await config.commandGateProvider.evaluate(rawInput, state.battleState);
       Object.assign(transaction, applyGateResult(transaction, result));
+      if (result.decision === 'REJECT') {
+        const hasPriorReject = state.battleState.commandTransactions.some(
+          (t) => t.transactionId !== transaction.transactionId && t.status === 'REJECTED'
+        );
+        transaction.frozenCost = hasPriorReject ? Math.floor(transaction.estimatedCost * 0.3) : 0;
+      }
 
       if (result.directorBroadcastDraft && (result.decision === 'ALLOW' || result.decision === 'DOWNGRADE')) {
         const draft = result.directorBroadcastDraft;
@@ -324,8 +421,11 @@ export function createBattleEngine(config: BattleEngineConfig) {
           reactedActorIds: [],
           sourceTransactionId: transaction.transactionId,
         };
-        state.battleState.directorBroadcasts.push(broadcast);
         transaction.directorBroadcast = broadcast;
+        state.playerActionQueue.push({ type: 'INJECT_BROADCAST', broadcast });
+        if (!isStepping) {
+           drainPlayerActions();
+        }
       }
 
       if (!disposed) config.onStateChange?.(state.battleState);
@@ -359,104 +459,109 @@ export function createBattleEngine(config: BattleEngineConfig) {
     if (!actor.isAlive) return { ok: false, reason: 'Actor is dead' };
 
     if (state.battleState.itemUsesRemaining <= 0) return { ok: false, reason: 'No uses remaining' };
+    if (
+      itemDef.healAmount &&
+      actor.lastHealedAtActorActionIndex !== undefined &&
+      state.battleState.actorActionIndex - actor.lastHealedAtActorActionIndex < 1
+    ) {
+      return { ok: false, reason: 'Actor was already healed this action interval' };
+    }
 
     const eventId = `item_${Date.now()}`;
-    const oldItemUsesRemaining = state.battleState.itemUsesRemaining;
-    const oldUsedItemIds = [...state.battleState.usedItemIds];
-    const diffs: BattleDiff[] = [];
+    state.battleState.itemUsesRemaining = Math.max(0, state.battleState.itemUsesRemaining - 1);
+    
+    state.playerActionQueue.push({ type: 'USE_ITEM', itemId, targetActorId, eventId });
 
-    switch (itemId) {
-      case 'HEAL_SMALL': {
-        // 文档：恢复20HP，20%概率触发"肠胃不适"
-        const healAmount = 20;
-        const oldHP = actor.currentHP;
-        actor.currentHP = Math.min(actor.maxHP, actor.currentHP + healAmount);
-        actor.lastHealedAtActorActionIndex = state.battleState.actorActionIndex;
-        diffs.push({ path: 'currentHP', oldValue: oldHP, newValue: actor.currentHP });
-        // 20% 概率触发 STOMACHACHE_NO_ATTACK
-        const roll = seededRng(state.battleState.battleSeed, state.battleState.actorActionIndex, 'itemStomachache', actor.actorId);
-        if (roll < 0.2) {
-          if (!actor.statuses.includes('STOMACHACHE_NO_ATTACK')) {
-            actor.statuses.push('STOMACHACHE_NO_ATTACK');
-            diffs.push({ path: 'statuses', oldValue: [...actor.statuses], newValue: [...actor.statuses] });
-          }
-        }
-        break;
-      }
-      case 'HEAL_MEDIUM': {
-        // 文档：恢复35HP，无副作用
-        const healAmount = 35;
-        const oldHP = actor.currentHP;
-        actor.currentHP = Math.min(actor.maxHP, actor.currentHP + healAmount);
-        actor.lastHealedAtActorActionIndex = state.battleState.actorActionIndex;
-        diffs.push({ path: 'currentHP', oldValue: oldHP, newValue: actor.currentHP });
-        break;
-      }
-      case 'SHIELD_GRANT': {
-        // 文档：恢复60HP + 护盾 + TAUNT_1_ACTION
-        const healAmount = 60;
-        const oldHP = actor.currentHP;
-        actor.currentHP = Math.min(actor.maxHP, actor.currentHP + healAmount);
-        actor.lastHealedAtActorActionIndex = state.battleState.actorActionIndex;
-        diffs.push({ path: 'currentHP', oldValue: oldHP, newValue: actor.currentHP });
-        if (!actor.statuses.includes('SHIELD_ONCE')) {
-          actor.statuses.push('SHIELD_ONCE');
-          diffs.push({ path: 'statuses', oldValue: [...actor.statuses.filter(s => s !== 'SHIELD_ONCE')], newValue: [...actor.statuses] });
-        }
-        if (!actor.statuses.includes('TAUNT_1_ACTION')) {
-          actor.statuses.push('TAUNT_1_ACTION');
-          actor.tauntedByActorId = actor.actorId; // 被自己的道具嘲讽
-          diffs.push({ path: 'statuses', oldValue: [...actor.statuses.filter(s => s !== 'TAUNT_1_ACTION')], newValue: [...actor.statuses] });
-        }
-        break;
-      }
-      case 'THREAT_BOOST': {
-        const oldThreat = actor.currentThreat;
-        actor.currentThreat += 20;
-        diffs.push({ path: 'currentThreat', oldValue: oldThreat, newValue: actor.currentThreat });
-        break;
-      }
-      case 'SPOTLIGHT_FORCE': {
-        const oldSpotlight = actor.spotlightDebt;
-        actor.spotlightDebt += 50;
-        diffs.push({ path: 'spotlightDebt', oldValue: oldSpotlight, newValue: actor.spotlightDebt });
-        break;
+    if (!isStepping) {
+       drainPlayerActions();
+    }
+
+    return { ok: true, eventId };
+  }
+
+  function resolveAsk(transactionId: string, selectedActorId: string): {
+    ok: boolean;
+    chargeEffect: { gold: number };
+    error?: string;
+  } {
+    if (!state) return { ok: false, chargeEffect: { gold: 0 }, error: 'Engine not initialized' };
+
+    const tx = state.battleState.commandTransactions.find((t) => t.transactionId === transactionId);
+    if (!tx || tx.status !== 'WAITING_CLARIFICATION') {
+      return { ok: false, chargeEffect: { gold: 0 }, error: 'Transaction not in WAITING_CLARIFICATION' };
+    }
+
+    const rawInput = tx.pendingRawInput ?? tx.rawInput;
+    const broadcast: DirectorBroadcast = {
+      broadcastId: `broadcast_${Date.now()}`,
+      text: rawInput,
+      scope: 'TARGETED',
+      targetActorIds: [selectedActorId],
+      lifetime: 'NEXT_ACTION',
+      expiresAtActionIndex: state.battleState.actorActionIndex + 1,
+      reactedActorIds: [],
+      sourceTransactionId: tx.transactionId,
+    };
+
+    tx.status = 'READY_TO_INJECT';
+    tx.directorBroadcast = broadcast;
+    tx.paidCost = tx.estimatedCost;
+    state.playerActionQueue.push({ type: 'INJECT_BROADCAST', broadcast });
+
+    if (!isStepping) drainPlayerActions();
+    config.onStateChange?.(state.battleState);
+
+    return { ok: true, chargeEffect: { gold: tx.estimatedCost } };
+  }
+
+  function cancelAsk(transactionId: string): {
+    ok: boolean;
+    refundEffect: { gold: number };
+    error?: string;
+  } {
+    if (!state) return { ok: false, refundEffect: { gold: 0 }, error: 'Engine not initialized' };
+
+    const tx = state.battleState.commandTransactions.find((t) => t.transactionId === transactionId);
+    if (!tx || tx.status !== 'WAITING_CLARIFICATION') {
+      return { ok: false, refundEffect: { gold: 0 }, error: 'Transaction not in WAITING_CLARIFICATION' };
+    }
+
+    tx.status = 'CANCELLED';
+    tx.refundedCost = tx.frozenCost;
+    config.onStateChange?.(state.battleState);
+
+    return { ok: true, refundEffect: { gold: tx.frozenCost } };
+  }
+
+  function getPendingAskTransaction(): {
+    transactionId: string;
+    targetQuestion: string;
+    targetOptions: { actorId: string; label: string }[];
+  } | null {
+    if (!state) return null;
+    const tx = state.battleState.commandTransactions.find((t) => t.status === 'WAITING_CLARIFICATION');
+    if (!tx || !tx.result) return null;
+    return {
+      transactionId: tx.transactionId,
+      targetQuestion: tx.result.targetQuestion ?? '请选择目标',
+      targetOptions: tx.result.targetOptions?.map((o) => ({ actorId: o.actorId, label: o.label })) ?? [],
+    };
+  }
+
+  function finalizePendingCommands(): { refundEffects: { gold: number; transactionId: string }[] } {
+    if (!state) return { refundEffects: [] };
+    const refundEffects: { gold: number; transactionId: string }[] = [];
+
+    for (const tx of state.battleState.commandTransactions) {
+      if (tx.status === 'READY_TO_INJECT' && tx.frozenCost > 0) {
+        tx.status = 'CANCELLED';
+        tx.refundedCost = tx.frozenCost;
+        refundEffects.push({ gold: tx.frozenCost, transactionId: tx.transactionId });
       }
     }
 
-    state.battleState.usedItemIds.push(itemId);
-    state.battleState.itemUsesRemaining = Math.max(0, state.battleState.itemUsesRemaining - 1);
-    state.battleState.stateVersion += 1;
-
-    const event: BattleEvent = {
-      eventId,
-      actorActionIndex: state.battleState.actorActionIndex,
-      type: 'ITEM_USED',
-      targetActorId,
-      diffs: [
-        ...diffs,
-        { path: 'usedItemIds', oldValue: oldUsedItemIds, newValue: [...state.battleState.usedItemIds] },
-        { path: 'itemUsesRemaining', oldValue: oldItemUsesRemaining, newValue: state.battleState.itemUsesRemaining },
-      ],
-      tags: ['ITEM'],
-      actionDescription: `对 ${actor.name} 使用了 ${itemDef.name}`,
-      createdAt: Date.now(),
-    };
-    state.battleState.eventLog.push(event);
-
-    const displayItem: DisplayItem = {
-      itemId: eventId,
-      actorActionIndex: state.battleState.actorActionIndex,
-      type: 'ACTION',
-      actorId: targetActorId,
-      content: `🎁 对 ${actor.name} 使用了 ${itemDef.name}`,
-    };
-    state.queues = enqueueDisplay(state.queues, displayItem);
-
-    if (!disposed) config.onEvent?.(event);
-    if (!disposed) config.onStateChange?.(state.battleState);
-
-    return { ok: true, eventId };
+    if (refundEffects.length > 0) config.onStateChange?.(state.battleState);
+    return { refundEffects };
   }
 
   return {
@@ -472,8 +577,13 @@ export function createBattleEngine(config: BattleEngineConfig) {
     getState,
     getNextDisplayItem,
     consumeDisplayItem,
+    recordFactEvent,
     submitCommand,
     useItem,
+    resolveAsk,
+    cancelAsk,
+    getPendingAskTransaction,
+    finalizePendingCommands,
   };
 }
 

@@ -33,7 +33,7 @@ export function createCommandGateProvider(
     ): Promise<CommandGateResult> {
       const traceId = createTraceId();
 
-      const quickResult = quickEvaluate(rawInput);
+      const quickResult = quickEvaluate(rawInput, battleState);
       if (quickResult) {
         logLLMSkip(traceId, 'CommandGate', `quickEvaluate: ${quickResult.reason}`);
         return {
@@ -41,6 +41,8 @@ export function createCommandGateProvider(
           normalizedInput: rawInput.trim().toLowerCase(),
           reason: quickResult.reason,
           directorBroadcastDraft: quickResult.draft,
+          targetQuestion: quickResult.targetQuestion,
+          targetOptions: quickResult.targetOptions,
         };
       }
 
@@ -85,6 +87,8 @@ export function createCommandGateProvider(
             reason: string;
             directorBroadcast?: { text: string; scope: string; targetActorIds: string[] };
             directorBroadcastDraft?: { text: string; scope: string; targetActorIds: string[] };
+            targetQuestion?: string;
+            targetOptions?: { actorId: string; label: string }[];
           }
 
           const result = parseJsonOrRepair<RawLLMGateOutput>(rawOutput, {
@@ -105,11 +109,17 @@ export function createCommandGateProvider(
                 lifetime: 'NEXT_ACTION',
               };
             }
+            const targetOptions: CommandGateResult['targetOptions'] = raw.targetOptions?.map((o) => ({
+              actorId: o.actorId,
+              label: o.label,
+            }));
             return {
               decision: raw.decision as CommandGateResult['decision'],
               normalizedInput: raw.normalizedInput ?? rawInput,
               reason: raw.reason ?? '',
               directorBroadcastDraft: draft,
+              targetQuestion: raw.targetQuestion,
+              targetOptions,
             };
           }
         } catch (err) {

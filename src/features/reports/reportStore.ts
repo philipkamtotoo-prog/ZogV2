@@ -25,6 +25,7 @@ interface ReportStore {
 
   setCurrentReport: (report: BattleReport, bill: EpisodeBill) => void;
   addReport: (report: BattleReport) => void;
+  updateReport: (report: BattleReport) => void;
   clearCurrent: () => void;
 }
 
@@ -38,6 +39,13 @@ export const useReportStore = create<ReportStore>((set) => ({
   addReport: (report) =>
     set((s) => {
       const next = [report, ...s.reports].slice(0, 20);
+      saveReports(next);
+      return { reports: next };
+    }),
+
+  updateReport: (report) =>
+    set((s) => {
+      const next = s.reports.map((r) => r.battleId === report.battleId ? report : r);
       saveReports(next);
       return { reports: next };
     }),

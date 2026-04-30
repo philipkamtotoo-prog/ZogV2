@@ -6,11 +6,13 @@ import { calculateEpisodeBill } from '../../reports/bill';
 import { useLoungeStore } from '../../lounge/loungeStore';
 import { loadStoredLLMConfig, validateLLMConfig } from '../../../llm/clients/byokConfig';
 import { useEffect, useRef } from 'react';
+import { calculateSalaryAwards } from '../../../core/battle/finalScore';
 
 export function ResultsPage() {
   const { finalScores, battleState, goToLobby, betSlip, getBetPayout } = useBattleStore();
-  const { setCurrentReport, addReport, currentBill } = useReportStore();
+  const { setCurrentReport, addReport, updateReport, currentBill } = useReportStore();
   const addGold = useLoungeStore((s) => s.addGold);
+  const addActorSalary = useLoungeStore((s) => s.addActorSalary);
   const generated = useRef(false);
 
   const payout = getBetPayout();
@@ -26,22 +28,32 @@ export function ResultsPage() {
         battleState.usedItemIds.length
       );
       const totalGold = bill.netGold;
+      const salaryAwards = battleState.salaryAwards.length > 0
+        ? battleState.salaryAwards
+        : calculateSalaryAwards(finalScores);
 
-      const baseReport = extractBattleReport(battleState);
+      const baseReport = extractBattleReport(battleState, bill, battleState.reporterMemory);
       setCurrentReport(baseReport, bill);
       addReport(baseReport);
       addGold(totalGold);
+      salaryAwards.forEach((award) => addActorSalary(award.actorId, award.totalSalary));
 
       const llmConfig = loadStoredLLMConfig();
       if (llmConfig && validateLLMConfig(llmConfig).valid) {
         generateLLMReport(battleState, finalScores, llmConfig)
           .then((llmReport) => {
-            setCurrentReport(llmReport, bill);
+            const enrichedReport = {
+              ...llmReport,
+              bill,
+              reporterMemory: battleState.reporterMemory,
+            };
+            setCurrentReport(enrichedReport, bill);
+            updateReport(enrichedReport);
           })
           .catch(() => { /* fallback already set */ });
       }
     }
-  }, [battleState, finalScores, setCurrentReport, addReport, addGold, betSlip, payout]);
+  }, [battleState, finalScores, setCurrentReport, addReport, addGold, addActorSalary, betSlip, payout]);
 
   return (
     <div style={{ padding: 24, maxWidth: 600, margin: '0 auto' }}>
@@ -95,10 +107,10 @@ export function ResultsPage() {
               </td>
               <td style={{ padding: 6 }}>{s.name}</td>
               <td style={{ padding: 6, textAlign: 'right', fontWeight: 'bold' }}>{s.finalScore}</td>
-              <td style={{ padding: 6, textAlign: 'right', fontSize: 12 }}>{s.breakdown.damageScore.toFixed(0)}</td>
-              <td style={{ padding: 6, textAlign: 'right', fontSize: 12 }}>{s.breakdown.killScore}</td>
+              <td style={{ padding: 6, textAlign: 'right', fontSize: 12 }}>{s.breakdown.totalDamageDealt.toFixed(0)}</td>
+              <td style={{ padding: 6, textAlign: 'right', fontSize: 12 }}>{s.salaryAward}S</td>
               <td style={{ padding: 6, textAlign: 'center', fontSize: 12 }}>
-                {s.breakdown.survivalScore > 0 ? (
+                {s.rank <= battleState!.actors.filter((a) => a.isAlive).length ? (
                   <span style={{ color: '#4caf50' }}>存活</span>
                 ) : (
                   <span style={{ color: '#f44336' }}>淘汰</span>

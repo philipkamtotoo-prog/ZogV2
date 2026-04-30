@@ -42,31 +42,31 @@ export function BattleControls({
 
       {phase === 'PREPARING' && (
         <button style={btnStyle()} onClick={onStart}>
-          Start Battle
+          开始战斗
         </button>
       )}
 
       {phase === 'RUNNING' && clockState === 'PLAYING' && (
         <button style={btnStyle()} onClick={onPause}>
-          Pause
+          暂停
         </button>
       )}
 
       {phase === 'RUNNING' && clockState === 'PAUSED' && (
         <>
           <button style={btnStyle()} onClick={onResume}>
-            Resume
+            继续
           </button>
           <button style={btnStyle(isProcessing)} onClick={onStep} disabled={isProcessing}>
-            Step
+            单步
           </button>
           <button style={btnStyle()} onClick={onAuto}>
-            Auto
+            自动
           </button>
         </>
       )}
 
-      {isProcessing && <span style={{ color: '#ffeb3b', fontSize: 12 }}>Processing...</span>}
+      {isProcessing && <span style={{ color: '#ffeb3b', fontSize: 12 }}>处理中...</span>}
     </div>
   );
 }

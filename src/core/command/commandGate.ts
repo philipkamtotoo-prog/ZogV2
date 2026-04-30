@@ -40,6 +40,8 @@ export function processCommand(
     createdAtActionIndex: battleState.actorActionIndex,
     estimatedCost: calculateCost(rawInput, config),
     frozenCost: 0,
+    paidCost: 0,
+    refundedCost: 0,
   };
 
   return transaction;
@@ -148,6 +150,7 @@ export function applyGateResult(
     status: newStatus,
     frozenCost,
     result,
+    pendingRawInput: result.decision === 'ASK' ? transaction.rawInput : undefined,
     rejectReason: result.decision === 'REJECT' ? result.reason : undefined,
   };
 }

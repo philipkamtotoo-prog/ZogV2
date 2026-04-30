@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useLoungeStore } from '../loungeStore';
+import { useLoungeStore, ZOG_GIFT_TIERS } from '../loungeStore';
 import {
   DEFAULT_LLM_CONFIG,
   PROVIDER_DEFS,
@@ -75,18 +75,21 @@ export function LoungePage({ onEnterTV, onOpenShop, onOpenReports, onOpenRoster 
           >
             Beg for Gold
           </button>
-          <button
-            onClick={() => giftZog(10)}
-            disabled={gold < 10}
-            style={{
-              padding: '6px 16px', borderRadius: 4, border: 'none', fontSize: 12,
-              background: gold >= 10 ? '#555' : '#333',
-              color: gold >= 10 ? '#f48fb1' : '#666',
-              cursor: gold >= 10 ? 'pointer' : 'default',
-            }}
-          >
-            Gift Zog (10G)
-          </button>
+          {ZOG_GIFT_TIERS.map((tier) => (
+            <button
+              key={tier.cost}
+              onClick={() => giftZog(tier.cost)}
+              disabled={gold < tier.cost}
+              style={{
+                padding: '6px 12px', borderRadius: 4, border: 'none', fontSize: 12,
+                background: gold >= tier.cost ? '#555' : '#333',
+                color: gold >= tier.cost ? '#f48fb1' : '#666',
+                cursor: gold >= tier.cost ? 'pointer' : 'default',
+              }}
+            >
+              送礼物 ({tier.cost}G +{tier.affection})
+            </button>
+          ))}
         </div>
 
         {begMessage && (

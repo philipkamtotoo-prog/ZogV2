@@ -3,7 +3,7 @@
  * 管理 generationQueue、commitQueue、displayQueue
  */
 
-import type { DisplayItem } from '../core/battle/types';
+import type { DisplayEvent } from '../features/battle/display/displayTypes';
 
 /**
  * Queues - 管理战斗中的各种队列
@@ -16,7 +16,7 @@ export interface Queues {
   commitQueue: CommitQueueItem[];
 
   // 显示队列（等待 UI 播放）
-  displayQueue: DisplayItem[];
+  displayQueue: DisplayEvent[];
 }
 
 export interface GenerationQueueItem {
@@ -101,7 +101,7 @@ export function dequeueCommit(queues: Queues, actorId: string): Queues {
 /**
  * 添加到显示队列
  */
-export function enqueueDisplay(queues: Queues, item: DisplayItem): Queues {
+export function enqueueDisplay(queues: Queues, item: DisplayEvent): Queues {
   return {
     ...queues,
     displayQueue: [...queues.displayQueue, item],
@@ -111,7 +111,7 @@ export function enqueueDisplay(queues: Queues, item: DisplayItem): Queues {
 /**
  * 取出下一个显示项
  */
-export function dequeueDisplay(queues: Queues): { item: DisplayItem | null; queues: Queues } {
+export function dequeueDisplay(queues: Queues): { item: DisplayEvent | null; queues: Queues } {
   if (queues.displayQueue.length === 0) {
     return { item: null, queues };
   }
@@ -129,7 +129,7 @@ export function dequeueDisplay(queues: Queues): { item: DisplayItem | null; queu
 /**
  * 查看下一个显示项（不移除）
  */
-export function peekDisplay(queues: Queues): DisplayItem | null {
+export function peekDisplay(queues: Queues): DisplayEvent | null {
   return queues.displayQueue[0] ?? null;
 }
 

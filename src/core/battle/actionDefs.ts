@@ -4,9 +4,9 @@ export const ACTION_DEFS: Record<ActionType, ActionDef> = {
   MOCK_ANIMAL_MANAGEMENT: {
     actionType: 'MOCK_ANIMAL_MANAGEMENT',
     targetPolicy: 'TARGET_REQUIRED',
-    damageEnabled: false,
+    damageEnabled: true,
     actionPower: 0.8,
-    tags: ['SAFE_FALLBACK'],
+    tags: ['DAMAGE', 'THREAT_UP'],
   },
   STEAL_DODOS: {
     actionType: 'STEAL_DODOS',

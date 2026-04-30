@@ -1,27 +1,44 @@
 import { useRef, useEffect } from 'react';
-import type { DisplayItem } from '../../../core/battle/types';
+import type { DisplayEvent } from '../display/displayTypes';
 
 interface DisplayLogProps {
-  items: DisplayItem[];
+  items: DisplayEvent[];
+  actors?: Array<{ actorId: string; name: string }>;
 }
 
-const TYPE_COLORS: Record<string, string> = {
-  LINE: '#eee',
-  ACTION: '#88ccff',
-  HP_CHANGE: '#f44336',
-  STATUS_CHANGE: '#ffa726',
-  BROADCAST: '#ce93d8',
+const KIND_COLORS: Record<string, string> = {
+  ACTOR_LINE: '#eee',
+  ACTOR_ACTION: '#88ccff',
+  DAMAGE: '#f44336',
+  HEAL: '#4caf50',
+  STATUS: '#ffa726',
   ELIMINATION: '#ff5252',
-  ROUND_END: '#666',
-  SCENE_UPDATE: '#81c784',
+  ITEM: '#ce93d8',
+  BROADCAST: '#ce93d8',
+  REPORTER: '#80cbc4',
+  ZOG: '#ffd54f',
+  MUTATION: '#ff9800',
+  PROMPT: '#80deea',
 };
 
-export function DisplayLog({ items }: DisplayLogProps) {
+function getActorId(item: DisplayEvent): string | undefined {
+  if ('actorId' in item) return item.actorId;
+  if ('targetId' in item) return item.targetId;
+  return undefined;
+}
+
+export function DisplayLog({ items, actors = [] }: DisplayLogProps) {
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [items.length]);
+
+  const getActorName = (actorId: string | undefined) => {
+    if (!actorId) return '';
+    const actor = actors.find((a) => a.actorId === actorId);
+    return actor?.name ?? '';
+  };
 
   return (
     <div
@@ -37,15 +54,20 @@ export function DisplayLog({ items }: DisplayLogProps) {
     >
       {items.length === 0 && (
         <div style={{ color: '#555', textAlign: 'center', padding: 20 }}>
-          Waiting for battle to begin...
+          等待战斗开始...
         </div>
       )}
-      {items.map((item) => (
-        <div key={item.itemId} style={{ color: TYPE_COLORS[item.type] ?? '#eee', marginBottom: 2 }}>
-          <span style={{ color: '#555', fontSize: 10, marginRight: 6 }}>#{item.actorActionIndex}</span>
-          {item.content}
-        </div>
-      ))}
+      {items.map((item) => {
+        const actorId = getActorId(item);
+        const actorName = getActorName(actorId);
+        return (
+          <div key={item.eventId} style={{ color: KIND_COLORS[item.kind] ?? '#eee', marginBottom: 2 }}>
+            <span style={{ color: '#555', fontSize: 10, marginRight: 6 }}>#{item.actorActionIndex}</span>
+            {actorName && <span style={{ color: '#ffeb3b', fontWeight: 'bold', marginRight: 6 }}>{actorName}:</span>}
+            {item.content}
+          </div>
+        );
+      })}
       <div ref={endRef} />
     </div>
   );

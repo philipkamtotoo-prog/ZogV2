@@ -17,12 +17,19 @@ export function selectActiveActor(
 
   // 计算优先级分数
   const scored = aliveActors.map((actor) => {
-    let score = actor.initiative + actor.spotlightDebt + actor.currentThreat;
+    const dangerScore = Math.floor((1 - actor.currentHP / actor.maxHP) * 100);
+    const lastBreathPriority = actor.currentHP < actor.maxHP * 0.2 ? 1 : 0;
+    let score =
+      actor.initiative +
+      actor.spotlightDebt * 30 +
+      dangerScore * 25 +
+      lastBreathPriority * 100 +
+      actor.currentThreat;
 
     // 最近行动过的惩罚
     if (actor.lastActedActionIndex !== undefined) {
       const turnsSince = actorActionIndex - actor.lastActedActionIndex;
-      score -= Math.max(0, 10 - turnsSince);
+      score -= turnsSince <= 1 ? 50 : Math.max(0, 10 - turnsSince);
     }
 
     return { actor, score };

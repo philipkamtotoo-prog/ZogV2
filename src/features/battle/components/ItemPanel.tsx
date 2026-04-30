@@ -13,6 +13,7 @@ export function ItemPanel() {
   const aliveActors = battleState.actors.filter((a) => a.isAlive);
   const ownedItems = Object.entries(inventory)
     .filter(([, count]) => count > 0)
+    .filter(([id]) => Boolean(ITEM_DEFS[id as ItemId]))
     .map(([id, count]) => ({ ...ITEM_DEFS[id as ItemId], count }));
 
   if (ownedItems.length === 0) return null;

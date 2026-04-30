@@ -1,4 +1,5 @@
 import { useReportStore } from '../reportStore';
+import type { EpisodeBill } from '../bill';
 
 interface ReportCollectionPageProps {
   onBack: () => void;
@@ -24,7 +25,7 @@ export function ReportCollectionPage({ onBack, onOpenReport }: ReportCollectionP
       {reports.map((r) => (
         <div
           key={r.reportId}
-          onClick={() => { setCurrentReport(r, { battleId: r.battleId, lineItems: [], totalIncome: 0, totalExpense: 0, netGold: 0 }); onOpenReport(); }}
+          onClick={() => { setCurrentReport(r, (r as { bill?: EpisodeBill }).bill ?? { battleId: r.battleId, lineItems: [], totalIncome: 0, totalExpense: 0, netGold: 0 }); onOpenReport(); }}
           style={{
             padding: 12,
             marginBottom: 8,

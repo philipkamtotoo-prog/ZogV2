@@ -9,6 +9,9 @@ export interface BetSlip {
   locked: boolean;
 }
 
+export const MIN_BET_AMOUNT = 50;
+export const MAX_BET_AMOUNT = 500;
+
 /**
  * 固定赔率表（文档9.3节）：按preBattlePower排名
  */
@@ -67,6 +70,10 @@ export function calculateOdds(
 
 export function createBetSlip(actorId: string, amount: number, odds: number): BetSlip {
   return { actorId, amount, odds, locked: false };
+}
+
+export function isValidBetAmount(amount: number): boolean {
+  return Number.isInteger(amount) && amount >= MIN_BET_AMOUNT && amount <= MAX_BET_AMOUNT;
 }
 
 export function lockBet(bet: BetSlip): BetSlip {

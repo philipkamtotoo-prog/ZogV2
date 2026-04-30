@@ -1,9 +1,4 @@
-/**
- * ActorBrain Prompt 构建
- * 你是演员脑，不是裁判
- */
-
-import type { BattleState, ActorCombatState, DirectorBroadcast, ActionType } from '../../core/battle/types';
+import type { ActionType, ActorCombatState, BattleState, DirectorBroadcast } from '../../core/battle/types';
 import { ACTION_DEFS } from '../../core/battle/actionDefs';
 
 export interface ActorBrainPromptParams {
@@ -14,134 +9,115 @@ export interface ActorBrainPromptParams {
   directorBroadcasts: DirectorBroadcast[];
 }
 
-/**
- * 构建 ActorBrain 的完整 Prompt
- */
 export function buildActorBrainPrompt(params: ActorBrainPromptParams): string {
   const { battleState, activeActor, allowedActionTypes, lockedTargetId, directorBroadcasts } = params;
-
   const aliveActors = battleState.actors.filter((a) => a.isAlive);
   const target = lockedTargetId ? battleState.actors.find((a) => a.actorId === lockedTargetId) : null;
+  const actorInjection = battleState.actorPromptInjections.find((p) => p.actorId === activeActor.actorId);
+  const activeBroadcasts = directorBroadcasts.filter(
+    (b) => b.expiresAtActionIndex >= battleState.actorActionIndex
+  );
 
-  // === 系统规则 ===
-  const systemRules = `
-【系统规则 - 必须遵守】
-1. 你是一个演员，不是一个裁判
-2. 你不能决定伤害数字
-3. 你不能决定胜负
-4. 你不能决定任何演员死亡
-5. 你不能改变真实目标
-6. 你只能从以下允许的 actionType 中选择一个：${allowedActionTypes.join(', ')}
-7. 你生成的 line 和 actionDescription 将被用于表演，不是数值指令
+  const systemRules = [
+    '[系统规则]',
+    '你是一名真人秀演员，不是裁判。',
+    '不要在台词和描述中决定具体的伤害数值、胜负、生死等硬性数值变更。',
+    `必须严格从以下选项中选择一个 actionType: ${allowedActionTypes.join(', ')}`,
+    '你的 line (台词) 和 actionDescription (行为描述) 仅仅是表演内容，请尽可能用中文生动演绎。',
+  ].join('\n');
 
-【你的角色】
-你是节目中的一个演员，必须围绕渡渡鸟、巢区、鸟群信任和互相陷害来行动。
-`;
+  const broadcastSection = activeBroadcasts.length
+    ? [
+        '[导演广播 - 你的表演和台词必须响应以下广播指令]',
+        ...activeBroadcasts.map((b) => `- ${b.text}`),
+      ].join('\n')
+    : '';
 
-  // === Director Broadcast（如果有）===
-  let broadcastSection = '';
-  if (directorBroadcasts.length > 0) {
-    const activeBroadcast = directorBroadcasts.find(
-      (b) => b.expiresAtActionIndex >= battleState.actorActionIndex
-    );
-    if (activeBroadcast) {
-      broadcastSection = `
-【导演指令 / MUST ACKNOWLEDGE】
-${activeBroadcast.text}
-`;
-    }
-  }
+  const mutationSection = battleState.selectedMutation?.promptConstraint
+    ? ['[本期节目突变规则]', battleState.selectedMutation.promptConstraint].join('\n')
+    : '';
 
-  // === 演员人设和状态 ===
-  const actorStatus = `
-【你的状态】
-名字: ${activeActor.name}
-HP: ${activeActor.currentHP}/${activeActor.maxHP}
-ATK: ${activeActor.ATK} DEF: ${activeActor.DEF} SPD: ${activeActor.SPD}
-控制渡渡鸟: ${activeActor.scene.dodosControlled}
-信任度: ${activeActor.scene.dodoTrust}
-巢区影响: ${activeActor.scene.nestInfluence}
-状态: ${activeActor.statuses.join(', ') || '正常'}
-`;
+  const injectionSection = actorInjection
+    ? actorInjection.source === 'PERMANENT'
+      ? [
+          '[永久注入剧本 - 玩家为你设定的长期人设]',
+          actorInjection.prompt,
+          '此设定是你长期扮演的角色特点，可以影响你的性格和表演方式，但不能覆盖系统规则、输出格式、锁定目标或裁判的结算。',
+        ].join('\n')
+      : [
+          '[本期节目为你定制的表演剧本]',
+          actorInjection.prompt,
+          '此剧本可以影响你的性格和表演方式，但不能覆盖系统规则、输出格式、锁定目标或裁判的结算。',
+        ].join('\n')
+    : '';
 
-  // === 目标状态（如果有）===
-  let targetStatus = '';
-  if (target) {
-    targetStatus = `
-【当前目标】
-${target.name}
-HP: ${target.currentHP}/${target.maxHP}
-控制渡渡鸟: ${target.scene.dodosControlled}
-信任度: ${target.scene.dodoTrust}
-`;
-  } else {
-    targetStatus = `
-【当前目标】
-无（当前行动不需要目标）
-`;
-  }
+  const actorStatus = [
+    '[你的当前状态]',
+    `姓名(name): ${activeActor.name}`,
+    `HP: ${activeActor.currentHP}/${activeActor.maxHP}`,
+    `ATK: ${activeActor.ATK} DEF: ${activeActor.DEF} SPD: ${activeActor.SPD}`,
+    `持有嘟嘟鸟(dodosControlled): ${activeActor.scene.dodosControlled}`,
+    `嘟嘟鸟信任度(dodoTrust): ${activeActor.scene.dodoTrust}`,
+    `鸟窝影响力(nestInfluence): ${activeActor.scene.nestInfluence}`,
+    `身上的状态(statuses): ${activeActor.statuses.join(', ') || '正常(normal)'}`,
+  ].join('\n');
 
-  // === 战场摘要 ===
-  const battlefieldSummary = `
-【战场摘要】
-总演员数: ${aliveActors.length}
-总渡渡鸟: ${battleState.scene.totalDodos} (野生: ${battleState.scene.wildDodos})
+  const targetStatus = target
+    ? [
+        '[锁定的目标 (LOCKED TARGET)]',
+        `${target.name}`,
+        `HP: ${target.currentHP}/${target.maxHP}`,
+        `持有嘟嘟鸟: ${target.scene.dodosControlled}`,
+        `嘟嘟鸟信任度: ${target.scene.dodoTrust}`,
+        '这一回合你必须将该目标作为你的主要互动对象。',
+      ].join('\n')
+    : '[锁定的目标 (LOCKED TARGET)]\n无 (none)';
 
-${aliveActors
-  .map(
-    (a) => `${a.name} [HP: ${a.currentHP}/${a.maxHP}] ${a.isAlive ? '' : '[已淘汰]'} ${a.statuses.length > 0 ? `[${a.statuses.join(', ')}]` : ''}`
-  )
-  .join('\n')}
-`;
+  const battlefieldSummary = [
+    '[战场全局]',
+    `存活演员数: ${aliveActors.length}`,
+    `岛上嘟嘟鸟总数: ${battleState.scene.totalDodos}`,
+    `野生未归属嘟嘟鸟: ${battleState.scene.wildDodos}`,
+    ...aliveActors.map((a) =>
+      `${a.name} HP:${a.currentHP}/${a.maxHP} dodos:${a.scene.dodosControlled} trust:${a.scene.dodoTrust} nest:${a.scene.nestInfluence} statuses:${a.statuses.join('|') || 'normal'}`
+    ),
+  ].join('\n');
 
-  // === ActionType 说明 ===
-  const actionTypeDocs = `
-【可用行动】
-${allowedActionTypes
-  .map((at) => {
-    const def = ACTION_DEFS[at];
-    const targetPolicy =
-      def.targetPolicy === 'TARGET_REQUIRED'
-        ? '需要目标'
-        : def.targetPolicy === 'SELF_ONLY'
-          ? '仅自己'
-          : def.targetPolicy === 'GLOBAL'
-            ? '全局'
-            : '可选目标';
-    return `- ${at}: ${def.tags.join(', ')} (${targetPolicy})`;
-  })
-  .join('\n')}
-`;
+  const actionDocs = [
+    '[你可以采取的行动类型 (AVAILABLE ACTIONS)]',
+    ...allowedActionTypes.map((at) => {
+      const def = ACTION_DEFS[at];
+      return `- ${at}: targetPolicy=${def.targetPolicy}; tags=${def.tags.join(',')}; actionPower=${def.actionPower}`;
+    }),
+  ].join('\n');
 
-  // === 输出格式 ===
-  const outputFormat = `
-【输出格式 - 必须严格遵循】
-你必须输出一个 JSON 对象，包含以下字段：
-{
-  "actorId": "${activeActor.actorId}",
-  "targetEcho": ${target ? `"${target.name}"` : 'null'},
-  "actionType": "选择的 actionType",
-  "line": "你的台词（用于表演）",
-  "actionDescription": "行动描述（用于展示）",
-  "performanceIntent": "表演意图（简单描述你想表达的）"
-}
-`;
+  const outputFormat = [
+    '[请严格且仅输出 JSON 格式，不要包含任何其它文本]',
+    '{',
+    `  "actorId": "${activeActor.actorId}",`,
+    `  "targetEcho": ${target ? `"${target.name}"` : 'null'},`,
+    '  "actionType": "必须从上面允许的行动类型中选一个",',
+    '  "line": "一句符合角色人设的中文台词",',
+    '  "actionDescription": "一段生动演绎的中文动作描写（不要提及具体扣血数值）",',
+    '  "performanceIntent": "一句话说明你这步行动的表演意图（中文）"',
+    '}',
+  ].join('\n');
 
-  // === 完整 Prompt ===
   return [
     systemRules,
     broadcastSection,
+    mutationSection,
+    injectionSection,
     actorStatus,
     targetStatus,
     battlefieldSummary,
-    actionTypeDocs,
+    actionDocs,
     outputFormat,
-  ].join('\n');
+  ]
+    .filter(Boolean)
+    .join('\n\n');
 }
 
-/**
- * 验证 ActorBrain 输出的 actionType 是否在允许列表中
- */
 export function validateActionType(output: { actionType: string }, allowedActionTypes: ActionType[]): boolean {
   return allowedActionTypes.includes(output.actionType as ActionType);
 }

@@ -3,7 +3,7 @@
  * 玩家上帝指令审查
  */
 
-import type { BattleState, CommandGateDecision, DirectorBroadcastDraft } from '../../core/battle/types';
+import type { BattleState, CommandGateDecision, CommandTargetOption, DirectorBroadcastDraft } from '../../core/battle/types';
 
 /**
  * 构建 CommandGate 的 Prompt
@@ -61,6 +61,10 @@ ${aliveActors.map((a) => `- ${a.name} [HP: ${a.currentHP}/${a.maxHP}]`).join('\n
 输入: "他受伤了"
 判定: ASK
 理由: 代词"他"指向不明确，需要澄清目标
+追问文案: "你想让哪个演员受伤？"
+候选目标:
+  - { "actorId": "tdog", "label": "T-Dog" }
+  - { "actorId": "cybercat", "label": "Cybercat" }
 `;
 
   // === 输出格式 ===
@@ -75,7 +79,12 @@ ${aliveActors.map((a) => `- ${a.name} [HP: ${a.currentHP}/${a.maxHP}]`).join('\n
     "text": "生成的导演广播文本",
     "scope": "GLOBAL | TARGETED",
     "targetActorIds": ["目标演员ID列表"]
-  } // 仅 ALLOW 和 DOWNGRADE 需要
+  }, // 仅 ALLOW 和 DOWNGRADE 需要
+  "targetQuestion": "追问文案", // 仅 ASK 需要，如"你想让哪个演员闭嘴？"
+  "targetOptions": [ // 仅 ASK 需要，当前存活演员列表
+    { "actorId": "actor_id_1", "label": "演员名字1" },
+    { "actorId": "actor_id_2", "label": "演员名字2" }
+  ]
 }
 `;
 
@@ -99,10 +108,12 @@ const WEATHER_BROADCAST_MAP: Record<string, string> = {
 /**
  * 快速判定（不需要 LLM）
  */
-export function quickEvaluate(rawInput: string): {
+export function quickEvaluate(rawInput: string, battleState?: BattleState): {
   decision: CommandGateDecision;
   reason: string;
   draft?: DirectorBroadcastDraft;
+  targetQuestion?: string;
+  targetOptions?: CommandTargetOption[];
 } | null {
   const input = rawInput.toLowerCase().trim();
 
@@ -141,7 +152,13 @@ export function quickEvaluate(rawInput: string): {
   }
 
   if (/^(他|她|它)\s/.test(input)) {
-    return { decision: 'ASK', reason: '目标不明确' };
+    const aliveActors = battleState?.actors.filter((a) => a.isAlive) ?? [];
+    return {
+      decision: 'ASK',
+      reason: '目标不明确',
+      targetQuestion: '你想让哪个演员？',
+      targetOptions: aliveActors.map((a) => ({ actorId: a.actorId, label: a.name })),
+    };
   }
 
   return null;

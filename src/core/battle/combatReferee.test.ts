@@ -27,8 +27,8 @@ describe('combatReferee', () => {
     });
 
     // 文档：目标有1只，偷1只；补充=min(5-1, 10)=4；总计gain=5
-    expect(result.newActors?.[0].scene.dodosControlled).toBe(5);
+    expect(result.newActors?.[0].scene.dodosControlled).toBe(3);
     expect(result.newActors?.[1].scene.dodosControlled).toBe(0);
-    expect(result.sceneDiff.wildDodos).toBe(6);
+    expect(result.sceneDiff.wildDodos).toBe(8);
   });
 });

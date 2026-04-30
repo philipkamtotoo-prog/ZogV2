@@ -21,6 +21,11 @@ export function BattlePage() {
     startAuto,
     submitCommand,
     setCommandInput,
+    resolveAsk,
+    cancelAsk,
+    liveReport,
+    clearLiveReport,
+    engine,
   } = useBattleStore();
 
   useEffect(() => {
@@ -56,7 +61,7 @@ export function BattlePage() {
             ))}
           </div>
 
-          <DisplayLog items={displayLog} />
+          <DisplayLog items={displayLog} actors={battleState.actors} />
 
           <ItemPanel />
 
@@ -65,14 +70,53 @@ export function BattlePage() {
               value={commandInput}
               onChange={setCommandInput}
               onSubmit={submitCommand}
+              onResolveAsk={resolveAsk}
+              onCancelAsk={cancelAsk}
               disabled={isProcessing}
               status={commandStatus}
+              askTargetQuestion={commandStatus === 'WAITING_CLARIFICATION' ? engine?.getPendingAskTransaction()?.targetQuestion : undefined}
+              askTargetOptions={commandStatus === 'WAITING_CLARIFICATION' ? engine?.getPendingAskTransaction()?.targetOptions : undefined}
             />
           )}
         </div>
 
         <DodoScoreboard actors={battleState.actors} scene={battleState.scene} />
       </div>
+
+      {liveReport && (
+        <div style={{
+          position: 'absolute',
+          top: '15%',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: '80%',
+          maxWidth: 500,
+          background: 'rgba(26, 26, 46, 0.95)',
+          border: '2px solid #e91e63',
+          boxShadow: '0 0 30px rgba(233, 30, 99, 0.6)',
+          borderRadius: 12,
+          padding: 24,
+          zIndex: 1000,
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+            <div>
+              <div style={{ color: '#e91e63', fontSize: 12, fontWeight: 'bold', marginBottom: 6 }}>
+                🎙️ 首席战地记者实时播报
+              </div>
+              <h3 style={{ margin: 0, color: '#fff', fontSize: 18 }}>{liveReport.headline}</h3>
+            </div>
+            <button
+              onClick={clearLiveReport}
+              style={{ background: 'none', border: 'none', color: '#aaa', cursor: 'pointer', fontSize: 24, lineHeight: 1 }}
+            >
+              ×
+            </button>
+          </div>
+          <p style={{ color: '#eee', fontSize: 15, lineHeight: 1.6, margin: 0 }}>
+            {liveReport.summary}
+          </p>
+        </div>
+      )}
     </div>
   );
 }

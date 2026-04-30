@@ -1,4 +1,4 @@
-import type { BattleState, ActorCombatState } from './types';
+import type { ActorCombatState, ActorPromptInjection, BattleState, ProgramMutation } from './types';
 import { randomInt } from './rng';
 
 export interface ActorTemplate {
@@ -11,6 +11,11 @@ export interface ActorTemplate {
   maxHP?: number;
 }
 
+export interface InitialBattleSetup {
+  actorPromptInjections?: ActorPromptInjection[];
+  selectedMutation?: ProgramMutation;
+}
+
 /**
  * 创建初始战斗状态
  */
@@ -18,7 +23,8 @@ export function createInitialBattleState(
   battleSeed: string,
   actorCount: number = 5,
   templates?: ActorTemplate[],
-  itemUsesRemaining: number = 3
+  itemUsesRemaining: number = 1,
+  setup: InitialBattleSetup = {}
 ): BattleState {
   const actors: ActorCombatState[] = [];
 
@@ -40,7 +46,7 @@ export function createInitialBattleState(
       spotlightDebt: 0,
       scene: {
         dodosControlled: 0,
-        dodoTrust: 10,
+        dodoTrust: setup.selectedMutation?.mutationId === 'DODO_ALERT' ? 7 : 10,
         nestInfluence: 0,
       },
       stats: {
@@ -74,6 +80,12 @@ export function createInitialBattleState(
     displayQueue: [],
     itemUsesRemaining,
     usedItemIds: [],
+    actorPromptInjections: setup.actorPromptInjections ?? [],
+    selectedMutation: setup.selectedMutation,
+    stageBriefs: [],
+    salaryAwards: [],
+    reporterMemory: [],
+    reporterMemoryCursor: 0,
   };
 }
 

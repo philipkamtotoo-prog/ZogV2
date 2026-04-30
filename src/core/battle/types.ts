@@ -22,6 +22,44 @@ export interface SceneState {
   wildDodos: number;
 }
 
+export type ProgramMutationId =
+  | 'STUTTER_CUT'
+  | 'LOW_BUDGET_RAIN'
+  | 'FAKE_NEST_FEVER'
+  | 'DODO_ALERT'
+  | 'NEST_PRIME_TIME'
+  | 'LEAKY_MIC';
+
+export interface ProgramMutation {
+  mutationId: ProgramMutationId;
+  name: string;
+  description: string;
+  promptConstraint?: string;
+  directorBroadcastText?: string;
+}
+
+export interface ActorPromptInjection {
+  actorId: string;
+  prompt: string;
+  source: 'PERMANENT' | 'EPISODE';
+  createdAt: number;
+}
+
+export interface StageBrief {
+  briefId: string;
+  actorActionIndex: number;
+  text: string;
+}
+
+export interface SalaryAward {
+  actorId: string;
+  name: string;
+  rank: number;
+  rankSalary: number;
+  mvpBonus: number;
+  totalSalary: number;
+}
+
 // ActorStatus
 export type ActorStatus =
   | 'TAUNT_1_ACTION'
@@ -101,6 +139,12 @@ export type CommandTransactionStatus =
   | 'CANCELLED'
   | 'SYSTEM_FAILED_REFUND';
 
+// CommandTargetOption
+export interface CommandTargetOption {
+  actorId: string;
+  label: string;
+}
+
 // CommandGateResult
 export type CommandGateDecision = 'ALLOW' | 'ASK' | 'DOWNGRADE' | 'REJECT';
 
@@ -116,6 +160,8 @@ export interface CommandGateResult {
   normalizedInput: string;
   reason: string;
   directorBroadcastDraft?: DirectorBroadcastDraft;
+  targetQuestion?: string;
+  targetOptions?: CommandTargetOption[];
 }
 
 // CommandTransaction
@@ -127,8 +173,11 @@ export interface CommandTransaction {
   createdAtActionIndex: number;
   estimatedCost: number;
   frozenCost: number;
+  paidCost: number;
+  refundedCost: number;
   result?: CommandGateResult;
   directorBroadcast?: DirectorBroadcast;
+  pendingRawInput?: string;
   rejectReason?: string;
 }
 
@@ -221,7 +270,10 @@ export type BattleEventType =
   | 'ACTOR_ELIMINATED'
   | 'DIRECTOR_BROADCAST_INJECTED'
   | 'ITEM_USED'
-  | 'ROUND_END';
+  | 'ROUND_END'
+  | 'MUTATION_SELECTED'        // 新增
+  | 'PROMPT_INJECTION_APPLIED' // 新增
+  | 'ZOG_REACTION_EMITTED';    // 新增
 
 // BattleEventTag
 export type BattleEventTag =
@@ -231,7 +283,11 @@ export type BattleEventTag =
   | 'STATUS'
   | 'ELIMINATION'
   | 'BROADCAST'
-  | 'ITEM';
+  | 'ITEM'
+  | 'SHAME'
+  | 'MUTATION'   // 新增
+  | 'PROMPT'     // 新增
+  | 'ZOG';       // 新增
 
 // BattleEvent
 export interface BattleEvent {
@@ -244,9 +300,19 @@ export interface BattleEvent {
   line?: string;
   actionDescription?: string;
   directorBroadcastId?: string;
+  broadcastText?: string; // DIRECTOR_BROADCAST_INJECTED 的真实广播文本
   diffs: BattleDiff[];
   tags: BattleEventTag[];
   createdAt: number;
+  /** ITEM_USED */
+  itemId?: string;
+  /** MUTATION_SELECTED */
+  mutationId?: string;
+  /** PROMPT_INJECTION_APPLIED */
+  promptText?: string;
+  promptSource?: 'PERMANENT' | 'EPISODE';
+  /** ZOG_REACTION_EMITTED */
+  zogReaction?: string;
 }
 
 // DisplayItem - 战斗表现项
@@ -278,6 +344,31 @@ export interface PlayerSupportState {
   locked: boolean;
 }
 
+// ReporterMemoryEntry (defined inline to avoid circular import)
+export interface ReporterMemoryEntry {
+  memoryId: string;
+  battleId: string;
+  actorActionIndex: number;
+  type:
+    | 'STAGE_BRIEF'
+    | 'HIGHLIGHT'
+    | 'SHAME'
+    | 'ACCIDENT'
+    | 'PLAYER_INTERVENTION'
+    | 'ITEM_DRAMA'
+    | 'MUTATION_DRAMA'
+    | 'PROMPT_INJECTION'
+    | 'ZOG_NOTE';
+  title: string;
+  text: string;
+  actorIds: string[];
+  eventIds: string[];
+  severity: 1 | 2 | 3 | 4 | 5;
+  tags: string[];
+  source: 'SYSTEM' | 'LLM';
+  createdAt: number;
+}
+
 // BattleState
 export interface BattleState {
   battleId: string;
@@ -301,6 +392,12 @@ export interface BattleState {
   playerSupport?: PlayerSupportState;
   itemUsesRemaining: number;
   usedItemIds: string[];
+  actorPromptInjections: ActorPromptInjection[];
+  selectedMutation?: ProgramMutation;
+  stageBriefs: StageBrief[];
+  salaryAwards: SalaryAward[];
+  reporterMemory: ReporterMemoryEntry[];
+  reporterMemoryCursor: number;
 }
 
 // CommitInput

@@ -1,42 +1,30 @@
 import type {
-  BattleState,
+  ActionType,
+  ActorCombatState,
+  ActorDiff,
+  BattleDiff,
+  BattleEvent,
+  BattleEventTag,
+  BattleEventType,
   CommitInput,
   CommitResult,
-  ActorDiff,
   SceneDiff,
   StatusDiff,
-  BattleEvent,
-  ActorCombatState,
-  BattleEventType,
-  BattleEventTag,
-  ActionType,
 } from './types';
 import { ACTION_DEFS } from './actionDefs';
-import { seededRng, clamp } from './rng';
+import { clamp, seededRng } from './rng';
 
-/**
- * CombatReferee - 唯一战斗裁判
- *
- * 禁止：
- * - 读取玩家原话
- * - 读取 directorBroadcast.text 做数值结算
- * - 解析演员台词含义
- * - 调 LLM
- */
 export function combatRefereeCommit(
-  battleState: BattleState,
+  battleState: import('./types').BattleState,
   commitInput: CommitInput
 ): CommitResult {
   const { activeActorId, lockedTargetId, actionType, actorBrainOutput } = commitInput;
-
   const activeActor = battleState.actors.find((a) => a.actorId === activeActorId);
   const target = lockedTargetId
     ? battleState.actors.find((a) => a.actorId === lockedTargetId) ?? null
     : null;
 
-  if (!activeActor) {
-    throw new Error('Active actor not found');
-  }
+  if (!activeActor) throw new Error('Active actor not found');
 
   const actionDef = ACTION_DEFS[actionType];
   const actorDiffs: ActorDiff[] = [];
@@ -44,36 +32,15 @@ export function combatRefereeCommit(
   const eliminatedActorIds: string[] = [];
   let wildDodosDelta = 0;
 
-  // === STOMACHACHE_NO_ATTACK 检查（劣质机油副作用）===
-  // 有此状态的演员本轮攻击无效（伤害为0）
-  const stomachacheBlocked = activeActor.statuses.includes('STOMACHACHE_NO_ATTACK') && actionDef.damageEnabled;
+  const pushActorDiff = (
+    actorId: string,
+    path: string,
+    oldValue: unknown,
+    newValue: unknown
+  ) => {
+    actorDiffs.push({ actorId, diffs: [{ path, oldValue, newValue }] });
+  };
 
-  // === SHIELD_ONCE 检查 ===
-  let shieldBlocked = false;
-  if (target && target.statuses.includes('SHIELD_ONCE') && actionDef.damageEnabled) {
-    shieldBlocked = true;
-    statusDiffs.push({ actorId: target.actorId, status: 'SHIELD_ONCE', added: false });
-  }
-
-  // === 计算伤害 ===
-  // 公式: clamp(max(0, ATK * actionPower - DEF) * variance, 1, 35)
-  // variance ∈ [0.85, 1.15] via seeded RNG
-  let damage = 0;
-  if (actionDef.damageEnabled && target && !shieldBlocked && !stomachacheBlocked) {
-    const variance = seededRng(
-      battleState.battleSeed,
-      commitInput.actorActionIndex,
-      'damageVariance',
-      activeActorId,
-      lockedTargetId
-    );
-    // variance: seededRng → [0,1]; 映射到 [0.85, 1.15]
-    const multiplier = 0.85 + variance * 0.3;
-    const baseDamage = Math.max(0, activeActor.ATK * actionDef.actionPower - target.DEF);
-    damage = clamp(Math.round(baseDamage * multiplier), 1, 35);
-  }
-
-  // === 应用结果 ===
   const actorCopies = battleState.actors.map((a) => ({
     ...a,
     stats: { ...a.stats },
@@ -81,215 +48,36 @@ export function combatRefereeCommit(
     statuses: [...a.statuses],
   }));
 
-  for (const actor of actorCopies) {
-    // 1. Active actor 基础更新
-    if (actor.actorId === activeActorId) {
-      actor.stats.actionsTaken += 1;
-      actor.lastActedActionIndex = commitInput.actorActionIndex;
-      actor.spotlightDebt = Math.max(0, actor.spotlightDebt - 10);
-      if (damage > 0) {
-        actor.stats.damageDealt += damage;
-      }
-      actorDiffs.push({
-        actorId: actor.actorId,
-        diffs: [{ path: 'stats.actionsTaken', oldValue: actor.stats.actionsTaken - 1, newValue: actor.stats.actionsTaken }],
-      });
-    }
-
-    // 2. Target 受到伤害
-    if (target && actor.actorId === target.actorId && damage > 0) {
-      const oldHP = actor.currentHP;
-      actor.currentHP = clamp(oldHP - damage, 0, actor.maxHP);
-      actor.stats.damageTaken += damage;
-      actor.lastTargetedActionIndex = commitInput.actorActionIndex;
-      actor.isAlive = actor.currentHP > 0;
-
-      if (!actor.isAlive) {
-        actor.eliminatedAtActionIndex = commitInput.actorActionIndex;
-        eliminatedActorIds.push(actor.actorId);
-      }
-
-      actorDiffs.push({
-        actorId: actor.actorId,
-        diffs: [
-          { path: 'currentHP', oldValue: oldHP, newValue: actor.currentHP },
-          { path: 'isAlive', oldValue: oldHP > 0, newValue: actor.isAlive },
-        ],
-      });
-    }
-
-    // 3. SHIELD_ONCE 消耗
-    if (shieldBlocked && target && actor.actorId === target.actorId) {
-      actor.statuses = actor.statuses.filter((s) => s !== 'SHIELD_ONCE');
-    }
-
-    // 4. TAUNT_1_ACTION 消耗（active actor 行动后消耗）
-    if (actor.actorId === activeActorId && actor.statuses.includes('TAUNT_1_ACTION')) {
-      actor.statuses = actor.statuses.filter((s) => s !== 'TAUNT_1_ACTION');
-      actor.tauntedByActorId = undefined;
-      statusDiffs.push({ actorId: actor.actorId, status: 'TAUNT_1_ACTION', added: false });
-    }
-
-    // 5. STOMACHACHE_NO_ATTACK 消耗（劣质机油副作用，行动后消失）
-    if (actor.actorId === activeActorId && actor.statuses.includes('STOMACHACHE_NO_ATTACK')) {
-      actor.statuses = actor.statuses.filter((s) => s !== 'STOMACHACHE_NO_ATTACK');
-      statusDiffs.push({ actorId: actor.actorId, status: 'STOMACHACHE_NO_ATTACK', added: false });
-    }
-  }
-
-  // === 处理 actionType 特殊效果 ===
   const activeActorCopy = actorCopies.find((a) => a.actorId === activeActorId)!;
   const targetCopy = target ? actorCopies.find((a) => a.actorId === target.actorId) ?? null : null;
-  const currentWild = battleState.scene.wildDodos;
 
-  switch (actionType) {
-    case 'MOCK_ANIMAL_MANAGEMENT': {
-      // 嘲讽管理能力：目标 THREAT +2
-      if (targetCopy) {
-        targetCopy.currentThreat += 2;
-      }
-      break;
-    }
-    case 'STEAL_DODOS': {
-      if (targetCopy) {
-        // 偷目标最多5只，不足从wild补最多2只，总共最多偷5只
-        const stealFromTarget = Math.min(targetCopy.scene.dodosControlled, 5);
-        const supplementFromWild = Math.min(5 - stealFromTarget, currentWild + wildDodosDelta);
-        const totalGain = stealFromTarget + supplementFromWild;
+  const stomachacheBlocked =
+    activeActor.statuses.includes('STOMACHACHE_NO_ATTACK') && actionDef.damageEnabled;
+  const shieldBlocked =
+    Boolean(targetCopy?.statuses.includes('SHIELD_ONCE')) && actionDef.damageEnabled;
 
-        const oldTargetDodos = targetCopy.scene.dodosControlled;
-        const oldActorDodos = activeActorCopy.scene.dodosControlled;
-        targetCopy.scene.dodosControlled -= stealFromTarget;
-        targetCopy.stats.dodosLost += stealFromTarget;
-        activeActorCopy.scene.dodosControlled += totalGain;
-        activeActorCopy.stats.dodosGained += totalGain;
-        wildDodosDelta -= supplementFromWild;
-
-        actorDiffs.push({
-          actorId: activeActorCopy.actorId,
-          diffs: [{ path: 'scene.dodosControlled', oldValue: oldActorDodos, newValue: activeActorCopy.scene.dodosControlled }],
-        });
-        actorDiffs.push({
-          actorId: targetCopy.actorId,
-          diffs: [{ path: 'scene.dodosControlled', oldValue: oldTargetDodos, newValue: targetCopy.scene.dodosControlled }],
-        });
-      }
-      break;
-    }
-    case 'BRIBE_DODOS_WITH_FOOD': {
-      // 从wild吸引最多8只
-      const bribeAmount = Math.min(currentWild + wildDodosDelta, 8);
-      if (bribeAmount > 0) {
-        const oldDodos = activeActorCopy.scene.dodosControlled;
-        activeActorCopy.scene.dodosControlled += bribeAmount;
-        activeActorCopy.scene.dodoTrust = Math.min(100, activeActorCopy.scene.dodoTrust + 6);
-        activeActorCopy.stats.dodosGained += bribeAmount;
-        wildDodosDelta -= bribeAmount;
-        actorDiffs.push({
-          actorId: activeActorCopy.actorId,
-          diffs: [{ path: 'scene.dodosControlled', oldValue: oldDodos, newValue: activeActorCopy.scene.dodosControlled }],
-        });
-      }
-      break;
-    }
-    case 'BUILD_FAKE_NEST': {
-      activeActorCopy.scene.nestInfluence = Math.min(100, activeActorCopy.scene.nestInfluence + 10);
-      break;
-    }
-    case 'FRAME_TARGET_AS_DODO_ENEMY': {
-      if (targetCopy) {
-        targetCopy.scene.dodoTrust = Math.max(0, targetCopy.scene.dodoTrust - 6);
-      }
-      break;
-    }
-    case 'SCARE_HERD': {
-      if (targetCopy) {
-        const scareAmount = Math.min(targetCopy.scene.dodosControlled, 2);
-        targetCopy.scene.dodosControlled -= scareAmount;
-        targetCopy.scene.dodoTrust = Math.max(0, targetCopy.scene.dodoTrust - 2);
-        targetCopy.stats.dodosLost += scareAmount;
-        wildDodosDelta += scareAmount;
-      }
-      break;
-    }
-    case 'CALM_HERD': {
-      activeActorCopy.scene.dodoTrust = Math.min(100, activeActorCopy.scene.dodoTrust + 5);
-      break;
-    }
-    case 'CLAIM_NEST_AREA': {
-      // 自己nestInfluence +8，目标nestInfluence -5
-      if (targetCopy) {
-        const oldSelfNest = activeActorCopy.scene.nestInfluence;
-        const oldTargetNest = targetCopy.scene.nestInfluence;
-        activeActorCopy.scene.nestInfluence = Math.min(100, activeActorCopy.scene.nestInfluence + 8);
-        targetCopy.scene.nestInfluence = Math.max(0, targetCopy.scene.nestInfluence - 5);
-        actorDiffs.push({
-          actorId: activeActorCopy.actorId,
-          diffs: [{ path: 'scene.nestInfluence', oldValue: oldSelfNest, newValue: activeActorCopy.scene.nestInfluence }],
-        });
-        actorDiffs.push({
-          actorId: targetCopy.actorId,
-          diffs: [{ path: 'scene.nestInfluence', oldValue: oldTargetNest, newValue: targetCopy.scene.nestInfluence }],
-        });
-      }
-      break;
-    }
-  }
-
-  // === 渡渡鸟守恒校验 ===
-  const newWild = currentWild + wildDodosDelta;
-  const totalControlled = actorCopies.reduce((sum, a) => sum + a.scene.dodosControlled, 0);
-  const totalInSystem = totalControlled + newWild;
-
-  if (totalInSystem > battleState.scene.totalDodos) {
-    const excess = totalInSystem - battleState.scene.totalDodos;
-    let remaining = excess;
-    for (const a of actorCopies) {
-      if (remaining <= 0) break;
-      if (a.scene.dodosControlled > 0) {
-        const deduct = Math.min(a.scene.dodosControlled, remaining);
-        a.scene.dodosControlled -= deduct;
-        remaining -= deduct;
-      }
-    }
-  }
-
-  const sceneDiff: SceneDiff = {};
-  if (wildDodosDelta !== 0) {
-    sceneDiff.wildDodos = Math.max(0, newWild);
-  }
-
-  // === 创建 BattleEvent ===
-  const mainEvent: BattleEvent = {
-    eventId: `evt_${Date.now()}_${commitInput.actorActionIndex}`,
-    actorActionIndex: commitInput.actorActionIndex,
-    type: mapActionTypeToEventType(actionType, damage, target),
-    activeActorId,
-    targetActorId: lockedTargetId ?? undefined,
-    actionType,
-    line: actorBrainOutput.line,
-    actionDescription: actorBrainOutput.actionDescription,
-    diffs: actorDiffs.flatMap((d) => d.diffs),
-    tags: buildEventTags(actionType, damage, target),
-    createdAt: Date.now(),
-  };
-
-  const events: BattleEvent[] = [mainEvent];
-
-  // 淘汰事件
-  for (const eliminatedId of eliminatedActorIds) {
-    events.push({
-      eventId: `evt_${Date.now()}_${commitInput.actorActionIndex}_elim`,
-      actorActionIndex: commitInput.actorActionIndex,
-      type: 'ACTOR_ELIMINATED',
+  let damage = 0;
+  if (actionDef.damageEnabled && targetCopy && !shieldBlocked && !stomachacheBlocked) {
+    const variance = seededRng(
+      battleState.battleSeed,
+      commitInput.actorActionIndex,
+      'damageVariance',
       activeActorId,
-      targetActorId: eliminatedId,
-      actionType,
-      diffs: [],
-      tags: ['DAMAGE', 'ELIMINATION'],
-      createdAt: Date.now(),
-    });
+      lockedTargetId
+    );
+    const multiplier = 0.85 + variance * 0.3;
+    const baseDamage = Math.max(0, activeActor.ATK * actionDef.actionPower - targetCopy.DEF);
+    damage = clamp(Math.round(baseDamage * multiplier), 1, 35);
   }
+
+  applyActorTurnBaseUpdates();
+
+  if (!stomachacheBlocked) {
+    applyActionSpecialEffects();
+  }
+
+  const sceneDiff = buildSceneDiff();
+  const events = buildEvents(sceneDiff);
 
   return {
     newStateVersion: battleState.stateVersion + 1,
@@ -304,14 +92,268 @@ export function combatRefereeCommit(
     shouldCheckEnd: eliminatedActorIds.length > 0 || battleState.actorActionIndex >= 39,
     newActors: actorCopies,
   };
+
+  function applyActorTurnBaseUpdates() {
+    const oldActionsTaken = activeActorCopy.stats.actionsTaken;
+    const oldSpotlightDebt = activeActorCopy.spotlightDebt;
+    const oldInitiative = activeActorCopy.initiative;
+
+    activeActorCopy.stats.actionsTaken += 1;
+    activeActorCopy.lastActedActionIndex = commitInput.actorActionIndex;
+    activeActorCopy.spotlightDebt = 0;
+    activeActorCopy.initiative = Math.max(0, activeActorCopy.initiative - 100);
+
+    const activeDiffs: BattleDiff[] = [
+      { path: 'stats.actionsTaken', oldValue: oldActionsTaken, newValue: activeActorCopy.stats.actionsTaken },
+      { path: 'spotlightDebt', oldValue: oldSpotlightDebt, newValue: activeActorCopy.spotlightDebt },
+      { path: 'initiative', oldValue: oldInitiative, newValue: activeActorCopy.initiative },
+    ];
+
+    if (damage > 0) {
+      const oldDamageDealt = activeActorCopy.stats.damageDealt;
+      activeActorCopy.stats.damageDealt += damage;
+      activeDiffs.push({
+        path: 'stats.damageDealt',
+        oldValue: oldDamageDealt,
+        newValue: activeActorCopy.stats.damageDealt,
+      });
+    }
+
+    actorDiffs.push({ actorId: activeActorCopy.actorId, diffs: activeDiffs });
+
+    if (targetCopy && damage > 0) {
+      const oldHP = targetCopy.currentHP;
+      const oldDamageTaken = targetCopy.stats.damageTaken;
+      const oldAlive = targetCopy.isAlive;
+
+      targetCopy.currentHP = clamp(oldHP - damage, 0, targetCopy.maxHP);
+      targetCopy.stats.damageTaken += damage;
+      targetCopy.lastTargetedActionIndex = commitInput.actorActionIndex;
+      targetCopy.isAlive = targetCopy.currentHP > 0;
+
+      if (!targetCopy.isAlive && oldAlive) {
+        targetCopy.eliminatedAtActionIndex = commitInput.actorActionIndex;
+        eliminatedActorIds.push(targetCopy.actorId);
+      }
+
+      actorDiffs.push({
+        actorId: targetCopy.actorId,
+        diffs: [
+          { path: 'currentHP', oldValue: oldHP, newValue: targetCopy.currentHP },
+          { path: 'stats.damageTaken', oldValue: oldDamageTaken, newValue: targetCopy.stats.damageTaken },
+          { path: 'isAlive', oldValue: oldAlive, newValue: targetCopy.isAlive },
+        ],
+      });
+    }
+
+    if (shieldBlocked && targetCopy) {
+      removeStatus(targetCopy, 'SHIELD_ONCE');
+    }
+
+    if (targetCopy?.statuses.includes('TAUNT_1_ACTION')) {
+      removeStatus(targetCopy, 'TAUNT_1_ACTION');
+      targetCopy.tauntedByActorId = undefined;
+    }
+
+    if (activeActorCopy.statuses.includes('STOMACHACHE_NO_ATTACK')) {
+      removeStatus(activeActorCopy, 'STOMACHACHE_NO_ATTACK');
+    }
+  }
+
+  function removeStatus(actor: ActorCombatState, status: ActorCombatState['statuses'][number]) {
+    const oldStatuses = [...actor.statuses];
+    actor.statuses = actor.statuses.filter((s) => s !== status);
+    statusDiffs.push({ actorId: actor.actorId, status, added: false });
+    pushActorDiff(actor.actorId, 'statuses', oldStatuses, [...actor.statuses]);
+  }
+
+  function applyActionSpecialEffects() {
+    const currentWild = battleState.scene.wildDodos;
+
+    switch (actionType) {
+      case 'MOCK_ANIMAL_MANAGEMENT': {
+        if (targetCopy) {
+          const oldThreat = targetCopy.currentThreat;
+          targetCopy.currentThreat += 2;
+          pushActorDiff(targetCopy.actorId, 'currentThreat', oldThreat, targetCopy.currentThreat);
+        }
+        break;
+      }
+
+      case 'STEAL_DODOS': {
+        if (targetCopy) {
+          const stealFromTarget = Math.min(targetCopy.scene.dodosControlled, 5);
+          const supplementFromWild = Math.min(5 - stealFromTarget, 2, currentWild + wildDodosDelta);
+          const totalGain = stealFromTarget + supplementFromWild;
+
+          const oldTargetDodos = targetCopy.scene.dodosControlled;
+          const oldActorDodos = activeActorCopy.scene.dodosControlled;
+          const oldActorGained = activeActorCopy.stats.dodosGained;
+          const oldTargetLost = targetCopy.stats.dodosLost;
+
+          targetCopy.scene.dodosControlled -= stealFromTarget;
+          targetCopy.stats.dodosLost += stealFromTarget;
+          activeActorCopy.scene.dodosControlled += totalGain;
+          activeActorCopy.stats.dodosGained += totalGain;
+          wildDodosDelta -= supplementFromWild;
+
+          actorDiffs.push({
+            actorId: activeActorCopy.actorId,
+            diffs: [
+              { path: 'scene.dodosControlled', oldValue: oldActorDodos, newValue: activeActorCopy.scene.dodosControlled },
+              { path: 'stats.dodosGained', oldValue: oldActorGained, newValue: activeActorCopy.stats.dodosGained },
+            ],
+          });
+          actorDiffs.push({
+            actorId: targetCopy.actorId,
+            diffs: [
+              { path: 'scene.dodosControlled', oldValue: oldTargetDodos, newValue: targetCopy.scene.dodosControlled },
+              { path: 'stats.dodosLost', oldValue: oldTargetLost, newValue: targetCopy.stats.dodosLost },
+            ],
+          });
+        }
+        break;
+      }
+
+      case 'BRIBE_DODOS_WITH_FOOD': {
+        const bribeAmount = Math.min(currentWild + wildDodosDelta, 8);
+        if (bribeAmount > 0) {
+          const oldDodos = activeActorCopy.scene.dodosControlled;
+          const oldTrust = activeActorCopy.scene.dodoTrust;
+          const oldGained = activeActorCopy.stats.dodosGained;
+
+          activeActorCopy.scene.dodosControlled += bribeAmount;
+          activeActorCopy.scene.dodoTrust = Math.min(100, activeActorCopy.scene.dodoTrust + 6);
+          activeActorCopy.stats.dodosGained += bribeAmount;
+          wildDodosDelta -= bribeAmount;
+
+          actorDiffs.push({
+            actorId: activeActorCopy.actorId,
+            diffs: [
+              { path: 'scene.dodosControlled', oldValue: oldDodos, newValue: activeActorCopy.scene.dodosControlled },
+              { path: 'scene.dodoTrust', oldValue: oldTrust, newValue: activeActorCopy.scene.dodoTrust },
+              { path: 'stats.dodosGained', oldValue: oldGained, newValue: activeActorCopy.stats.dodosGained },
+            ],
+          });
+        }
+        break;
+      }
+
+      case 'BUILD_FAKE_NEST': {
+        const oldNest = activeActorCopy.scene.nestInfluence;
+        const bonus = battleState.selectedMutation?.mutationId === 'FAKE_NEST_FEVER' ? 5 : 0;
+        activeActorCopy.scene.nestInfluence = Math.min(100, activeActorCopy.scene.nestInfluence + 10 + bonus);
+        pushActorDiff(activeActorCopy.actorId, 'scene.nestInfluence', oldNest, activeActorCopy.scene.nestInfluence);
+        break;
+      }
+
+      case 'FRAME_TARGET_AS_DODO_ENEMY': {
+        if (targetCopy) {
+          const oldTrust = targetCopy.scene.dodoTrust;
+          const oldThreat = targetCopy.currentThreat;
+          targetCopy.scene.dodoTrust = Math.max(0, targetCopy.scene.dodoTrust - 6);
+          targetCopy.currentThreat += 4;
+          actorDiffs.push({
+            actorId: targetCopy.actorId,
+            diffs: [
+              { path: 'scene.dodoTrust', oldValue: oldTrust, newValue: targetCopy.scene.dodoTrust },
+              { path: 'currentThreat', oldValue: oldThreat, newValue: targetCopy.currentThreat },
+            ],
+          });
+        }
+        break;
+      }
+
+      case 'SCARE_HERD': {
+        if (targetCopy) {
+          const oldTrust = targetCopy.scene.dodoTrust;
+          targetCopy.scene.dodoTrust = Math.max(0, targetCopy.scene.dodoTrust - 2);
+          pushActorDiff(targetCopy.actorId, 'scene.dodoTrust', oldTrust, targetCopy.scene.dodoTrust);
+        }
+        break;
+      }
+
+      case 'TRIGGER_STAMPEDE': {
+        const oldThreat = activeActorCopy.currentThreat;
+        activeActorCopy.currentThreat += 5;
+        pushActorDiff(activeActorCopy.actorId, 'currentThreat', oldThreat, activeActorCopy.currentThreat);
+        break;
+      }
+
+      case 'CALM_HERD': {
+        const oldTrust = activeActorCopy.scene.dodoTrust;
+        activeActorCopy.scene.dodoTrust = Math.min(100, activeActorCopy.scene.dodoTrust + 5);
+        pushActorDiff(activeActorCopy.actorId, 'scene.dodoTrust', oldTrust, activeActorCopy.scene.dodoTrust);
+        break;
+      }
+
+      case 'CLAIM_NEST_AREA': {
+        if (targetCopy) {
+          const oldSelfNest = activeActorCopy.scene.nestInfluence;
+          const oldTargetNest = targetCopy.scene.nestInfluence;
+          const bonus = battleState.selectedMutation?.mutationId === 'NEST_PRIME_TIME' ? 4 : 0;
+
+          activeActorCopy.scene.nestInfluence = Math.min(100, activeActorCopy.scene.nestInfluence + 8 + bonus);
+          targetCopy.scene.nestInfluence = Math.max(0, targetCopy.scene.nestInfluence - 5);
+
+          pushActorDiff(activeActorCopy.actorId, 'scene.nestInfluence', oldSelfNest, activeActorCopy.scene.nestInfluence);
+          pushActorDiff(targetCopy.actorId, 'scene.nestInfluence', oldTargetNest, targetCopy.scene.nestInfluence);
+        }
+        break;
+      }
+    }
+  }
+
+  function buildSceneDiff(): SceneDiff {
+    if (wildDodosDelta === 0) return {};
+    return {
+      wildDodos: clamp(battleState.scene.wildDodos + wildDodosDelta, 0, battleState.scene.totalDodos),
+    };
+  }
+
+  function buildEvents(sceneDiff: SceneDiff): BattleEvent[] {
+    const mainEvent: BattleEvent = {
+      eventId: `evt_${Date.now()}_${commitInput.actorActionIndex}`,
+      actorActionIndex: commitInput.actorActionIndex,
+      type: mapActionTypeToEventType(actionType, damage),
+      activeActorId,
+      targetActorId: lockedTargetId ?? undefined,
+      actionType,
+      line: actorBrainOutput.line,
+      actionDescription: actorBrainOutput.actionDescription,
+      diffs: [
+        ...actorDiffs.flatMap((d) => d.diffs),
+        ...Object.entries(sceneDiff).map(([path, newValue]) => ({
+          path,
+          oldValue: battleState.scene[path as keyof SceneDiff],
+          newValue,
+        })),
+      ],
+      tags: buildEventTags(actionType, damage),
+      createdAt: Date.now(),
+    };
+
+    const events: BattleEvent[] = [mainEvent];
+
+    for (const eliminatedId of eliminatedActorIds) {
+      events.push({
+        eventId: `evt_${Date.now()}_${commitInput.actorActionIndex}_elim_${eliminatedId}`,
+        actorActionIndex: commitInput.actorActionIndex,
+        type: 'ACTOR_ELIMINATED',
+        activeActorId,
+        targetActorId: eliminatedId,
+        actionType,
+        diffs: [],
+        tags: ['DAMAGE', 'ELIMINATION'],
+        createdAt: Date.now(),
+      });
+    }
+
+    return events;
+  }
 }
 
-function mapActionTypeToEventType(
-  actionType: ActionType,
-  damage: number,
-  _target: ActorCombatState | null
-): BattleEventType {
-  if (damage > 0) return 'DAMAGE_DEALT';
+function mapActionTypeToEventType(actionType: ActionType, damage: number): BattleEventType {
   switch (actionType) {
     case 'STEAL_DODOS':
       return 'DODOS_STOLEN';
@@ -321,17 +363,14 @@ function mapActionTypeToEventType(
     case 'BUILD_FAKE_NEST':
       return 'NEST_CLAIMED';
     default:
-      return 'ACTION_TAKEN';
+      return damage > 0 ? 'DAMAGE_DEALT' : 'ACTION_TAKEN';
   }
 }
 
-function buildEventTags(
-  actionType: ActionType,
-  damage: number,
-  _target: ActorCombatState | null
-): BattleEventTag[] {
+function buildEventTags(actionType: ActionType, damage: number): BattleEventTag[] {
   const tags: BattleEventTag[] = [];
   if (damage > 0) tags.push('DAMAGE');
+
   switch (actionType) {
     case 'STEAL_DODOS':
     case 'BRIBE_DODOS_WITH_FOOD':
@@ -341,6 +380,11 @@ function buildEventTags(
     case 'CLAIM_NEST_AREA':
       tags.push('NEST');
       break;
+    case 'MOCK_ANIMAL_MANAGEMENT':
+    case 'FRAME_TARGET_AS_DODO_ENEMY':
+      tags.push('SHAME');
+      break;
   }
+
   return tags;
 }

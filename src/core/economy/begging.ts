@@ -61,7 +61,7 @@ export function begZogForGold(seed: string, attemptIndex: number, zogAffection: 
   return {
     gold: 0,
     message: 'Zog假装没听见。',
-    zogMood: 'ANNOYED',
+    zogMood: 'NEUTRAL',
   };
 }
 

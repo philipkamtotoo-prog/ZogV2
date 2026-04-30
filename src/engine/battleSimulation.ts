@@ -11,7 +11,7 @@ import { resolveLockedTarget } from '../core/battle/targetResolver';
 import { buildAllowedActionTypes } from '../core/battle/actionPolicy';
 import { validateActorBrainOutput, generateFallbackOutput } from '../core/battle/validator';
 import { combatRefereeCommit } from '../core/battle/combatReferee';
-import { calculateFinalScores, type FinalScore } from '../core/battle/finalScore';
+import { calculateFinalScores, calculateSalaryAwards, type FinalScore } from '../core/battle/finalScore';
 
 export interface BattleSimulationResult {
   battleState: BattleState;
@@ -41,7 +41,7 @@ export async function runBattleSimulation(
     actorCount,
     maxActions,
     actorBrainProvider,
-    itemUsesRemaining = 3,
+    itemUsesRemaining = 1,
     onStateChange,
     onEvent,
   } = options;
@@ -63,6 +63,13 @@ export async function runBattleSimulation(
     }
 
     // 1. 选择 activeActor
+    state = {
+      ...state,
+      actors: state.actors.map((actor) => actor.isAlive
+        ? { ...actor, initiative: actor.initiative + actor.SPD * 10, spotlightDebt: actor.spotlightDebt + 6 }
+        : actor
+      ),
+    };
     const activeActor = selectActiveActor(state.actors, state.actorActionIndex, state.battleSeed);
     if (!activeActor) {
       console.warn('No actor to act, ending battle');
@@ -142,6 +149,7 @@ export async function runBattleSimulation(
   // === 结算阶段 ===
   state.phase = 'FINAL_REPORT';
   const finalScores = calculateFinalScores(state.actors, state.eventLog);
+  state.salaryAwards = calculateSalaryAwards(finalScores);
 
   return {
     battleState: state,

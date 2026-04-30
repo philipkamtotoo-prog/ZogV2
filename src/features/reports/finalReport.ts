@@ -1,101 +1,110 @@
-import type { BattleState, BattleEvent } from '../../core/battle/types';
+import type { BattleEvent, BattleState, SalaryAward, StageBrief, ReporterMemoryEntry } from '../../core/battle/types';
+import type { EpisodeBill } from './bill';
 import type { FinalScore } from '../../core/battle/finalScore';
-import { calculateFinalScores } from '../../core/battle/finalScore';
+import { calculateFinalScores, calculateSalaryAwards } from '../../core/battle/finalScore';
+import { generateZogReaction } from './zogReaction';
 
 export interface BattleReport {
   reportId: string;
   battleId: string;
   createdAt: number;
-
   title: string;
   summary: string;
-
   winner: { actorId: string; name: string; score: number } | null;
   mvp: { actorId: string; name: string; score: number } | null;
   rankings: FinalScore[];
-
   highlightDialogue: string;
   biggestIncident: string;
   playerCommands: { input: string; status: string }[];
-
   zogReaction: string;
-
   totalActions: number;
   totalEvents: number;
   eliminationOrder: { actorId: string; name: string; atAction: number }[];
+  stageBriefs: StageBrief[];
+  shameRecords: { actorId: string; name: string; reason: string; atAction: number }[];
+  accidentSummary: string;
+  salaryAwards: SalaryAward[];
+  mutationName?: string;
+  promptInjections: { actorId: string; actorName: string; prompt: string }[];
+  bill?: EpisodeBill;
+  reporterMemory?: ReporterMemoryEntry[];
 }
 
-export function extractBattleReport(battleState: BattleState): BattleReport {
+export function extractBattleReport(
+  battleState: BattleState,
+  bill?: EpisodeBill,
+  reporterMemory?: ReporterMemoryEntry[]
+): BattleReport {
   const scores = calculateFinalScores(battleState.actors, battleState.eventLog);
   const winnerScore = scores.find((s) => s.isWinner);
   const mvpScore = scores.find((s) => s.isMVP);
-
-  const eliminations = battleState.eventLog
-    .filter((e) => e.type === 'ACTOR_ELIMINATED')
-    .map((e) => {
-      const actor = battleState.actors.find((a) => a.actorId === e.targetActorId);
-      return {
-        actorId: e.targetActorId ?? '',
-        name: actor?.name ?? 'Unknown',
-        atAction: e.actorActionIndex,
-      };
-    });
-
+  const salaryAwards = battleState.salaryAwards.length > 0
+    ? battleState.salaryAwards
+    : calculateSalaryAwards(scores);
   const highlights = extractHighlights(battleState.eventLog, battleState);
 
   return {
     reportId: `report_${battleState.battleId}`,
     battleId: battleState.battleId,
     createdAt: Date.now(),
-
     title: generateQuickTitle(battleState, winnerScore),
     summary: generateQuickSummary(battleState, scores),
-
     winner: winnerScore
       ? { actorId: winnerScore.actorId, name: winnerScore.name, score: winnerScore.finalScore }
       : null,
     mvp: mvpScore
-      ? { actorId: mvpScore.actorId, name: mvpScore.name, score: mvpScore.finalScore }
+      ? { actorId: mvpScore.actorId, name: mvpScore.name, score: mvpScore.breakdown.totalDamageDealt }
       : null,
     rankings: scores,
-
     highlightDialogue: highlights.bestLine,
     biggestIncident: highlights.biggestIncident,
     playerCommands: battleState.commandTransactions.map((t) => ({
       input: t.rawInput,
       status: t.status,
     })),
-
     zogReaction: generateZogReaction(scores),
-
     totalActions: battleState.actorActionIndex,
     totalEvents: battleState.eventLog.length,
-    eliminationOrder: eliminations,
+    eliminationOrder: extractEliminations(battleState),
+    stageBriefs: battleState.stageBriefs.length > 0 ? battleState.stageBriefs : generateStageBriefs(battleState),
+    shameRecords: generateShameRecords(battleState),
+    accidentSummary: highlights.biggestIncident,
+    salaryAwards,
+    mutationName: battleState.selectedMutation?.name,
+    promptInjections: battleState.actorPromptInjections.map((injection) => ({
+      actorId: injection.actorId,
+      actorName: battleState.actors.find((a) => a.actorId === injection.actorId)?.name ?? injection.actorId,
+      prompt: injection.prompt,
+    })),
+    bill,
+    reporterMemory,
   };
 }
 
+function extractEliminations(state: BattleState) {
+  return state.eventLog
+    .filter((e) => e.type === 'ACTOR_ELIMINATED')
+    .map((e) => {
+      const actor = state.actors.find((a) => a.actorId === e.targetActorId);
+      return {
+        actorId: e.targetActorId ?? '',
+        name: actor?.name ?? 'Unknown',
+        atAction: e.actorActionIndex,
+      };
+    });
+}
+
 function generateQuickTitle(state: BattleState, winner: FinalScore | undefined): string {
-  const dead = state.actors.filter((a) => !a.isAlive).length;
-  if (dead >= 4) return '大逃杀之夜';
-  if (dead === 0) return '和平的一天';
-  if (winner) return `${winner.name}的胜利`;
-  return '渡渡岛风云';
+  if (winner) return `${winner.name} wins the Dodo Riot`;
+  if (state.actors.every((a) => a.isAlive)) return 'Peaceful Dodo Accounting Disaster';
+  return 'Island Dodo Riot Report';
 }
 
 function generateQuickSummary(state: BattleState, scores: FinalScore[]): string {
-  const alive = state.actors.filter((a) => a.isAlive);
+  const alive = state.actors.filter((a) => a.isAlive).length;
   const winner = scores.find((s) => s.isWinner);
-  const parts: string[] = [];
-
-  parts.push(`经过${state.actorActionIndex}回合的激烈角逐`);
-
-  if (winner) {
-    parts.push(`${winner.name}以${winner.finalScore}分的成绩夺得冠军`);
-  }
-
-  parts.push(`最终${alive.length}名演员存活`);
-
-  return parts.join('，') + '。';
+  const mutation = state.selectedMutation ? ` Mutation: ${state.selectedMutation.name}.` : '';
+  return `After ${state.actorActionIndex} actor actions, ${alive} actors survived. ${winner ? `${winner.name} ranked first with ${winner.finalScore}.` : ''}${mutation}`;
 }
 
 interface Highlights {
@@ -104,24 +113,75 @@ interface Highlights {
 }
 
 function extractHighlights(eventLog: BattleEvent[], state: BattleState): Highlights {
-  const lines = eventLog
-    .filter((e) => e.line)
-    .map((e) => e.line!);
-  const bestLine = lines.length > 0 ? lines[Math.floor(lines.length / 2)] : '（无精彩台词）';
+  const lines = eventLog.filter((e) => e.line).map((e) => e.line!);
+  const bestLine = lines.length > 0 ? lines[Math.floor(lines.length / 2)] : '(no standout line)';
 
-  const elimEvent = eventLog.find((e) => e.type === 'ACTOR_ELIMINATED');
-  let biggestIncident = '（平安无事）';
-  if (elimEvent) {
-    const victim = state.actors.find((a) => a.actorId === elimEvent.targetActorId);
-    biggestIncident = `${victim?.name ?? '某演员'}在第${elimEvent.actorActionIndex}回合被淘汰`;
+  const elimination = eventLog.find((e) => e.type === 'ACTOR_ELIMINATED');
+  if (elimination) {
+    const victim = state.actors.find((a) => a.actorId === elimination.targetActorId);
+    return {
+      bestLine,
+      biggestIncident: `${victim?.name ?? 'Unknown'} was eliminated at action ${elimination.actorActionIndex}.`,
+    };
   }
 
-  return { bestLine, biggestIncident };
+  const item = eventLog.find((e) => e.type === 'ITEM_USED');
+  if (item) {
+    const target = state.actors.find((a) => a.actorId === item.targetActorId);
+    return {
+      bestLine,
+      biggestIncident: `Player emergency item used on ${target?.name ?? item.targetActorId}.`,
+    };
+  }
+
+  return { bestLine, biggestIncident: 'No major accident, which is suspicious for this channel.' };
 }
 
-function generateZogReaction(scores: FinalScore[]): string {
-  const topScore = scores[0]?.finalScore ?? 0;
-  if (topScore > 200) return 'Zog看得目瞪口呆，连薯片都忘了吃。';
-  if (topScore > 100) return 'Zog满意地点了点头，觉得今天的节目不错。';
-  return 'Zog打了个哈欠，觉得今天的节目有点无聊。';
+function generateStageBriefs(state: BattleState): StageBrief[] {
+  const briefs: StageBrief[] = [];
+  for (let start = 0; start < state.actorActionIndex; start += 10) {
+    const end = Math.min(start + 9, state.actorActionIndex);
+    const events = state.eventLog.filter((e) => e.actorActionIndex >= start && e.actorActionIndex <= end);
+    const damageEvents = events.filter((e) => e.tags.includes('DAMAGE')).length;
+    const dodoEvents = events.filter((e) => e.tags.includes('DODO')).length;
+    const eliminations = events.filter((e) => e.type === 'ACTOR_ELIMINATED').length;
+    briefs.push({
+      briefId: `brief_${state.battleId}_${start}`,
+      actorActionIndex: end,
+      text: `Actions ${start}-${end}: ${damageEvents} damage beats, ${dodoEvents} dodo moves, ${eliminations} eliminations.`,
+    });
+  }
+  return briefs;
+}
+
+function generateShameRecords(state: BattleState) {
+  const records = state.actors
+    .filter((actor) => !actor.isAlive || actor.scene.dodoTrust <= 3 || actor.scene.dodosControlled === 0)
+    .map((actor) => ({
+      actorId: actor.actorId,
+      name: actor.name,
+      reason: !actor.isAlive
+        ? 'eliminated on broadcast'
+        : actor.scene.dodoTrust <= 3
+          ? 'lost dodo trust'
+          : 'controlled zero dodos at settlement',
+      atAction: actor.eliminatedAtActionIndex ?? state.actorActionIndex,
+    }));
+
+  const shameEvents = state.eventLog.filter((e) => e.tags.includes('SHAME'));
+  for (const e of shameEvents) {
+    if (e.targetActorId) {
+      const actor = state.actors.find((a) => a.actorId === e.targetActorId);
+      if (actor) {
+        records.push({
+          actorId: actor.actorId,
+          name: actor.name,
+          reason: e.actionType === 'MOCK_ANIMAL_MANAGEMENT' ? 'mocked on television' : 'framed as enemy',
+          atAction: e.actorActionIndex,
+        });
+      }
+    }
+  }
+
+  return records;
 }

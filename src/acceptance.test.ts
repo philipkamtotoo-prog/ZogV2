@@ -10,7 +10,7 @@ import { createInitialBattleState, shouldEndBattle } from './core/battle/initial
 import { runBattleSimulation } from './engine/battleSimulation';
 import { createStubActorBrainProvider } from './llm/stubActorBrainProvider';
 import { extractBattleReport } from './features/reports/finalReport';
-import { mapBattleEventToDisplayItem } from './features/battle/display/displayMapper';
+import { mapBattleEventToDisplayEvents } from './features/battle/display/displayMapper';
 import type { ActorBrainOutput, ActionType, BattleState } from './core/battle/types';
 
 // === 辅助函数 ===
@@ -188,7 +188,7 @@ describe('验收8: DisplayQueue 播放失败不回滚状态', () => {
     expect(commit.newStateVersion).toBe(state.stateVersion + 1);
 
     // display 映射是独立操作，即使出错也不影响 commit 结果
-    const displayItems = mapBattleEventToDisplayItem(commit.events[0], state);
+    const displayItems = mapBattleEventToDisplayEvents(commit.events[0], state);
     expect(displayItems.length).toBeGreaterThan(0);
 
     // stateVersion 不会因为 display 回退
