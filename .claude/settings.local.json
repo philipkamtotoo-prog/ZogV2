@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(sed -i '565,606d' \"e:/ZogV2/文档/【Zog】V2_数值文档.md\")",
+      "Bash(sed -i '564r /dev/stdin' \"e:/ZogV2/文档/【Zog】V2_数值文档.md\")",
+      "Bash(npm create *)",
+      "Bash(npm run *)",
+      "Bash(npm install *)",
+      "Bash(npx vitest *)"
+    ]
+  }
+}
