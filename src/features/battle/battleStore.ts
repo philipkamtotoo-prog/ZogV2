@@ -103,6 +103,23 @@ function buildRosterTemplates(seed: string, rerollIndex: number): ActorTemplate[
   }));
 }
 
+function chargeCommandTransactionIfNeeded(transaction: BattleState['commandTransactions'][number]): boolean {
+  if (transaction.frozenCost <= 0 || transaction.paidCost > 0) return true;
+  if (
+    transaction.status !== 'READY_TO_INJECT' &&
+    transaction.status !== 'INJECTED' &&
+    transaction.status !== 'REJECTED'
+  ) {
+    return true;
+  }
+
+  const spent = useLoungeStore.getState().spendGold(transaction.frozenCost);
+  if (!spent) return false;
+
+  transaction.paidCost = transaction.frozenCost;
+  return true;
+}
+
 export const useBattleStore = create<BattleStore>((set, get) => ({
   view: 'LOBBY',
   battleState: null,
@@ -363,18 +380,9 @@ export const useBattleStore = create<BattleStore>((set, get) => ({
       return;
     }
 
-    if ((transaction.status === 'READY_TO_INJECT' || transaction.status === 'REJECTED') && transaction.frozenCost > 0) {
-      if (transaction.status === 'READY_TO_INJECT') {
-        const spent = useLoungeStore.getState().spendGold(transaction.frozenCost);
-        if (!spent) {
-          set({ commandStatus: 'NOT_ENOUGH_GOLD', isProcessing: false });
-          return;
-        }
-        transaction.paidCost = transaction.frozenCost;
-      } else if (transaction.status === 'REJECTED') {
-        useLoungeStore.getState().spendGold(transaction.frozenCost);
-        transaction.paidCost = transaction.frozenCost;
-      }
+    if (!chargeCommandTransactionIfNeeded(transaction)) {
+      set({ commandStatus: 'NOT_ENOUGH_GOLD', isProcessing: false });
+      return;
     }
 
     set({ commandStatus: result.status, commandInput: '', isProcessing: false });
@@ -420,7 +428,12 @@ export const useBattleStore = create<BattleStore>((set, get) => ({
     const { engine } = get();
     if (!engine) return;
 
-    engine.finalizePendingCommands();
+    const { refundEffects } = engine.finalizePendingCommands();
+    for (const effect of refundEffects) {
+      if (effect.gold > 0) {
+        useLoungeStore.getState().addGold(effect.gold);
+      }
+    }
   },
 
   consumeDisplay: () => {

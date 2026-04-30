@@ -24,7 +24,7 @@ export type DisplayEvent =
   | { kind: 'HEAL';            eventId: string; actorActionIndex: number; targetId: string; healAmount: number; oldHp: number; newHp: number; content: string }
   | { kind: 'STATUS';          eventId: string; actorActionIndex: number; targetId: string; status: string; added: boolean; content: string }
   | { kind: 'ELIMINATION';     eventId: string; actorActionIndex: number; targetId: string; content: string }
-  | { kind: 'ITEM';            eventId: string; actorActionIndex: number; actorId: string; targetId: string; itemId: string; itemName: string; content: string }
+  | { kind: 'ITEM';            eventId: string; actorActionIndex: number; actorId?: string; targetId: string; itemId: string; itemName: string; source: 'PLAYER' | 'ACTOR'; content: string }
   | { kind: 'BROADCAST';      eventId: string; actorActionIndex: number; content: string; metadata?: { broadcastId?: string } }
   | { kind: 'REPORTER';        eventId: string; actorActionIndex: number; content: string; memoryType: string; severity: number }
   | { kind: 'ZOG';             eventId: string; actorActionIndex: number; content: string }

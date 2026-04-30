@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useBattleStore } from '../battleStore';
+import { BattlePixiCanvas } from '../renderer/BattlePixiCanvas';
 import { ActorPanel } from './ActorPanel';
 import { BattleControls } from './BattleControls';
 import { CommandInput } from './CommandInput';
@@ -26,6 +27,7 @@ export function BattlePage() {
     liveReport,
     clearLiveReport,
     engine,
+    engineId,
   } = useBattleStore();
 
   useEffect(() => {
@@ -55,10 +57,23 @@ export function BattlePage() {
 
       <div style={{ display: 'flex', gap: 8, flex: 1, minHeight: 0 }}>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8, minHeight: 0 }}>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-            {battleState.actors.map((actor) => (
-              <ActorPanel key={actor.actorId} actor={actor} />
-            ))}
+          <div style={{ display: 'flex', gap: 8 }}>
+            {/* Pixi 战场舞台 */}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <BattlePixiCanvas
+                battleState={battleState}
+                displayLog={displayLog}
+                engineId={engineId}
+                width={600}
+                height={400}
+              />
+            </div>
+            {/* React 调试区：角色面板 */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, maxWidth: 200, alignContent: 'flex-start' }}>
+              {battleState.actors.map((actor) => (
+                <ActorPanel key={actor.actorId} actor={actor} />
+              ))}
+            </div>
           </div>
 
           <DisplayLog items={displayLog} actors={battleState.actors} />

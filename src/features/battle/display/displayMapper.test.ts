@@ -36,7 +36,6 @@ function makeState(overrides: Partial<BattleState> = {}): BattleState {
     actors: [makeActor({ actorId: 'actor_0', name: '张三' }), makeActor({ actorId: 'actor_1', name: '李四' })],
     scene: { totalDodos: 100, wildDodos: 100 },
     eventLog: [],
-    displayQueue: [],
     directorBroadcasts: [],
     commandTransactions: [],
     itemUsesRemaining: 1,
@@ -131,7 +130,7 @@ describe('mapBattleEventToDisplayEvents', () => {
     expect(damageEv).toBeDefined();
     expect((damageEv as { oldHp: number }).oldHp).toBe(100);
     expect((damageEv as { newHp: number }).newHp).toBe(70);
-    expect((damageEv as { damage: number }).damage).toBe(-30);
+    expect((damageEv as { damage: number }).damage).toBe(30);
   });
 
   it('ACTOR_ELIMINATED → ELIMINATION', () => {
@@ -156,7 +155,9 @@ describe('mapBattleEventToDisplayEvents', () => {
     });
     const results = mapBattleEventToDisplayEvents(event, state);
     expect(results.some((r) => r.kind === 'ITEM')).toBe(true);
-    expect((results.find((r) => r.kind === 'ITEM') as { content: string }).content).toBe('使用了急救箱');
+    const itemEv = results.find((r) => r.kind === 'ITEM') as { content: string; source: string };
+    expect(itemEv.content).toBe('使用了急救箱');
+    expect(itemEv.source).toBe('PLAYER');
   });
 
   it('ITEM_USED with heal diff → ITEM + HEAL', () => {

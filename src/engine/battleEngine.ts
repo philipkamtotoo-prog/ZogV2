@@ -13,6 +13,7 @@ import { validateActorBrainOutput, generateFallbackOutput } from '../core/battle
 import { combatRefereeCommit } from '../core/battle/combatReferee';
 import { shouldEndBattle, createInitialBattleState, type ActorTemplate, type InitialBattleSetup } from '../core/battle/initialState';
 import { mapBattleEventToDisplayEvents } from '../features/battle/display/displayMapper';
+import { mapReporterMemoryToDisplayEvents } from '../features/battle/display/reporterMemoryMapper';
 import { ITEM_DEFS, type ItemId } from '../core/economy/items';
 import { applyGateResult, processCommand } from '../core/command/commandGate';
 import { applyPlayerItem } from '../core/battle/playerActionReferee';
@@ -242,17 +243,30 @@ export function createBattleEngine(config: BattleEngineConfig) {
         const newMemories = scanEventsForMemories(state.battleState, cursor);
         if (newMemories.length > 0) {
           state.battleState.reporterMemory.push(...newMemories);
+          const reporterEvents = mapReporterMemoryToDisplayEvents(newMemories);
+          for (const reporterEvent of reporterEvents) {
+            state.queues = enqueueDisplay(state.queues, reporterEvent);
+          }
         }
         state.battleState.reporterMemoryCursor = state.battleState.eventLog.length;
         if (state.battleState.actorActionIndex % 8 === 0) {
-          state.battleState.reporterMemory.push(
-            createStageBrief(state.battleState.battleId, state.battleState.actorActionIndex, state.battleState)
+          const stageBrief = createStageBrief(
+            state.battleState.battleId,
+            state.battleState.actorActionIndex,
+            state.battleState
           );
+          state.battleState.reporterMemory.push(stageBrief);
+          for (const reporterEvent of mapReporterMemoryToDisplayEvents([stageBrief])) {
+            state.queues = enqueueDisplay(state.queues, reporterEvent);
+          }
         }
         // Also scan for state-based memories (low HP, zero dodos) at key moments
         if (state.battleState.actorActionIndex % 8 === 0) {
           const stateMemories = scanForStateBasedMemories(state.battleState);
           state.battleState.reporterMemory.push(...stateMemories);
+          for (const reporterEvent of mapReporterMemoryToDisplayEvents(stateMemories)) {
+            state.queues = enqueueDisplay(state.queues, reporterEvent);
+          }
         }
         // --- end ReporterMemory ---
 
@@ -369,6 +383,11 @@ function consumeDisplayItem() {
     const newMemories = scanEventsForMemories(state.battleState, state.battleState.reporterMemoryCursor);
     if (newMemories.length > 0) {
       state.battleState.reporterMemory.push(...newMemories);
+      // 将新产生的 ReporterMemory 同步映射为 REPORTER DisplayEvent 推入表现队列
+      const reporterEvents = mapReporterMemoryToDisplayEvents(newMemories);
+      for (const re of reporterEvents) {
+        state.queues = enqueueDisplay(state.queues, re);
+      }
     }
     state.battleState.reporterMemoryCursor = state.battleState.eventLog.length;
   }

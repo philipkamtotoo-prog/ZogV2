@@ -224,14 +224,15 @@ export function mapBattleEventToDisplayEvents(
       const actorName = actor?.name ?? 'Unknown';
       const targetName = target?.name ?? 'Unknown';
 
-      items.push({
-        kind: 'ITEM',
-        eventId: `display_${event.eventId}`,
-        actorActionIndex: event.actorActionIndex,
-        actorId: event.activeActorId ?? '',
-        targetId: event.targetActorId ?? '',
-        itemId: event.itemId ?? event.actionType ?? 'ITEM',
-        itemName: event.actionType ?? 'ITEM',
+        items.push({
+          kind: 'ITEM',
+          eventId: `display_${event.eventId}`,
+          actorActionIndex: event.actorActionIndex,
+          actorId: event.activeActorId,
+          targetId: event.targetActorId ?? '',
+          itemId: event.itemId ?? event.actionType ?? 'ITEM',
+          itemName: event.actionType ?? 'ITEM',
+        source: 'PLAYER',
         content: event.actionDescription ?? `${actorName} 对 ${targetName} 使用了道具`,
       });
 
@@ -254,9 +255,9 @@ export function mapBattleEventToDisplayEvents(
         });
       }
 
-      // 如果有状态 diff，额外出 STATUS
-      const statusDiff = event.diffs.find((d) => d.path === 'statuses');
-      if (statusDiff) {
+      // 如果有状态 diff（可能有多条），额外出 STATUS
+      const statusDiffs = event.diffs.filter((d) => d.path === 'statuses');
+      for (const statusDiff of statusDiffs) {
         const oldStatuses = (statusDiff.oldValue as string[]) ?? [];
         const newStatuses = (statusDiff.newValue as string[]) ?? [];
         const added = newStatuses.filter((s) => !oldStatuses.includes(s));

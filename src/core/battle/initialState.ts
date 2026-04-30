@@ -77,7 +77,6 @@ export function createInitialBattleState(
     directorBroadcasts: [],
     commandTransactions: [],
     eventLog: [],
-    displayQueue: [],
     itemUsesRemaining,
     usedItemIds: [],
     actorPromptInjections: setup.actorPromptInjections ?? [],

@@ -51,7 +51,6 @@ function makeState(overrides: Partial<BattleState> = {}): BattleState {
     directorBroadcasts: [],
     commandTransactions: [],
     eventLog: [],
-    displayQueue: [],
     itemUsesRemaining: 1,
     usedItemIds: [],
     actorPromptInjections: [],

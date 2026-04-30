@@ -315,27 +315,6 @@ export interface BattleEvent {
   zogReaction?: string;
 }
 
-// DisplayItem - 战斗表现项
-export type DisplayItemType =
-  | 'LINE'
-  | 'ACTION'
-  | 'STATUS_CHANGE'
-  | 'BROADCAST'
-  | 'SCENE_UPDATE'
-  | 'HP_CHANGE'
-  | 'ELIMINATION'
-  | 'ROUND_END';
-
-export interface DisplayItem {
-  itemId: string;
-  actorActionIndex: number;
-  type: DisplayItemType;
-  actorId?: string;
-  targetId?: string;
-  content: string;
-  metadata?: Record<string, unknown>;
-}
-
 // PlayerSupportState
 export interface PlayerSupportState {
   supportedActorId: string;
@@ -387,7 +366,6 @@ export interface BattleState {
   commandTransactions: CommandTransaction[];
 
   eventLog: BattleEvent[];
-  displayQueue: DisplayItem[];
 
   playerSupport?: PlayerSupportState;
   itemUsesRemaining: number;

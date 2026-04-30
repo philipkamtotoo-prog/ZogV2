@@ -108,4 +108,23 @@ describe('battleEngine', () => {
     expect(engine.getState()!.battleState.itemUsesRemaining).toBe(0);
     expect(engine.getState()!.battleState.eventLog.some((e) => e.type === 'ITEM_USED')).toBe(false);
   });
+
+  it('enqueues REPORTER display events for normal battle steps', async () => {
+    const engine = createBattleEngine({ actorBrainProvider: immediateProvider(), maxActions: 40 });
+    engine.init('reporter_queue_test', 3);
+    engine.start();
+
+    for (let i = 0; i < 8; i++) {
+      await engine.stepManual();
+    }
+
+    const consumedKinds: string[] = [];
+    let item = engine.consumeDisplayItem();
+    while (item) {
+      consumedKinds.push(item.kind);
+      item = engine.consumeDisplayItem();
+    }
+
+    expect(consumedKinds).toContain('REPORTER');
+  });
 });

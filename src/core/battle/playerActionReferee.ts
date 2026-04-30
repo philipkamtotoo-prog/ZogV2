@@ -70,7 +70,6 @@ export function applyPlayerItem(
     eventId,
     actorActionIndex: battleState.actorActionIndex,
     type: 'ITEM_USED',
-    activeActorId: actorId,
     targetActorId,
     itemId,
     diffs: [
