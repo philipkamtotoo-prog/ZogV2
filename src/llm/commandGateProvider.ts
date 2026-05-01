@@ -5,13 +5,13 @@
 
 import type { BattleState, CommandGateResult, DirectorBroadcastDraft } from '../core/battle/types';
 import { createLLMClient, type ChatMessage } from './clients/llmClient';
-import type { LLMConfig } from './clients/byokConfig';
+import type { LLMRoleRegistry } from './clients/llmRoleRegistry';
 import { buildCommandGatePrompt, quickEvaluate } from './prompts/commandGatePrompt';
 import { parseJsonOrRepair, extractJsonFromResponse } from './jsonRepair';
 import { createTraceId, logLLMRequest, logLLMResponse, logLLMError, logLLMSkip } from './llmDebugLogger';
 
 export interface CommandGateProviderConfig {
-  llmConfig: LLMConfig;
+  registry: LLMRoleRegistry;
   timeout: number;
   maxRetries: number;
 }
@@ -24,7 +24,20 @@ export function createCommandGateProvider(
 ): {
   evaluate: (rawInput: string, battleState: BattleState) => Promise<CommandGateResult>;
 } {
-  const client = createLLMClient(config.llmConfig);
+  const roleId = 'command_gate';
+  const roleConfig = config.registry.getRoleConfig(roleId);
+
+  const llmConfig = {
+    providerId: roleConfig.providerId,
+    apiKey: roleConfig.apiKey,
+    baseUrl: roleConfig.baseUrl,
+    model: roleConfig.model,
+    timeout: roleConfig.timeout,
+    thinkingEnabled: roleConfig.thinkingEnabled,
+    debugMode: roleConfig.debugMode,
+  };
+
+  const client = createLLMClient(llmConfig);
 
   return {
     async evaluate(
@@ -52,19 +65,23 @@ export function createCommandGateProvider(
         { role: 'user', content: prompt },
       ];
 
+      const temperature = roleConfig.temperature ?? 0.3;
+      const maxTokens = roleConfig.maxTokens ?? 500;
+
       const request = {
-        model: config.llmConfig.model,
+        model: roleConfig.model,
         messages,
-        temperature: 0.3,
-        max_tokens: 500,
+        temperature,
+        max_tokens: maxTokens,
       };
 
       logLLMRequest({
         traceId,
         kind: 'CommandGate',
-        provider: config.llmConfig.providerId,
-        baseUrl: config.llmConfig.baseUrl,
-        model: config.llmConfig.model,
+        roleId,
+        provider: roleConfig.providerId,
+        baseUrl: roleConfig.baseUrl,
+        model: roleConfig.model,
         messages,
         requestBody: {
           temperature: request.temperature,

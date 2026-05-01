@@ -1,14 +1,10 @@
-/**
- * EffectLayer - 特效层
- * 显示飘字（伤害/治疗）、气泡、状态图标、道具动画
- */
-
 import { Container, Graphics, Text, TextStyle } from 'pixi.js';
 
 export class EffectLayer {
   readonly container: Container;
   private width = 800;
   private height = 480;
+  private destroyed = false;
 
   constructor() {
     this.container = new Container();
@@ -20,7 +16,8 @@ export class EffectLayer {
   }
 
   showSpeechBubble(_actorId: string, text: string): void {
-    // 占位：创建一个简单的文字气泡
+    if (this.destroyed) return;
+
     const style = new TextStyle({
       fontFamily: 'Arial',
       fontSize: 12,
@@ -43,11 +40,7 @@ export class EffectLayer {
     c.y = 30;
     this.container.addChild(c);
 
-    // 1.5秒后消失
-    setTimeout(() => {
-      this.container.removeChild(c);
-      c.destroy({ children: true });
-    }, 1500);
+    setTimeout(() => this.removeEffect(c), 1500);
   }
 
   showDamage(targetId: string, amount: number): void {
@@ -59,6 +52,8 @@ export class EffectLayer {
   }
 
   private showFloatingNumber(_targetId: string, text: string, color: number): void {
+    if (this.destroyed) return;
+
     const style = new TextStyle({
       fontFamily: 'Arial',
       fontSize: 18,
@@ -74,23 +69,26 @@ export class EffectLayer {
     c.y = this.height / 2;
     this.container.addChild(c);
 
-    // 向上飘动并消失
     let alpha = 1;
+    let done = false;
     const animate = () => {
+      if (done || this.destroyed) return;
       c.y -= 1;
       alpha -= 0.02;
       c.alpha = Math.max(0, alpha);
       if (alpha > 0) {
         requestAnimationFrame(animate);
       } else {
-        this.container.removeChild(c);
-        c.destroy({ children: true });
+        done = true;
+        this.removeEffect(c);
       }
     };
     requestAnimationFrame(animate);
   }
 
   showStatusBadge(_targetId: string, status: string, added: boolean): void {
+    if (this.destroyed) return;
+
     const style = new TextStyle({
       fontFamily: 'Arial',
       fontSize: 10,
@@ -108,27 +106,27 @@ export class EffectLayer {
     c.addChild(badge);
     c.addChild(label);
     c.x = this.width / 2;
-    c.y = this.height / 2 - 50;
+    c.y = this.height / 2 - 40;
+    c.alpha = 0;
     this.container.addChild(c);
 
-    // 飘入效果
-    c.alpha = 0;
-    c.y += 10;
+    let done = false;
     const fadeIn = () => {
-      c.alpha += 0.1;
+      if (done || this.destroyed) return;
+      c.alpha = Math.min(1, c.alpha + 0.1);
       c.y -= 1;
       if (c.alpha < 1) {
         requestAnimationFrame(fadeIn);
       } else {
-        // 2秒后消失
         setTimeout(() => {
           const fadeOut = () => {
+            if (done || this.destroyed) return;
             c.alpha -= 0.1;
             if (c.alpha > 0) {
               requestAnimationFrame(fadeOut);
             } else {
-              this.container.removeChild(c);
-              c.destroy({ children: true });
+              done = true;
+              this.removeEffect(c);
             }
           };
           requestAnimationFrame(fadeOut);
@@ -139,7 +137,8 @@ export class EffectLayer {
   }
 
   showItemCast(_targetId: string, itemId: string, source: 'PLAYER' | 'ACTOR', _actorId?: string): void {
-    // 占位道具图标
+    if (this.destroyed) return;
+
     const icon = new Graphics();
     icon.roundRect(-12, -12, 24, 24, 4);
     icon.fill({ color: 0xffd700 });
@@ -153,20 +152,20 @@ export class EffectLayer {
     const c = new Container();
     c.addChild(icon);
 
-    // 起点：source === 'PLAYER' 从屏幕边缘，否则从 actorId
     const startX = source === 'PLAYER' ? -20 : this.width / 2;
     const startY = source === 'PLAYER' ? this.height : this.height / 2;
-    c.x = startX;
-    c.y = startY;
-    this.container.addChild(c);
-
-    // 飞向目标
     const targetX = this.width / 2;
     const targetY = this.height / 2;
     const duration = 400;
     const start = performance.now();
+    let done = false;
+
+    c.x = startX;
+    c.y = startY;
+    this.container.addChild(c);
 
     const fly = () => {
+      if (done || this.destroyed) return;
       const t = Math.min((performance.now() - start) / duration, 1);
       const eased = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
       c.x = startX + (targetX - startX) * eased;
@@ -175,14 +174,23 @@ export class EffectLayer {
       if (t < 1) {
         requestAnimationFrame(fly);
       } else {
-        this.container.removeChild(c);
-        c.destroy({ children: true });
+        done = true;
+        this.removeEffect(c);
       }
     };
     requestAnimationFrame(fly);
   }
 
   destroy(): void {
+    this.destroyed = true;
     this.container.destroy({ children: true });
+  }
+
+  private removeEffect(effect: Container): void {
+    if (this.destroyed) return;
+    if (effect.parent) {
+      effect.parent.removeChild(effect);
+    }
+    effect.destroy({ children: true });
   }
 }

@@ -1,13 +1,3 @@
-/**
- * BattlePixiRuntime - Pixi 表现层运行时管理器
- *
- * 职责：
- * - 管理 Pixi Application 生命周期（init/destroy）
- * - 维护 BattleScene 实例
- * - 处理 resize
- * - 对外暴露 mount 到指定 DOM 容器
- */
-
 import { Application } from 'pixi.js';
 import { BattleScene } from './BattleScene';
 
@@ -15,41 +5,73 @@ export class BattlePixiRuntime {
   private app: Application | null = null;
   private scene: BattleScene | null = null;
   private mounted = false;
+  private mountPromise: Promise<void> | null = null;
+  private destroyRequested = false;
 
   async mount(container: HTMLElement, width: number, height: number): Promise<void> {
     if (this.mounted) return;
+    if (this.mountPromise) return this.mountPromise;
 
-    this.app = new Application();
+    this.destroyRequested = false;
+    const app = new Application();
+    this.app = app;
 
-    await this.app.init({
-      width,
-      height,
-      backgroundColor: 0x1a1a2e,
-      antialias: true,
-      resolution: window.devicePixelRatio || 1,
-      autoDensity: true,
-    });
+    this.mountPromise = (async () => {
+      await app.init({
+        width,
+        height,
+        backgroundColor: 0x1a1a2e,
+        antialias: true,
+        resolution: window.devicePixelRatio || 1,
+        autoDensity: true,
+      });
 
-    container.appendChild(this.app.canvas);
-    this.mounted = true;
+      if (this.destroyRequested) {
+        this.destroyPixiApp(app);
+        if (this.app === app) this.app = null;
+        return;
+      }
 
-    this.scene = new BattleScene(this.app.stage);
+      container.appendChild(app.canvas);
+      this.mounted = true;
+      this.scene = new BattleScene(app.stage);
+    })();
+
+    try {
+      await this.mountPromise;
+    } finally {
+      if (this.mountPromise) {
+        this.mountPromise = null;
+      }
+    }
   }
 
   destroy(): void {
+    this.destroyRequested = true;
+
     if (this.scene) {
       this.scene.destroy();
       this.scene = null;
     }
-    if (this.app) {
-      this.app.destroy(true, { children: true, texture: true });
-      this.app = null;
+
+    if (!this.app) {
+      this.mounted = false;
+      return;
     }
+
+    // React StrictMode can unmount before Pixi Application.init has finished.
+    // In that case, let mount() finish and clean up the fully initialized app.
+    if (!this.mounted) {
+      return;
+    }
+
+    this.destroyPixiApp(this.app);
+    this.app = null;
     this.mounted = false;
   }
 
   resize(width: number, height: number): void {
-    if (this.app) {
+    if (this.app && this.mounted) {
       this.app.renderer.resize(width, height);
     }
     if (this.scene) {
@@ -63,5 +85,15 @@ export class BattlePixiRuntime {
 
   isMounted(): boolean {
     return this.mounted;
+  }
+
+  private destroyPixiApp(app: Application): void {
+    try {
+      app.destroy(true, { children: true, texture: true });
+    } catch (error) {
+      console.warn('[BattlePixiRuntime] Pixi destroy skipped after partial init:', error);
+    } finally {
+      this.mounted = false;
+    }
   }
 }

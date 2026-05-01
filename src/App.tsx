@@ -8,9 +8,10 @@ import { ShopPage } from './features/shop/components/ShopPage';
 import { RosterPage } from './features/actors/components/RosterPage';
 import { ReportCollectionPage } from './features/reports/components/ReportCollectionPage';
 import { ReportPage } from './features/reports/components/ReportPage';
+import { SettingsPage } from './features/settings/components/SettingsPage';
 import { useReportStore } from './features/reports/reportStore';
 
-type AppView = 'LOUNGE' | 'BETTING' | 'BATTLE' | 'RESULTS' | 'SHOP' | 'ROSTER' | 'REPORTS' | 'REPORT_DETAIL';
+type AppView = 'LOUNGE' | 'BETTING' | 'BATTLE' | 'RESULTS' | 'SHOP' | 'ROSTER' | 'REPORTS' | 'REPORT_DETAIL' | 'SETTINGS';
 
 function App() {
   const battleView = useBattleStore((s) => s.view);
@@ -21,6 +22,7 @@ function App() {
     battleView === 'BETTING' ? 'BETTING' :
     battleView === 'BATTLE' ? 'BATTLE' :
     battleView === 'RESULTS' ? 'RESULTS' :
+    loungeView === 'SETTINGS' ? 'SETTINGS' :
     currentReport && loungeView === 'REPORT_DETAIL' ? 'REPORT_DETAIL' :
     loungeView;
 
@@ -32,6 +34,7 @@ function App() {
           onOpenShop={() => setLoungeView('SHOP')}
           onOpenReports={() => setLoungeView('REPORTS')}
           onOpenRoster={() => setLoungeView('ROSTER')}
+          onOpenSettings={() => setLoungeView('SETTINGS')}
         />
       )}
       {resolvedView === 'BETTING' && <BettingPage />}
@@ -46,6 +49,7 @@ function App() {
         />
       )}
       {resolvedView === 'REPORT_DETAIL' && <ReportPage onBack={() => setLoungeView('REPORTS')} />}
+      {resolvedView === 'SETTINGS' && <SettingsPage onBack={() => setLoungeView('LOUNGE')} />}
     </div>
   );
 }

@@ -25,6 +25,7 @@ export interface LLMProviderDefinition {
 }
 
 export const LLM_CONFIG_STORAGE_KEY = 'zog_llm_config';
+export const LLM_ROLE_CONFIG_MAP_STORAGE_KEY = 'zog_llm_role_config_map';
 export const LEGACY_API_KEY_STORAGE_KEY = 'zog_api_key';
 export const LLM_DEBUG_STORAGE_KEY = 'zog_llm_debug';
 
@@ -156,4 +157,105 @@ export function validateLLMConfig(config: LLMConfig): { valid: boolean; error?: 
     return { valid: false, error: 'Timeout must be at least 5000ms' };
   }
   return { valid: true };
+}
+
+// === L1: Role-based BYOK Config ===
+
+import type { LLMRoleId, RoleLLMConfig, LLMRoleConfigMap } from '../types/llmRoleTypes';
+import { DEFAULT_ROLE_CONFIGS } from '../types/llmRoleTypes';
+
+function migrateFromLegacyConfig(storage: Storage | null): LLMRoleConfigMap {
+  const legacy = loadStoredLLMConfig(storage);
+  const now = Date.now();
+
+  const roles: Record<LLMRoleId, RoleLLMConfig> = {
+    actor_brain: {
+      ...DEFAULT_ROLE_CONFIGS.actor_brain,
+      apiKey: legacy?.apiKey ?? '',
+      baseUrl: legacy?.baseUrl ?? DEFAULT_ROLE_CONFIGS.actor_brain.baseUrl,
+      model: legacy?.model ?? DEFAULT_ROLE_CONFIGS.actor_brain.model,
+      timeout: legacy?.timeout ?? DEFAULT_ROLE_CONFIGS.actor_brain.timeout,
+      providerId: legacy?.providerId ?? 'deepseek',
+      thinkingEnabled: legacy?.thinkingEnabled ?? false,
+      debugMode: legacy?.debugMode ?? 'off',
+    },
+    command_gate: {
+      ...DEFAULT_ROLE_CONFIGS.command_gate,
+      apiKey: legacy?.apiKey ?? '',
+      baseUrl: legacy?.baseUrl ?? DEFAULT_ROLE_CONFIGS.command_gate.baseUrl,
+      model: legacy?.model ?? DEFAULT_ROLE_CONFIGS.command_gate.model,
+      timeout: legacy?.timeout ?? DEFAULT_ROLE_CONFIGS.command_gate.timeout,
+      providerId: legacy?.providerId ?? 'deepseek',
+      thinkingEnabled: legacy?.thinkingEnabled ?? false,
+      debugMode: legacy?.debugMode ?? 'off',
+    },
+    showrunner_director: {
+      // 新角色默认关闭，避免"显示启用但实际无法调用"的半坏状态
+      ...DEFAULT_ROLE_CONFIGS.showrunner_director,
+    },
+    live_reporter: {
+      ...DEFAULT_ROLE_CONFIGS.live_reporter,
+      apiKey: legacy?.apiKey ?? '',
+      baseUrl: legacy?.baseUrl ?? DEFAULT_ROLE_CONFIGS.live_reporter.baseUrl,
+      model: legacy?.model ?? DEFAULT_ROLE_CONFIGS.live_reporter.model,
+      timeout: legacy?.timeout ?? DEFAULT_ROLE_CONFIGS.live_reporter.timeout,
+      providerId: legacy?.providerId ?? 'deepseek',
+      thinkingEnabled: legacy?.thinkingEnabled ?? false,
+      debugMode: legacy?.debugMode ?? 'off',
+    },
+    final_reporter: {
+      ...DEFAULT_ROLE_CONFIGS.final_reporter,
+      apiKey: legacy?.apiKey ?? '',
+      baseUrl: legacy?.baseUrl ?? DEFAULT_ROLE_CONFIGS.final_reporter.baseUrl,
+      model: legacy?.model ?? DEFAULT_ROLE_CONFIGS.final_reporter.model,
+      timeout: legacy?.timeout ?? DEFAULT_ROLE_CONFIGS.final_reporter.timeout,
+      providerId: legacy?.providerId ?? 'deepseek',
+      thinkingEnabled: legacy?.thinkingEnabled ?? false,
+      debugMode: legacy?.debugMode ?? 'off',
+    },
+    referee_llm_advisor: {
+      // 默认关闭，保持不污染硬规则
+      ...DEFAULT_ROLE_CONFIGS.referee_llm_advisor,
+    },
+  };
+
+  return { version: 2, updatedAt: now, roles };
+}
+
+export function loadStoredLLMRoleConfigMap(storage: Storage | null = getStorage()): LLMRoleConfigMap | null {
+  if (!storage) return null;
+
+  try {
+    const raw = storage.getItem(LLM_ROLE_CONFIG_MAP_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      // 兼容 v1 格式
+      if (parsed.version === 2) {
+        return parsed as LLMRoleConfigMap;
+      }
+    }
+    // 无新格式，检查旧格式并迁移
+    const legacy = loadStoredLLMConfig(storage);
+    if (legacy) {
+      const migrated = migrateFromLegacyConfig(storage);
+      saveStoredLLMRoleConfigMap(migrated, storage);
+      return migrated;
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+export function saveStoredLLMRoleConfigMap(
+  configMap: LLMRoleConfigMap,
+  storage: Storage | null = getStorage()
+): LLMRoleConfigMap {
+  if (!storage) return configMap;
+  storage.setItem(LLM_ROLE_CONFIG_MAP_STORAGE_KEY, JSON.stringify(configMap));
+  return configMap;
+}
+
+export function getDefaultRoleLLMConfig(roleId: LLMRoleId): RoleLLMConfig {
+  return { ...DEFAULT_ROLE_CONFIGS[roleId] };
 }

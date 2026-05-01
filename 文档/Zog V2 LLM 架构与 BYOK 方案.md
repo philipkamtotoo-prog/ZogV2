@@ -792,3 +792,257 @@ interface LLMConfig {
 - 裁判顾问按需开关，不污染硬规则
 
 这才是适合 Zog V2 的长期架构。
+
+---
+
+## 20. 开发计划
+
+本章直接作为本方案的落地开发计划使用，不再单独维护第二份平行计划文档。
+
+### 20.1 当前进度判断
+
+基于当前代码状态，先给一个明确结论：
+
+- `actor_brain`：已落地，但仍使用全局 `LLMConfig`
+- `command_gate`：已落地，但仍使用全局 `LLMConfig`
+- `live_reporter`：已落地为功能逻辑，但还不是独立 role provider
+- `final_reporter`：已落地为功能逻辑，但还不是独立 role provider
+- `showrunner_director`：文档存在，代码未正式落地
+- `referee_llm_advisor`：未落地，且默认不应阻塞首发
+- `LLMRoleConfigMap / role-based BYOK`：未落地
+
+因此开发目标不是“继续堆 prompt”，而是先把：
+
+1. 角色槽位  
+2. role registry  
+3. showrunner runtime  
+4. BYOK 分角色配置  
+
+这四件事做成正式基础设施。
+
+### 20.2 开发总原则
+
+1. 不改 `CombatReferee` 的真实裁判权。
+2. 不让 `showrunner_director` 和 `command_gate` 共用同一个 provider 槽位。
+3. 不让 reporter 再继续共用单一粗暴调用入口。
+4. 所有 LLM 调用最终都必须能从日志里定位到 `roleId`。
+5. 所有 BYOK 配置最终都必须能按角色独立启停、独立选模型、独立调 prompt。
+
+### 20.3 Phase L1：冻结 role 配置合同
+
+目标：先把“按角色配置”的数据结构定死。
+
+必须完成：
+
+- 新增 `LLMRoleId`
+- 新增 `RoleLLMConfig`
+- 新增 `LLMRoleConfigMap`
+- 新增默认 role 配置
+- 新增旧 `LLMConfig -> LLMRoleConfigMap` 迁移逻辑
+
+推荐文件：
+
+- `src/llm/types/llmRoleTypes.ts`
+- `src/llm/clients/byokConfig.ts`
+- `src/llm/clients/llmRoleRegistry.ts`
+
+完成标准：
+
+- 本地存储支持读旧格式、写新格式
+- 运行时能通过 `roleId` 读取配置
+- 业务层不再继续直接依赖“全局唯一 LLMConfig”作为长期模型
+
+### 20.4 Phase L2：把现有四个已存在角色接入 registry
+
+目标：先把当前已经存在的角色调用从“全局配置”改成“按角色取配置”。
+
+本阶段范围：
+
+- `actor_brain`
+- `command_gate`
+- `live_reporter`
+- `final_reporter`
+
+必须完成：
+
+- 新增 `createLLMClientForRole(roleId, registry)`
+- ActorBrain 改为从 `actor_brain` 角色配置取 client
+- CommandGate 改为从 `command_gate` 角色配置取 client
+- Live Reporter 改为从 `live_reporter` 角色配置取 client
+- Final Reporter 改为从 `final_reporter` 角色配置取 client
+
+完成标准：
+
+- 四个功能区可以分别指定不同 model / provider / key
+- debug 日志能明确打印 `roleId`
+- 不再存在“Reporter 共用全局 config 直接 new client”的长期结构
+
+### 20.5 Phase L3：正式落地 `showrunner_director`
+
+目标：把导演从“预审法官附带广播生成”里拆出来，变成独立 LLM 角色。
+
+必须完成：
+
+- 新增 `showrunnerPrompt.ts`
+- 新增 `showrunnerProvider.ts`
+- 新增 showrunner context builder
+- BattleEngine 接入 showrunner runtime
+- Showrunner 输出独立于 `command_gate`
+
+Showrunner 首发职责只做三件事：
+
+1. 选择当前节目 beat / 节奏方向  
+2. 产出导演广播或节目引导信号  
+3. 对 battle state 给出“节目层引导”，但不改真实规则结算  
+
+本阶段明确不做：
+
+- 不让 showrunner 选择真实 activeActor
+- 不让 showrunner 选择真实 target
+- 不让 showrunner 直接改伤害、胜负、淘汰
+
+完成标准：
+
+- `command_gate` 只负责玩家指令准入
+- `showrunner_director` 只负责节目节奏推进
+- battle 流程中出现非玩家来源的导演信号
+
+### 20.6 Phase L4：补齐 Beat Deck / DramaBeat runtime
+
+目标：让“节目节奏感”不再只靠动作和记者补文案。
+
+必须完成：
+
+- 正式定义 `DramaBeat` 类型，不再使用占位结构
+- 定义 `DramaBeatType` / trigger / cooldown / priority / duration
+- 定义 `BeatDeck`
+- 增加 `currentBeat` 生命周期：进入、持续、结束、冷却
+- 增加 anti-repeat 规则
+- 增加“玩家插手会影响 beat 选择”的接口
+
+推荐做法：
+
+- beat 只提供节目层引导和广播倾向
+- beat 不直接拥有规则裁判权
+- 演员脑读取 `currentBeat` 和 `directorBroadcasts` 来改变表演倾向
+
+完成标准：
+
+- 至少有一批首发可运行 beat
+- 每局战斗能感受到阶段推进和节目弧线
+- reporter / director / actor 都能读到统一的 beat 上下文
+
+### 20.7 Phase L5：BYOK UI 改成分角色配置
+
+目标：让你在产品里真正完成“不同功能区选不同模型”。
+
+必须完成：
+
+- BYOK 页面改为 role card 列表，而不是单表单
+- 每个 role 支持：
+  - enabled
+  - provider
+  - baseUrl
+  - model
+  - apiKey
+  - timeout
+  - debugMode
+  - thinkingEnabled
+- 高级项支持：
+  - temperature
+  - maxTokens
+  - topP
+  - promptVersion
+  - systemPromptOverride
+
+建议首发交互：
+
+1. 复制当前角色配置到全部角色
+2. 从某角色复制配置
+3. 单角色测试连接
+4. 单角色开关 debug
+
+完成标准：
+
+- 你可以把法官切到便宜快模型
+- 把演员切到会演的模型
+- 把记者切到总结型模型
+- 把导演切到节奏型模型
+
+### 20.8 Phase L6：可选裁判顾问
+
+目标：保留 V1 的“AI 裁判风味”，但不污染硬规则。
+
+可选完成项：
+
+- 新增 `refereeAdvisorPrompt.ts`
+- 新增 `refereeAdvisorProvider.ts`
+- 输出：
+  - `impactTag`
+  - `flavorMultiplierSuggestion`
+  - `cinematicReason`
+
+硬限制：
+
+- 不得直接改真实伤害值
+- 不得直接决定淘汰
+- 不得直接决定 final score
+- 所有输出只能作为 Referee 的附加解释或轻量表演修饰
+
+完成标准：
+
+- 关掉它时，战斗仍完整可玩
+- 开启它时，只增加风味，不改变底层可控性
+
+### 20.9 推荐开发顺序
+
+正式顺序固定如下：
+
+1. `L1 role 配置合同`
+2. `L2 现有四角色接 registry`
+3. `L3 showrunner_director 独立`
+4. `L4 Beat Deck / DramaBeat runtime`
+5. `L5 role-based BYOK UI`
+6. `L6 可选 referee_llm_advisor`
+
+原因很简单：
+
+- 没有 L1/L2，后面所有“分角色选模型”都只是口头设想
+- 没有 L3/L4，导演就仍然只是广播生成器，不是真节目总控
+- 没有 L5，你无法在产品里真正使用这套架构
+- L6 是锦上添花，不该阻塞前面主链路
+
+### 20.10 当前缺口与本计划的映射
+
+把当前代码缺口直接映射到开发计划：
+
+- `DramaBeat 还是占位` -> `L4`
+- `没有 Beat Deck / Showrunner 调度` -> `L3 + L4`
+- `Reporter 不是独立 role provider` -> `L2`
+- `BYOK 仍是全局单配置` -> `L1 + L5`
+- `导演和预审法官职责还没完全拆开` -> `L3`
+- `裁判顾问还不存在` -> `L6`
+
+### 20.11 外包执行规则
+
+外包 agent 按本计划施工时，必须遵守：
+
+1. 不得跳过 `L1` 直接做 UI。
+2. 不得把 `showrunner_director` 临时塞回 `command_gate`。
+3. 不得把 `referee_llm_advisor` 做成真实裁判。
+4. 不得把 live/final reporter 再共用一个粗暴 provider 槽位。
+5. 不得让 React / Pixi 直接依赖 role config 的内部结构。
+6. 不得让 Beat Deck 直接修改真实伤害或胜负。
+
+### 20.12 本计划的验收口径
+
+本方案最终验收，不看“prompt 文件数量”，只看下面六件事是否成立：
+
+1. 五个正式功能区是否都有清晰 role slot
+2. 不同功能区是否能独立选模型
+3. 导演是否已独立于预审法官
+4. Beat Deck / DramaBeat 是否真正参与节目节奏
+5. Reporter 是否已按 live / final 拆开独立配置
+6. 裁判顾问是否保持可选且不污染硬规则
+
+这六条都成立，才算 Zog V2 的 LLM 架构真正进入可长期维护状态。

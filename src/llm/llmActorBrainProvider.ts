@@ -6,20 +6,35 @@
 import type { BattleState, ActorBrainOutput, ActionType, DirectorBroadcast } from '../core/battle/types';
 import type { ActorBrainProvider, ProviderConfig } from './actorBrainProvider';
 import { createLLMClient, type ChatMessage } from './clients/llmClient';
-import type { LLMConfig } from './clients/byokConfig';
+import type { LLMRoleRegistry } from './clients/llmRoleRegistry';
 import { buildActorBrainPrompt } from './prompts/actorBrainPrompt';
 import { parseJsonOrRepair, extractJsonFromResponse } from './jsonRepair';
 import { createTraceId, logLLMRequest, logLLMResponse, logLLMError } from './llmDebugLogger';
 
 export interface LLMProviderConfig extends ProviderConfig {
-  llmConfig: LLMConfig;
+  registry: LLMRoleRegistry;
 }
 
 /**
  * 创建 LLM ActorBrain Provider
  */
 export function createLLMActorBrainProvider(config: LLMProviderConfig): ActorBrainProvider {
-  const client = createLLMClient(config.llmConfig);
+  const roleId = 'actor_brain';
+  const roleConfig = config.registry.getRoleConfig(roleId);
+
+  const llmConfig = {
+    providerId: roleConfig.providerId,
+    apiKey: roleConfig.apiKey,
+    baseUrl: roleConfig.baseUrl,
+    model: roleConfig.model,
+    timeout: roleConfig.timeout,
+    thinkingEnabled: roleConfig.thinkingEnabled,
+    debugMode: roleConfig.debugMode,
+  };
+
+  const client = createLLMClient(llmConfig);
+  const temperature = roleConfig.temperature ?? 0.7;
+  const maxTokens = roleConfig.maxTokens ?? 1000;
 
   return {
     async generate(
@@ -52,18 +67,19 @@ export function createLLMActorBrainProvider(config: LLMProviderConfig): ActorBra
       const traceId = createTraceId();
 
       const request = {
-        model: config.llmConfig.model,
+        model: roleConfig.model,
         messages,
-        temperature: 0.7,
-        max_tokens: 1000,
+        temperature,
+        max_tokens: maxTokens,
       };
 
       logLLMRequest({
         traceId,
         kind: 'ActorBrain',
-        provider: config.llmConfig.providerId,
-        baseUrl: config.llmConfig.baseUrl,
-        model: config.llmConfig.model,
+        roleId,
+        provider: roleConfig.providerId,
+        baseUrl: roleConfig.baseUrl,
+        model: roleConfig.model,
         messages,
         requestBody: {
           temperature: request.temperature,

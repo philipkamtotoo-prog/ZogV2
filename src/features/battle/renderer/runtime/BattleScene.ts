@@ -9,7 +9,8 @@
  */
 
 import { Container } from 'pixi.js';
-import type { BattleRenderBootstrap, RenderOp } from '../battleRenderBootstrap';
+import type { BattleRenderBootstrap } from '../battleRenderBootstrap';
+import type { RenderOp } from '../displayEventToRenderOp';
 import { BackgroundLayer } from './layers/BackgroundLayer';
 import { ActorLayer } from './layers/ActorLayer';
 import { EffectLayer } from './layers/EffectLayer';

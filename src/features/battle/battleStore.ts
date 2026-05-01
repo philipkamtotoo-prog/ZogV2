@@ -1,15 +1,17 @@
 import { create } from 'zustand';
-import type { ActorCombatState, ActorPromptInjection, BattleState, ProgramMutation, ProgramMutationId } from '../../core/battle/types';
+import type { ActorCombatState, ActorPromptInjection, BattleState, ProgramMutation, ProgramMutationId, BattleEvent } from '../../core/battle/types';
 import type { DisplayEvent } from './display/displayTypes';
 import type { ItemId } from '../../core/economy/items';
 import type { FinalScore } from '../../core/battle/finalScore';
 import { calculateFinalScores } from '../../core/battle/finalScore';
-import { generateFallbackLiveReport, generateLiveReport, type LiveReport } from '../reports/reportGenerator';
+import { generateFallbackLiveReport, type LiveReport } from '../reports/reportGenerator';
 import { createBattleEngine } from '../../engine/battleEngine';
 import { createLLMActorBrainProvider } from '../../llm/llmActorBrainProvider';
 import { createStubActorBrainProvider } from '../../llm/stubActorBrainProvider';
 import { createCommandGateProvider } from '../../llm/commandGateProvider';
-import { loadStoredLLMConfig, validateLLMConfig } from '../../llm/clients/byokConfig';
+import { createLLMRoleRegistry } from '../../llm/clients/llmRoleRegistry';
+import { createShowrunnerProvider } from '../../llm/showrunnerProvider';
+import { createLiveReporterProvider } from '../../llm/liveReporterProvider';
 import { DEFAULT_ROSTER, type RosterActor } from '../actors/actorRoster';
 import { useLoungeStore, KEYBOARD_LIMITS } from '../lounge/loungeStore';
 import type { ActorTemplate } from '../../core/battle/initialState';
@@ -70,12 +72,6 @@ interface BattleStore {
 
   // 道具
   useItem: (itemId: ItemId, targetActorId: string) => { ok: true; eventId: string } | { ok: false; reason: string } | undefined;
-}
-
-function getLLMConfig() {
-  const config = loadStoredLLMConfig();
-  if (!config) return null;
-  return validateLLMConfig(config).valid ? config : null;
 }
 
 function drawEpisodeRoster(seed: string, rerollIndex: number, count = 5): RosterActor[] {
@@ -154,27 +150,43 @@ export const useBattleStore = create<BattleStore>((set, get) => ({
       source: 'PERMANENT',
       createdAt: Date.now(),
     }));
-    const llmConfig = getLLMConfig();
+    const llmRegistry = createLLMRoleRegistry();
     const itemUsesRemaining = useLoungeStore.getState().fridgeItemUseLimit;
 
-    if (llmConfig) {
-      console.info(
-        `[LLM:MODE] provider=${llmConfig.providerId} baseUrl=${llmConfig.baseUrl} model=${llmConfig.model} debug=${llmConfig.debugMode}`
-      );
-      if (llmConfig.debugMode !== 'verbose') {
-        console.info('[LLM:MODE] Prompt/response logging is disabled. Set LLM BYOK Settings -> debug verbose, then Save.');
+    // L2: 基于 role registry 的启用状态，不再依赖旧全局 LLMConfig
+    const actorBrainEnabled = llmRegistry.isRoleEnabled('actor_brain') && !!llmRegistry.getRoleConfig('actor_brain').apiKey;
+    const commandGateEnabled = llmRegistry.isRoleEnabled('command_gate') && !!llmRegistry.getRoleConfig('command_gate').apiKey;
+
+    if (actorBrainEnabled) {
+      const cfg = llmRegistry.getRoleConfig('actor_brain');
+      console.info(`[LLM:MODE] ActorBrain role enabled, model=${cfg.model}, debug=${cfg.debugMode}`);
+      if (cfg.debugMode !== 'verbose') {
+        console.info('[LLM:MODE] Prompt/response logging is disabled. Set BYOK Settings -> debug verbose, then Save.');
       }
     } else {
-      console.info('[LLM:MODE] Stub mode: no valid BYOK config. No LLM request will be sent.');
+      console.info('[LLM:MODE] ActorBrain: stub mode (role disabled or no API key).');
     }
 
-    const provider = llmConfig
-      ? createLLMActorBrainProvider({ llmConfig, timeout: 20000, maxRetries: 2 })
+    const provider = actorBrainEnabled
+      ? createLLMActorBrainProvider({ registry: llmRegistry, timeout: 20000, maxRetries: 2 })
       : createStubActorBrainProvider();
 
-    const commandGateProvider = llmConfig
-      ? createCommandGateProvider({ llmConfig, timeout: 15000, maxRetries: 1 })
+    const commandGateProvider = commandGateEnabled
+      ? createCommandGateProvider({ registry: llmRegistry, timeout: 15000, maxRetries: 1 })
       : undefined;
+
+    // L3: Showrunner provider (direct injection, off by default unless explicitly enabled)
+    const showrunnerProvider = createShowrunnerProvider({
+      registry: llmRegistry,
+      cooldown: 5, // fire every 5 actions
+      maxRetries: 1,
+    });
+
+    // L2: Live reporter provider (uses live_reporter role config)
+    const liveReporterProvider = createLiveReporterProvider({
+      registry: llmRegistry,
+      maxRetries: 2,
+    });
 
     const templates = buildRosterTemplates(battleSeed, rerollIndex);
     const engineId = `engine_${Date.now()}`;
@@ -183,6 +195,7 @@ export const useBattleStore = create<BattleStore>((set, get) => ({
     const engine = createBattleEngine({
       actorBrainProvider: provider,
       commandGateProvider,
+      showrunnerProvider,
       maxActions: 40,
       onStateChange: (state) => {
         if (get().engineId !== capturedId) return;
@@ -217,30 +230,28 @@ export const useBattleStore = create<BattleStore>((set, get) => ({
           const previousLiveReportActionIndex = currentStore.lastLiveReportActionIndex;
           if (state.actorActionIndex - previousLiveReportActionIndex >= 3) {
             set({ lastLiveReportActionIndex: state.actorActionIndex });
-            const llmConfig = getLLMConfig();
             const memoryLogs = state.reporterMemory
               .filter((m) => m.actorActionIndex > previousLiveReportActionIndex)
               .sort((a, b) => b.severity - a.severity || b.actorActionIndex - a.actorActionIndex)
               .map((m) => `[#${m.actorActionIndex}] ${m.title}: ${m.text}`);
             const eventLogs = state.eventLog
               .slice(-20)
-              .filter(e => e.line || e.type === 'ACTOR_ELIMINATED' || e.type === 'DIRECTOR_BROADCAST_INJECTED')
-              .map(e => {
+              .filter((e: BattleEvent) => e.line || e.type === 'ACTOR_ELIMINATED' || e.type === 'DIRECTOR_BROADCAST_INJECTED')
+              .map((e: BattleEvent) => {
                 if (e.type === 'ACTOR_ELIMINATED') return `[#${e.actorActionIndex}] 致命击杀: ${state.actors.find(a=>a.actorId===e.targetActorId)?.name} 阵亡！`;
                 if (e.type === 'DIRECTOR_BROADCAST_INJECTED') return `[#${e.actorActionIndex}] ✨ 上帝降临: ${e.diffs[0]?.newValue}`;
                 return `[#${e.actorActionIndex}] ${state.actors.find(a=>a.actorId===e.activeActorId)?.name}: ${e.line}`;
               });
             const recentLogs = memoryLogs.length > 0 ? memoryLogs : eventLogs;
-            if (llmConfig) {
-              generateLiveReport(state, llmConfig, recentLogs).then((res: LiveReport | null) => {
-                if (res && get().engineId === capturedId) {
-                  set({ liveReport: res });
-                }
-              });
-            } else {
+            // L2: 使用 liveReporterProvider，不再走旧 getLLMConfig()
+            liveReporterProvider.generateLiveReport(state, recentLogs).then((res) => {
+              if (res && get().engineId === capturedId) {
+                set({ liveReport: res });
+              }
+            }).catch(() => {
               const fallback = generateFallbackLiveReport(state, recentLogs);
               if (fallback) set({ liveReport: fallback });
-            }
+            });
           }
         }
       },
@@ -499,19 +510,31 @@ export const useBattleStore = create<BattleStore>((set, get) => ({
     engine.dispose();
 
     const nextRerollIndex = rerollIndex + 1;
-    const llmConfig = getLLMConfig();
-    const provider = llmConfig
-      ? createLLMActorBrainProvider({ llmConfig, timeout: 20000, maxRetries: 2 })
+    const llmRegistry = createLLMRoleRegistry();
+    const actorBrainEnabled = llmRegistry.isRoleEnabled('actor_brain') && !!llmRegistry.getRoleConfig('actor_brain').apiKey;
+    const commandGateEnabled = llmRegistry.isRoleEnabled('command_gate') && !!llmRegistry.getRoleConfig('command_gate').apiKey;
+    const provider = actorBrainEnabled
+      ? createLLMActorBrainProvider({ registry: llmRegistry, timeout: 20000, maxRetries: 2 })
       : createStubActorBrainProvider();
-    const commandGateProvider = llmConfig
-      ? createCommandGateProvider({ llmConfig, timeout: 15000, maxRetries: 1 })
+    const commandGateProvider = commandGateEnabled
+      ? createCommandGateProvider({ registry: llmRegistry, timeout: 15000, maxRetries: 1 })
       : undefined;
+    const showrunnerProvider = createShowrunnerProvider({
+      registry: llmRegistry,
+      cooldown: 5,
+      maxRetries: 1,
+    });
+    const liveReporterProvider = createLiveReporterProvider({
+      registry: llmRegistry,
+      maxRetries: 2,
+    });
     const engineId = `engine_${Date.now()}`;
     const capturedId = engineId;
     const templates = buildRosterTemplates(battleState.battleSeed, nextRerollIndex);
     const newEngine = createBattleEngine({
       actorBrainProvider: provider,
       commandGateProvider,
+      showrunnerProvider,
       maxActions: 40,
       onStateChange: (state) => {
         if (get().engineId !== capturedId) return;
@@ -538,30 +561,28 @@ export const useBattleStore = create<BattleStore>((set, get) => ({
           const previousLiveReportActionIndex = currentStore.lastLiveReportActionIndex;
           if (state.actorActionIndex - previousLiveReportActionIndex >= 3) {
             set({ lastLiveReportActionIndex: state.actorActionIndex });
-            const llmConfig = getLLMConfig();
             const memoryLogs = state.reporterMemory
               .filter((m) => m.actorActionIndex > previousLiveReportActionIndex)
               .sort((a, b) => b.severity - a.severity || b.actorActionIndex - a.actorActionIndex)
               .map((m) => `[#${m.actorActionIndex}] ${m.title}: ${m.text}`);
             const eventLogs = state.eventLog
               .slice(-20)
-              .filter(e => e.line || e.type === 'ACTOR_ELIMINATED' || e.type === 'DIRECTOR_BROADCAST_INJECTED')
-              .map(e => {
+              .filter((e: BattleEvent) => e.line || e.type === 'ACTOR_ELIMINATED' || e.type === 'DIRECTOR_BROADCAST_INJECTED')
+              .map((e: BattleEvent) => {
                 if (e.type === 'ACTOR_ELIMINATED') return `[#${e.actorActionIndex}] 致命击杀: ${state.actors.find(a=>a.actorId===e.targetActorId)?.name} 阵亡！`;
                 if (e.type === 'DIRECTOR_BROADCAST_INJECTED') return `[#${e.actorActionIndex}] ✨ 上帝降临: ${e.diffs[0]?.newValue}`;
                 return `[#${e.actorActionIndex}] ${state.actors.find(a=>a.actorId===e.activeActorId)?.name}: ${e.line}`;
               });
             const recentLogs = memoryLogs.length > 0 ? memoryLogs : eventLogs;
-            if (llmConfig) {
-              generateLiveReport(state, llmConfig, recentLogs).then((res: LiveReport | null) => {
-                if (res && get().engineId === capturedId) {
-                  set({ liveReport: res });
-                }
-              });
-            } else {
+            // L2: 使用 liveReporterProvider，不再走旧 getLLMConfig()
+            liveReporterProvider.generateLiveReport(state, recentLogs).then((res) => {
+              if (res && get().engineId === capturedId) {
+                set({ liveReport: res });
+              }
+            }).catch(() => {
               const fallback = generateFallbackLiveReport(state, recentLogs);
               if (fallback) set({ liveReport: fallback });
-            }
+            });
           }
         }
       },

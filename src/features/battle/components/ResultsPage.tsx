@@ -1,18 +1,16 @@
 import { useBattleStore } from '../battleStore';
 import { useReportStore } from '../../reports/reportStore';
-import { extractBattleReport } from '../../reports/finalReport';
-import { generateLLMReport } from '../../reports/reportGenerator';
+import { extractBattleReport, type BattleReport } from '../../reports/finalReport';
 import { calculateEpisodeBill } from '../../reports/bill';
 import { useLoungeStore } from '../../lounge/loungeStore';
-import { loadStoredLLMConfig, validateLLMConfig } from '../../../llm/clients/byokConfig';
+import { createLLMRoleRegistry } from '../../../llm/clients/llmRoleRegistry';
+import { createFinalReporterProvider } from '../../../llm/finalReporterProvider';
 import { useEffect, useRef } from 'react';
-import { calculateSalaryAwards } from '../../../core/battle/finalScore';
 
 export function ResultsPage() {
   const { finalScores, battleState, goToLobby, betSlip, getBetPayout } = useBattleStore();
   const { setCurrentReport, addReport, updateReport, currentBill } = useReportStore();
   const addGold = useLoungeStore((s) => s.addGold);
-  const addActorSalary = useLoungeStore((s) => s.addActorSalary);
   const generated = useRef(false);
 
   const payout = getBetPayout();
@@ -28,32 +26,37 @@ export function ResultsPage() {
         battleState.usedItemIds.length
       );
       const totalGold = bill.netGold;
-      const salaryAwards = battleState.salaryAwards.length > 0
-        ? battleState.salaryAwards
-        : calculateSalaryAwards(finalScores);
 
       const baseReport = extractBattleReport(battleState, bill, battleState.reporterMemory);
       setCurrentReport(baseReport, bill);
       addReport(baseReport);
       addGold(totalGold);
-      salaryAwards.forEach((award) => addActorSalary(award.actorId, award.totalSalary));
 
-      const llmConfig = loadStoredLLMConfig();
-      if (llmConfig && validateLLMConfig(llmConfig).valid) {
-        generateLLMReport(battleState, finalScores, llmConfig)
-          .then((llmReport) => {
-            const enrichedReport = {
-              ...llmReport,
+      // L2: 使用 finalReporterProvider，不再走旧 loadStoredLLMConfig()
+      const registry = createLLMRoleRegistry();
+      const finalReporterProvider = createFinalReporterProvider({ registry, maxRetries: 2 });
+      const highlights = battleState.eventLog.filter((e) => e.line).map((e) => `[#${e.actorActionIndex}] ${e.line}`);
+      finalReporterProvider.generateFinalReport(battleState, finalScores, highlights)
+        .then((llmReport) => {
+          if (llmReport) {
+            // L2: 只用FinalReportOutput里BattleReport本来就有的字段
+            const enrichedReport: BattleReport = {
+              ...baseReport,
+              title: llmReport.title || baseReport.title,
+              summary: llmReport.summary || baseReport.summary,
+              highlightDialogue: llmReport.highlightDialogue || baseReport.highlightDialogue,
+              biggestIncident: llmReport.biggestIncident || baseReport.biggestIncident,
+              zogReaction: llmReport.zogReaction || baseReport.zogReaction,
               bill,
               reporterMemory: battleState.reporterMemory,
             };
             setCurrentReport(enrichedReport, bill);
             updateReport(enrichedReport);
-          })
-          .catch(() => { /* fallback already set */ });
-      }
+          }
+        })
+        .catch(() => { /* fallback already set */ });
     }
-  }, [battleState, finalScores, setCurrentReport, addReport, addGold, addActorSalary, betSlip, payout]);
+  }, [battleState, finalScores, setCurrentReport, addReport, addGold, betSlip, payout]);
 
   return (
     <div style={{ padding: 24, maxWidth: 600, margin: '0 auto' }}>

@@ -2,7 +2,7 @@
  * BattleEngine - 战斗编排引擎
  */
 
-import type { BattleState, ActorBrainOutput, DirectorBroadcast, DirectorBroadcastDraft, CommitResult, BattleEvent } from '../core/battle/types';
+import type { BattleState, ActorBrainOutput, DirectorBroadcast, DirectorBroadcastDraft, CommitResult, BattleEvent, DramaBeat, ReporterMemoryEntry } from '../core/battle/types';
 import type { ActorBrainProvider } from '../llm/actorBrainProvider';
 import type { Queues } from './queues';
 import { createQueues, enqueueGeneration, dequeueGeneration, enqueueCommit, dequeueCommit, enqueueDisplay } from './queues';
@@ -36,6 +36,12 @@ export interface BattleEngineConfig {
     }>;
   };
 
+  // L3: Showrunner provider for director broadcasts (direct injection mode)
+  showrunnerProvider?: {
+    shouldFire: (actorActionIndex: number, lastShowrunnerActionIndex: number, recentEvents: BattleState['eventLog']) => boolean;
+    generateDirectorBroadcast: (battleState: BattleState, reporterMemory: ReporterMemoryEntry[], currentBeat?: DramaBeat) => Promise<DirectorBroadcast | null>;
+  };
+
   maxActions: number;
   onStateChange?: (state: BattleState) => void;
   onEvent?: (event: BattleState['eventLog'][0]) => void;
@@ -47,6 +53,7 @@ export interface BattleEngineState {
   playerActionQueue: PlayerAction[];
   isRunning: boolean;
   error: string | null;
+  lastShowrunnerActionIndex: number; // L3: track cooldown for showrunner
 }
 
 export function createBattleEngine(config: BattleEngineConfig) {
@@ -70,6 +77,7 @@ export function createBattleEngine(config: BattleEngineConfig) {
       playerActionQueue: [],
       isRunning: false,
       error: null,
+      lastShowrunnerActionIndex: -10, // L3: allow immediate fire on first few actions
     };
 
     return state;
@@ -155,6 +163,27 @@ export function createBattleEngine(config: BattleEngineConfig) {
       }
 
       drainPlayerActions();
+
+      // L3: Showrunner direct injection - fire before each action if conditions met
+      if (config.showrunnerProvider && state.battleState.phase === 'RUNNING') {
+        const shouldFire = config.showrunnerProvider.shouldFire(
+          state.battleState.actorActionIndex,
+          state.lastShowrunnerActionIndex,
+          state.battleState.eventLog
+        );
+        if (shouldFire) {
+          const broadcast = await config.showrunnerProvider.generateDirectorBroadcast(
+            state.battleState,
+            state.battleState.reporterMemory,
+            state.battleState.currentBeat
+          );
+          if (broadcast) {
+            state.lastShowrunnerActionIndex = state.battleState.actorActionIndex;
+            state.playerActionQueue.push({ type: 'INJECT_BROADCAST', broadcast });
+            drainPlayerActions();
+          }
+        }
+      }
 
       const activeActor = selectActiveActor(
         prepareActorsForSelection(),

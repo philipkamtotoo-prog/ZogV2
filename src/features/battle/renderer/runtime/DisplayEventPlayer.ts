@@ -13,8 +13,8 @@
  */
 
 import type { DisplayEvent } from '../../display/displayTypes';
-import type { RenderOp } from '../battleRenderBootstrap';
-import { displayEventToRenderOp } from '../battleRenderBootstrap';
+import type { RenderOp } from '../displayEventToRenderOp';
+import { displayEventToRenderOp } from '../displayEventToRenderOp';
 
 export class DisplayEventPlayer {
   private lastConsumedIndex = 0;

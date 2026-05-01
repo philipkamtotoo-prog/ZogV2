@@ -1,11 +1,12 @@
 import type { ChatMessage, ChatCompletionResponse } from './clients/llmClient';
 import { LLM_CONFIG_STORAGE_KEY, LLM_DEBUG_STORAGE_KEY } from './clients/byokConfig';
 
-export type LLMTraceKind = 'ActorBrain' | 'CommandGate' | 'Reporter';
+export type LLMTraceKind = 'ActorBrain' | 'CommandGate' | 'Reporter' | 'Showrunner';
 
 export interface LLMTracePayload {
   traceId: string;
   kind: LLMTraceKind;
+  roleId?: string;
   provider: string;
   baseUrl?: string;
   model: string;
@@ -39,8 +40,9 @@ export function shouldLogLLM(): boolean {
 
 export function logLLMRequest(payload: LLMTracePayload): void {
   if (!shouldLogLLM()) return;
-  const title = `[LLM:REQ][${payload.traceId}][${payload.kind}]`;
+  const title = `[LLM:REQ][${payload.traceId}][${payload.kind}]${payload.roleId ? `[${payload.roleId}]` : ''}`;
   const meta = {
+    roleId: payload.roleId,
     provider: payload.provider,
     baseUrl: payload.baseUrl ?? payload.provider,
     model: payload.model,

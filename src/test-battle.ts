@@ -7,8 +7,8 @@
 
 import { createLLMActorBrainProvider } from '../src/llm/llmActorBrainProvider';
 import { createStubActorBrainProvider } from '../src/llm/stubActorBrainProvider';
+import { createLLMRoleRegistry } from '../src/llm/clients/llmRoleRegistry';
 import { runBattleSimulation } from '../src/engine/battleSimulation';
-import { DEFAULT_LLM_CONFIG } from '../src/llm/clients/byokConfig';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const DEEPSEEK_API_KEY: string = (globalThis as any).process?.env?.DEEPSEEK_API_KEY ?? '';
@@ -47,15 +47,16 @@ async function main() {
     console.log('\n2. Testing with DeepSeek API...');
     console.log('  (This may take a while due to API calls)\n');
 
+    const registry = createLLMRoleRegistry();
+    // Override the apiKey for actor_brain role
+    const roleConfig = registry.getRoleConfig('actor_brain');
+    roleConfig.apiKey = DEEPSEEK_API_KEY;
+    roleConfig.baseUrl = 'https://api.deepseek.com';
+    roleConfig.model = 'deepseek-v4-flash';
+    roleConfig.timeout = 30000;
+
     const llmProvider = createLLMActorBrainProvider({
-      llmConfig: {
-        ...DEFAULT_LLM_CONFIG,
-        apiKey: DEEPSEEK_API_KEY,
-        baseUrl: 'https://api.deepseek.com',
-        model: 'deepseek-v4-flash',
-        timeout: 30000,
-        thinkingEnabled: false,
-      },
+      registry,
       timeout: 30000,
       maxRetries: 2,
     });
