@@ -47,6 +47,12 @@ interface LoungeState {
   actorPermanentPrompts: Record<string, string>;
 }
 
+export interface ChatMessage {
+  role: 'user' | 'zog';
+  content: string;
+  timestamp: number;
+}
+
 interface LoungeStore extends LoungeState {
   collectIdleIncome: () => { goldEarned: number; capped: boolean };
   beg: () => void;
@@ -69,6 +75,12 @@ interface LoungeStore extends LoungeState {
   setPermanentPrompt: (actorId: string, prompt: string) => boolean;
   modifyPermanentPrompt: (actorId: string, prompt: string) => boolean;
   clearPermanentPrompt: (actorId: string) => boolean;
+
+  // 客厅聊天
+  chatMessages: ChatMessage[];
+  isZogTyping: boolean;
+  sendChat: (message: string) => Promise<void>;
+  clearChat: () => void;
 }
 
 const STORAGE_KEY = 'zog_lounge';
@@ -107,7 +119,7 @@ function pickState(s: LoungeStore): LoungeState {
   };
 }
 
-const defaults: LoungeState = {
+const defaults: LoungeState & Pick<LoungeStore, 'chatMessages' | 'isZogTyping'> = {
   gold: 100,
   zogAffection: 0,
   inventory: {},
@@ -123,6 +135,8 @@ const defaults: LoungeState = {
   actorSalary: {},
   actorPurchases: {},
   actorPermanentPrompts: {},
+  chatMessages: [],
+  isZogTyping: false,
 };
 
 function normalizeEquipmentLevel(value: unknown): number {
@@ -422,4 +436,26 @@ export const useLoungeStore = create<LoungeStore>((set, get) => ({
     });
     return true;
   },
+
+  // 客厅聊天
+  chatMessages: [],
+  isZogTyping: false,
+
+  sendChat: async (message: string) => {
+    const { chatMessages } = get();
+    const userMsg: ChatMessage = { role: 'user', content: message, timestamp: Date.now() };
+    set((s) => ({ ...s, chatMessages: [...s.chatMessages, userMsg], isZogTyping: true }));
+
+    try {
+      const { createZogLoungeProvider } = await import('../../llm/zogLoungeProvider');
+      const response = await createZogLoungeProvider().chat(message, chatMessages);
+      const zogMsg: ChatMessage = { role: 'zog', content: response, timestamp: Date.now() };
+      set((s) => ({ ...s, chatMessages: [...s.chatMessages, zogMsg], isZogTyping: false }));
+    } catch (err) {
+      const errorMsg: ChatMessage = { role: 'zog', content: `...Zog is speechless. (${err})`, timestamp: Date.now() };
+      set((s) => ({ ...s, chatMessages: [...s.chatMessages, errorMsg], isZogTyping: false }));
+    }
+  },
+
+  clearChat: () => set((s) => ({ ...s, chatMessages: [], isZogTyping: false })),
 }));

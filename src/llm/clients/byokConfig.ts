@@ -217,6 +217,12 @@ function migrateFromLegacyConfig(storage: Storage | null): LLMRoleConfigMap {
       // 默认关闭，保持不污染硬规则
       ...DEFAULT_ROLE_CONFIGS.referee_llm_advisor,
     },
+    zog_lounge: {
+      ...DEFAULT_ROLE_CONFIGS.zog_lounge,
+    },
+    zog_battle_reaction: {
+      ...DEFAULT_ROLE_CONFIGS.zog_battle_reaction,
+    },
   };
 
   return { version: 2, updatedAt: now, roles };

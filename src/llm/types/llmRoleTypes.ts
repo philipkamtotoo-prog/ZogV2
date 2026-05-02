@@ -9,7 +9,9 @@ export type LLMRoleId =
   | 'showrunner_director'
   | 'live_reporter'
   | 'final_reporter'
-  | 'referee_llm_advisor';
+  | 'referee_llm_advisor'
+  | 'zog_lounge'
+  | 'zog_battle_reaction';
 
 export type LLMProviderId = 'deepseek' | 'openai' | 'custom';
 export type LLMDebugMode = 'off' | 'summary' | 'verbose';
@@ -121,6 +123,32 @@ export const DEFAULT_ROLE_CONFIGS: Record<LLMRoleId, RoleLLMConfig> = {
     temperature: 0.2,
     maxTokens: 300,
   },
+  zog_lounge: {
+    roleId: 'zog_lounge',
+    enabled: false, // 用户需在设置页配置 API
+    providerId: 'deepseek',
+    apiKey: '',
+    baseUrl: 'https://api.deepseek.com',
+    model: 'deepseek-v4-flash',
+    timeout: 20000,
+    thinkingEnabled: false,
+    debugMode: 'off',
+    temperature: 0.8,
+    maxTokens: 500,
+  },
+  zog_battle_reaction: {
+    roleId: 'zog_battle_reaction',
+    enabled: false,
+    providerId: 'deepseek',
+    apiKey: '',
+    baseUrl: 'https://api.deepseek.com',
+    model: 'deepseek-v4-flash',
+    timeout: 15000,
+    thinkingEnabled: false,
+    debugMode: 'off',
+    temperature: 0.9,
+    maxTokens: 200,
+  },
 };
 
 export const ALL_LLM_ROLE_IDS: LLMRoleId[] = [
@@ -130,4 +158,6 @@ export const ALL_LLM_ROLE_IDS: LLMRoleId[] = [
   'live_reporter',
   'final_reporter',
   'referee_llm_advisor',
+  'zog_lounge',
+  'zog_battle_reaction',
 ];

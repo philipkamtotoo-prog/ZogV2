@@ -1,7 +1,7 @@
 import type { ChatMessage, ChatCompletionResponse } from './clients/llmClient';
 import { LLM_CONFIG_STORAGE_KEY, LLM_DEBUG_STORAGE_KEY } from './clients/byokConfig';
 
-export type LLMTraceKind = 'ActorBrain' | 'CommandGate' | 'Reporter' | 'Showrunner';
+export type LLMTraceKind = 'ActorBrain' | 'CommandGate' | 'Reporter' | 'Showrunner' | 'ZogLounge' | 'ZogBattleReaction';
 
 export interface LLMTracePayload {
   traceId: string;

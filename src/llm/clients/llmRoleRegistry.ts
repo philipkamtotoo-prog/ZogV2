@@ -70,7 +70,9 @@ export function createLLMRoleRegistry(storage: Storage | null = (() => {
 
     isRoleEnabled(roleId: LLMRoleId): boolean {
       const map = ensureLoaded();
-      return map.roles[roleId]?.enabled ?? false;
+      const raw = map.roles[roleId];
+      // 新角色不在旧存储中时，回退到 normalizeRoleLLMConfig（即 DEFAULT_ROLE_CONFIGS）
+      return normalizeRoleLLMConfig(raw ?? null, roleId).enabled;
     },
   };
 }

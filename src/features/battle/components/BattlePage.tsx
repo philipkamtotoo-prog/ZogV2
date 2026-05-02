@@ -7,11 +7,13 @@ import { CommandInput } from './CommandInput';
 import { DodoScoreboard } from './DodoScoreboard';
 import { DisplayLog } from './DisplayLog';
 import { ItemPanel } from './ItemPanel';
+import { ZogNoteOverlay } from './ZogNoteOverlay';
 
 export function BattlePage() {
   const {
     battleState,
     displayLog,
+    battleSpeedMs,
     commandInput,
     commandStatus,
     isProcessing,
@@ -20,6 +22,7 @@ export function BattlePage() {
     resumeBattle,
     stepBattle,
     startAuto,
+    setBattleSpeed,
     submitCommand,
     setCommandInput,
     resolveAsk,
@@ -41,11 +44,12 @@ export function BattlePage() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', padding: 12, gap: 8 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', padding: 12, gap: 8, position: 'relative' }}>
       <BattleControls
         phase={battleState.phase}
         clockState={battleState.clockState}
         runMode={battleState.runMode}
+        battleSpeedMs={battleSpeedMs}
         actorActionIndex={battleState.actorActionIndex}
         isProcessing={isProcessing}
         onStart={startBattle}
@@ -53,6 +57,7 @@ export function BattlePage() {
         onResume={resumeBattle}
         onStep={stepBattle}
         onAuto={startAuto}
+        onSpeedChange={setBattleSpeed}
       />
 
       <div style={{ display: 'flex', gap: 8, flex: 1, minHeight: 0 }}>
@@ -95,7 +100,10 @@ export function BattlePage() {
           )}
         </div>
 
-        <DodoScoreboard actors={battleState.actors} scene={battleState.scene} />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 220 }}>
+          <DodoScoreboard actors={battleState.actors} scene={battleState.scene} />
+          <ZogNoteOverlay />
+        </div>
       </div>
 
       {liveReport && (
