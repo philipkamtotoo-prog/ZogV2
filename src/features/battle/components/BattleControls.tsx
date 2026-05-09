@@ -2,6 +2,7 @@ interface BattleControlsProps {
   phase: string;
   clockState: string;
   runMode: string;
+  battleSpeedMs: number;
   actorActionIndex: number;
   isProcessing: boolean;
   onStart: () => void;
@@ -9,12 +10,14 @@ interface BattleControlsProps {
   onResume: () => void;
   onStep: () => void;
   onAuto: () => void;
+  onSpeedChange: (ms: number) => void;
 }
 
 export function BattleControls({
   phase,
   clockState,
   runMode,
+  battleSpeedMs,
   actorActionIndex,
   isProcessing,
   onStart,
@@ -22,51 +25,64 @@ export function BattleControls({
   onResume,
   onStep,
   onAuto,
+  onSpeedChange,
 }: BattleControlsProps) {
-  const btnStyle = (disabled?: boolean): React.CSSProperties => ({
-    padding: '6px 16px',
-    margin: '0 4px',
-    borderRadius: 4,
-    border: 'none',
-    background: disabled ? '#444' : '#2196f3',
-    color: disabled ? '#888' : '#fff',
+  const btnStyle = (active?: boolean, disabled?: boolean): React.CSSProperties => ({
+    minHeight: 30,
+    padding: '5px 12px',
+    border: '1px solid rgba(234, 197, 124, 0.22)',
+    borderRadius: 2,
+    background: disabled ? 'rgba(255,255,255,0.04)' : active ? '#d08d2c' : 'rgba(255,255,255,0.08)',
+    color: disabled ? '#776f62' : active ? '#130f0a' : '#f8ebd0',
     cursor: disabled ? 'default' : 'pointer',
-    fontSize: 13,
+    fontSize: 12,
   });
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 0' }}>
-      <span style={{ color: '#aaa', fontSize: 12, marginRight: 8 }}>
-        Phase: {phase} | Mode: {runMode} | Clock: {clockState} | Action: #{actorActionIndex}
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, flexWrap: 'wrap' }}>
+      <span style={{ color: '#a79b84', fontSize: 12 }}>
+        {phase} / {runMode} / {clockState} / #{actorActionIndex}
       </span>
 
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+        {[{ label: '0.5x', ms: 900 }, { label: '1x', ms: 500 }, { label: '2x', ms: 250 }].map((preset) => (
+          <button
+            key={preset.ms}
+            style={btnStyle(battleSpeedMs === preset.ms)}
+            onClick={() => onSpeedChange(preset.ms)}
+          >
+            {preset.label}
+          </button>
+        ))}
+      </div>
+
       {phase === 'PREPARING' && (
-        <button style={btnStyle()} onClick={onStart}>
-          开始战斗
+        <button style={btnStyle(true)} onClick={onStart}>
+          Start
         </button>
       )}
 
       {phase === 'RUNNING' && clockState === 'PLAYING' && (
         <button style={btnStyle()} onClick={onPause}>
-          暂停
+          Pause
         </button>
       )}
 
       {phase === 'RUNNING' && clockState === 'PAUSED' && (
         <>
-          <button style={btnStyle()} onClick={onResume}>
-            继续
+          <button style={btnStyle(true)} onClick={onResume}>
+            Resume
           </button>
-          <button style={btnStyle(isProcessing)} onClick={onStep} disabled={isProcessing}>
-            单步
+          <button style={btnStyle(false, isProcessing)} onClick={onStep} disabled={isProcessing}>
+            Step
           </button>
           <button style={btnStyle()} onClick={onAuto}>
-            自动
+            Auto
           </button>
         </>
       )}
 
-      {isProcessing && <span style={{ color: '#ffeb3b', fontSize: 12 }}>处理中...</span>}
+      {isProcessing && <span style={{ color: '#ffdf8e', fontSize: 12 }}>Processing...</span>}
     </div>
   );
 }

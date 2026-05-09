@@ -1,9 +1,10 @@
 import type { BattleEvent, BattleState } from '../../core/battle/types';
 import type { ReporterMemoryEntry, MemoryType } from './reporterMemory';
 
-let _memorySeq = 0;
+let memorySeq = 0;
+
 function nextMemoryId(): string {
-  return `mem_${Date.now()}_${++_memorySeq}`;
+  return `mem_${Date.now()}_${++memorySeq}`;
 }
 
 function makeMemory(
@@ -35,27 +36,24 @@ function makeMemory(
 }
 
 function getActorName(state: BattleState, actorId: string): string {
-  return state.actors.find((a) => a.actorId === actorId)?.name ?? actorId;
+  return state.actors.find((actor) => actor.actorId === actorId)?.name ?? actorId;
 }
 
 function extractHpDamage(diffs: BattleEvent['diffs']): number {
-  for (const d of diffs) {
-    if (typeof d.path === 'string' && /currentHP/i.test(d.path)) {
-      const oldVal = Number(d.oldValue);
-      const newVal = Number(d.newValue);
-      if (!isNaN(oldVal) && !isNaN(newVal) && oldVal > newVal) {
-        return oldVal - newVal;
+  for (const diff of diffs) {
+    if (/currentHP/i.test(diff.path)) {
+      const oldValue = Number(diff.oldValue);
+      const newValue = Number(diff.newValue);
+      if (!Number.isNaN(oldValue) && !Number.isNaN(newValue) && oldValue > newValue) {
+        return oldValue - newValue;
       }
     }
   }
   return 0;
 }
 
-export function evaluateEvent(
-  event: BattleEvent,
-  state: BattleState
-): ReporterMemoryEntry | null {
-  const { battleId } = state;
+export function evaluateEvent(event: BattleEvent, state: BattleState): ReporterMemoryEntry | null {
+  const battleId = state.battleId;
   const eventIndex = event.actorActionIndex;
 
   switch (event.type) {
@@ -66,110 +64,124 @@ export function evaluateEvent(
         battleId,
         eventIndex,
         'ACCIDENT',
-        `${name} 阵亡！`,
-        `在第 ${eventIndex} 回合，${name} 被淘汰出局，震撼全场！`,
+        `${name} 阵亡`,
+        `第 ${eventIndex} 回合，${name} 被淘汰出局，震动全场。`,
         [event.targetActorId],
         [event.eventId],
         5,
-        ['elimination'],
+        ['elimination']
       );
     }
 
     case 'DAMAGE_DEALT': {
       const damage = extractHpDamage(event.diffs);
       if (damage === 0) return null;
-      const target = event.targetActorId ? state.actors.find((a) => a.actorId === event.targetActorId) : null;
+      const target = event.targetActorId
+        ? state.actors.find((actor) => actor.actorId === event.targetActorId)
+        : null;
       if (!target) return null;
+
       const threshold = target.maxHP * 0.2;
       if (damage < threshold) return null;
+
       const severity = damage > target.maxHP * 0.6 ? 4 : 3;
       const actorName = event.activeActorId ? getActorName(state, event.activeActorId) : '神秘力量';
       return makeMemory(
         battleId,
         eventIndex,
         'HIGHLIGHT',
-        `猛料！${target.name} 吃了 ${damage} 点伤害`,
-        `${actorName} 对 ${target.name} 造成了 ${damage} 点暴击伤害，血量告急！`,
+        `猛料：${target.name} 吃了 ${damage} 点伤害`,
+        `${actorName} 对 ${target.name} 造成了 ${damage} 点重击，血线瞬间告急。`,
         [event.activeActorId, event.targetActorId].filter(Boolean) as string[],
         [event.eventId],
         severity as 3 | 4,
-        ['damage'],
+        ['damage']
       );
     }
 
     case 'ITEM_USED': {
       let healAmount = 0;
-      for (const d of event.diffs) {
-        if (typeof d.path === 'string' && /currentHP/i.test(d.path)) {
-          const oldVal = Number(d.oldValue);
-          const newVal = Number(d.newValue);
-          if (!isNaN(oldVal) && !isNaN(newVal) && newVal > oldVal) {
-            healAmount = newVal - oldVal;
+      for (const diff of event.diffs) {
+        if (/currentHP/i.test(diff.path)) {
+          const oldValue = Number(diff.oldValue);
+          const newValue = Number(diff.newValue);
+          if (!Number.isNaN(oldValue) && !Number.isNaN(newValue) && newValue > oldValue) {
+            healAmount = newValue - oldValue;
           }
         }
       }
       if (healAmount <= 0) return null;
+
       const targetName = event.targetActorId ? getActorName(state, event.targetActorId) : '某人';
       return makeMemory(
         battleId,
         eventIndex,
         'ITEM_DRAMA',
-        `${targetName} 回血了！`,
-        `第 ${eventIndex} 回合，${targetName} 使用道具回复了 ${healAmount} 点生命值，医学奇迹！`,
+        `${targetName} 回血了`,
+        `第 ${eventIndex} 回合，${targetName} 使用道具恢复了 ${healAmount} 点生命值。`,
         event.targetActorId ? [event.targetActorId] : [],
         [event.eventId],
         2,
-        ['item', 'heal'],
+        ['item', 'heal']
       );
     }
 
     case 'DIRECTOR_BROADCAST_INJECTED': {
-      const actorNames: string[] = event.activeActorId ? [getActorName(state, event.activeActorId)] : [];
-      const diffText = event.diffs[0] ? String(event.diffs[0].newValue) : '上帝降临';
+      const actorIds = event.activeActorId ? [event.activeActorId] : [];
+      const text = event.broadcastText ?? '节目组切入了一条导播信号';
       return makeMemory(
         battleId,
         eventIndex,
         'PLAYER_INTERVENTION',
-        `玩家插手！${diffText.slice(0, 10)}`,
-        `第 ${eventIndex} 回合，玩家发出指令：${diffText}`,
-        actorNames,
+        `导播插手：${text.slice(0, 12)}`,
+        `第 ${eventIndex} 回合，节目组切入了一条导播信号：${text}`,
+        actorIds,
         [event.eventId],
         3,
-        ['broadcast', 'player'],
+        ['broadcast', 'director']
       );
     }
 
     case 'DODOS_STOLEN': {
-      const diff = event.diffs.find((d) => d.path === 'dodosControlled');
-      const stolen = diff ? Number(diff.oldValue) - Number(diff.newValue) : 0;
+      const targetDodoDiff = event.diffs.find((diff) => diff.path === 'scene.dodosControlled');
+      const stolen = targetDodoDiff
+        ? Math.max(0, Number(targetDodoDiff.oldValue) - Number(targetDodoDiff.newValue))
+        : 0;
       if (stolen <= 0) return null;
+
+      const attackerName = event.activeActorId ? getActorName(state, event.activeActorId) : '某人';
+      const targetName = event.targetActorId ? getActorName(state, event.targetActorId) : '某人';
       return makeMemory(
         battleId,
         eventIndex,
         'SHAME',
-        `${event.activeActorId ? getActorName(state, event.activeActorId) : '某人'} 的嘟嘟鸟被偷了！`,
-        `第 ${eventIndex} 回合，${event.activeActorId ? getActorName(state, event.activeActorId) : '某人'} 损失了 ${stolen} 只嘟嘟鸟，颜面尽失！`,
-        event.activeActorId ? [event.activeActorId] : [],
+        `${targetName} 的渡渡鸟被偷了`,
+        `第 ${eventIndex} 回合，${attackerName} 从 ${targetName} 手里抢走了 ${stolen} 只渡渡鸟。`,
+        [event.activeActorId, event.targetActorId].filter(Boolean) as string[],
         [event.eventId],
         2,
-        ['dodo', 'shame'],
+        ['dodo', 'shame']
       );
     }
 
     case 'DODOS_BRIBED': {
-      const diff = event.diffs.find((d) => d.path === 'dodoTrust');
-      const trustLoss = diff ? Number(diff.oldValue) - Number(diff.newValue) : 0;
-      if (trustLoss <= 0) return null;
+      const dodoGainDiff = event.diffs.find((diff) => diff.path === 'scene.dodosControlled');
+      const dodosGained = dodoGainDiff
+        ? Math.max(0, Number(dodoGainDiff.newValue) - Number(dodoGainDiff.oldValue))
+        : 0;
+      const actorName = event.activeActorId ? getActorName(state, event.activeActorId) : '某人';
+      if (dodosGained <= 0) return null;
+
       return makeMemory(
         battleId,
         eventIndex,
-        'SHAME',
-        `信任崩盘！${event.activeActorId ? getActorName(state, event.activeActorId) : '某人'} 的嘟嘟鸟叛变了`,
-        `第 ${eventIndex} 回合，${event.activeActorId ? getActorName(state, event.activeActorId) : '某人'} 的嘟嘟鸟信任度暴跌 ${trustLoss}！`,
+        'HIGHLIGHT',
+        `${actorName} 引来了渡渡鸟`,
+        `第 ${eventIndex} 回合，${actorName} 用食物吸引了 ${dodosGained} 只渡渡鸟靠拢。`,
         event.activeActorId ? [event.activeActorId] : [],
         [event.eventId],
         2,
-        ['dodo', 'trust', 'shame'],
+        ['dodo', 'gain']
       );
     }
 
@@ -178,54 +190,50 @@ export function evaluateEvent(
   }
 }
 
-/**
- * 检查低血量存留（HP < 30% 且还活着）
- * 这是 post-scan 检查，不基于单一事件
- */
 export function evaluateLowHpSurvivors(state: BattleState): ReporterMemoryEntry[] {
   const memories: ReporterMemoryEntry[] = [];
-  const threshold = 0.3;
 
   for (const actor of state.actors) {
     if (!actor.isAlive) continue;
-    if (actor.currentHP < actor.maxHP * threshold) {
-      memories.push(makeMemory(
-        state.battleId,
-        state.actorActionIndex,
-        'ACCIDENT',
-        `惨胜！${actor.name} 残血存活`,
-        `第 ${state.actorActionIndex} 回合结算时，${actor.name} 仅剩 ${actor.currentHP}/${actor.maxHP} HP，勉强存活。`,
-        [actor.actorId],
-        [],
-        2,
-        ['lowhp'],
-      ));
+    if (actor.currentHP < actor.maxHP * 0.3) {
+      memories.push(
+        makeMemory(
+          state.battleId,
+          state.actorActionIndex,
+          'ACCIDENT',
+          `惨胜：${actor.name} 残血存活`,
+          `第 ${state.actorActionIndex} 回合结算时，${actor.name} 仅剩 ${actor.currentHP}/${actor.maxHP} HP。`,
+          [actor.actorId],
+          [],
+          2,
+          ['lowhp']
+        )
+      );
     }
   }
 
   return memories;
 }
 
-/**
- * 检查 0 嘟嘟鸟的情况
- */
 export function evaluateZeroDodos(state: BattleState): ReporterMemoryEntry[] {
   const memories: ReporterMemoryEntry[] = [];
 
   for (const actor of state.actors) {
     if (!actor.isAlive) continue;
     if (actor.scene.dodosControlled === 0) {
-      memories.push(makeMemory(
-        state.battleId,
-        state.actorActionIndex,
-        'SHAME',
-        `笑柄！${actor.name} 一只嘟嘟鸟都没有`,
-        `第 ${state.actorActionIndex} 回合，${actor.name} 没有任何嘟嘟鸟在手，彻底沦为笑柄。`,
-        [actor.actorId],
-        [],
-        2,
-        ['dodo', 'shame'],
-      ));
+      memories.push(
+        makeMemory(
+          state.battleId,
+          state.actorActionIndex,
+          'SHAME',
+          `笑柄：${actor.name} 一只渡渡鸟都没有`,
+          `第 ${state.actorActionIndex} 回合，${actor.name} 手里没有任何渡渡鸟，场面相当尴尬。`,
+          [actor.actorId],
+          [],
+          2,
+          ['dodo', 'shame']
+        )
+      );
     }
   }
 

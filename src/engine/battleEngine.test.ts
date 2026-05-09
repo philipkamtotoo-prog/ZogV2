@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { createBattleEngine } from './battleEngine';
 import type { ActorBrainProvider } from '../core/battle/types';
 
@@ -110,7 +110,35 @@ describe('battleEngine', () => {
   });
 
   it('enqueues REPORTER display events for normal battle steps', async () => {
-    const engine = createBattleEngine({ actorBrainProvider: immediateProvider(), maxActions: 40 });
+    const engine = createBattleEngine({
+      actorBrainProvider: immediateProvider(),
+      maxActions: 40,
+      hooks: {
+        createStageBrief: (battleState) => ({
+          memoryId: `mem_${battleState.actorActionIndex}`,
+          battleId: battleState.battleId,
+          actorActionIndex: battleState.actorActionIndex,
+          type: 'STAGE_BRIEF',
+          title: 'Stage brief',
+          text: 'A reporter summary',
+          actorIds: [],
+          eventIds: [],
+          severity: 1,
+          tags: ['brief'],
+          source: 'SYSTEM',
+          createdAt: Date.now(),
+        }),
+        mapReporterMemoryToDisplay: (entries) =>
+          entries.map((entry) => ({
+            kind: 'REPORTER',
+            eventId: entry.memoryId,
+            actorActionIndex: entry.actorActionIndex,
+            content: entry.text,
+            memoryType: entry.type,
+            severity: entry.severity,
+          })),
+      },
+    });
     engine.init('reporter_queue_test', 3);
     engine.start();
 
@@ -119,12 +147,38 @@ describe('battleEngine', () => {
     }
 
     const consumedKinds: string[] = [];
-    let item = engine.consumeDisplayItem();
+    let item = engine.consumeDisplayItem() as { kind: string } | null;
     while (item) {
       consumedKinds.push(item.kind);
-      item = engine.consumeDisplayItem();
+      item = engine.consumeDisplayItem() as { kind: string } | null;
     }
 
     expect(consumedKinds).toContain('REPORTER');
+  });
+
+  it('stops AUTO progression when paused and resumes after auto is started again', async () => {
+    vi.useFakeTimers();
+    const engine = createBattleEngine({ actorBrainProvider: immediateProvider(), maxActions: 40 });
+
+    try {
+      engine.init('pause_resume_auto_test', 3);
+      engine.start();
+      engine.startAuto(20);
+
+      await vi.advanceTimersByTimeAsync(25);
+      const progressedActionIndex = engine.getState()!.battleState.actorActionIndex;
+      expect(progressedActionIndex).toBeGreaterThan(0);
+
+      engine.pause();
+      await vi.advanceTimersByTimeAsync(100);
+      expect(engine.getState()!.battleState.actorActionIndex).toBe(progressedActionIndex);
+
+      engine.startAuto(20);
+      await vi.advanceTimersByTimeAsync(25);
+      expect(engine.getState()!.battleState.actorActionIndex).toBeGreaterThan(progressedActionIndex);
+    } finally {
+      engine.dispose();
+      vi.useRealTimers();
+    }
   });
 });

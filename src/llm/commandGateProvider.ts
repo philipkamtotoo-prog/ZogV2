@@ -53,7 +53,9 @@ export function createCommandGateProvider(
           decision: quickResult.decision,
           normalizedInput: rawInput.trim().toLowerCase(),
           reason: quickResult.reason,
-          directorBroadcastDraft: quickResult.draft,
+          directorBroadcastDraft: quickResult.draft
+            ? { ...quickResult.draft, text: toDirectorBroadcastText(rawInput, quickResult.draft.text) }
+            : undefined,
           targetQuestion: quickResult.targetQuestion,
           targetOptions: quickResult.targetOptions,
         };
@@ -120,7 +122,7 @@ export function createCommandGateProvider(
             let draft: DirectorBroadcastDraft | undefined;
             if (broadcastSource && (raw.decision === 'ALLOW' || raw.decision === 'DOWNGRADE')) {
               draft = {
-                text: broadcastSource.text ?? rawInput,
+                text: toDirectorBroadcastText(rawInput, broadcastSource.text ?? rawInput),
                 scope: (broadcastSource.scope === 'TARGETED' ? 'TARGETED' : 'GLOBAL'),
                 targetActorIds: broadcastSource.targetActorIds ?? [],
                 lifetime: 'NEXT_ACTION',
@@ -152,4 +154,19 @@ export function createCommandGateProvider(
       };
     },
   };
+}
+
+function toDirectorBroadcastText(rawInput: string, proposedText: string): string {
+  const trimmedRaw = rawInput.trim();
+  const trimmedText = proposedText.trim();
+
+  if (!trimmedText) {
+    return '导播信号切入，场上的气氛陡然绷紧。';
+  }
+
+  if (trimmedText === trimmedRaw) {
+    return `导播信号切入：${trimmedText}`;
+  }
+
+  return trimmedText;
 }

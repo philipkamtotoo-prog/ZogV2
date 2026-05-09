@@ -22,8 +22,8 @@ export function selectActiveActor(
     let score =
       actor.initiative +
       actor.spotlightDebt * 30 +
-      dangerScore * 25 +
-      lastBreathPriority * 100 +
+      dangerScore * 12 +
+      lastBreathPriority * 50 +
       actor.currentThreat;
 
     // 最近行动过的惩罚

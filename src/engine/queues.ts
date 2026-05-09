@@ -1,22 +1,13 @@
 /**
- * 队列管理
- * 管理 generationQueue、commitQueue、displayQueue
+ * Queue management.
+ * The engine owns orchestration queues but does not know any feature-layer
+ * presentation payload types.
  */
 
-import type { DisplayEvent } from '../features/battle/display/displayTypes';
-
-/**
- * Queues - 管理战斗中的各种队列
- */
 export interface Queues {
-  // 生成队列（等待 LLM 生成）
   generationQueue: GenerationQueueItem[];
-
-  // 提交队列（等待状态更新）
   commitQueue: CommitQueueItem[];
-
-  // 显示队列（等待 UI 播放）
-  displayQueue: DisplayEvent[];
+  displayQueue: unknown[];
 }
 
 export interface GenerationQueueItem {
@@ -32,9 +23,6 @@ export interface CommitQueueItem {
   createdAt: number;
 }
 
-/**
- * 创建空队列
- */
 export function createQueues(): Queues {
   return {
     generationQueue: [],
@@ -43,9 +31,6 @@ export function createQueues(): Queues {
   };
 }
 
-/**
- * 添加到生成队列
- */
 export function enqueueGeneration(
   queues: Queues,
   actorId: string,
@@ -60,9 +45,6 @@ export function enqueueGeneration(
   };
 }
 
-/**
- * 从生成队列移除
- */
 export function dequeueGeneration(queues: Queues, actorId: string): Queues {
   return {
     ...queues,
@@ -70,9 +52,6 @@ export function dequeueGeneration(queues: Queues, actorId: string): Queues {
   };
 }
 
-/**
- * 添加到提交队列
- */
 export function enqueueCommit(
   queues: Queues,
   actorId: string,
@@ -88,9 +67,6 @@ export function enqueueCommit(
   };
 }
 
-/**
- * 从提交队列移除
- */
 export function dequeueCommit(queues: Queues, actorId: string): Queues {
   return {
     ...queues,
@@ -98,20 +74,14 @@ export function dequeueCommit(queues: Queues, actorId: string): Queues {
   };
 }
 
-/**
- * 添加到显示队列
- */
-export function enqueueDisplay(queues: Queues, item: DisplayEvent): Queues {
+export function enqueueDisplay(queues: Queues, item: unknown): Queues {
   return {
     ...queues,
     displayQueue: [...queues.displayQueue, item],
   };
 }
 
-/**
- * 取出下一个显示项
- */
-export function dequeueDisplay(queues: Queues): { item: DisplayEvent | null; queues: Queues } {
+export function dequeueDisplay(queues: Queues): { item: unknown | null; queues: Queues } {
   if (queues.displayQueue.length === 0) {
     return { item: null, queues };
   }
@@ -126,16 +96,10 @@ export function dequeueDisplay(queues: Queues): { item: DisplayEvent | null; que
   };
 }
 
-/**
- * 查看下一个显示项（不移除）
- */
-export function peekDisplay(queues: Queues): DisplayEvent | null {
+export function peekDisplay(queues: Queues): unknown | null {
   return queues.displayQueue[0] ?? null;
 }
 
-/**
- * 清空生成队列（用于取消）
- */
 export function clearGenerationQueue(queues: Queues): Queues {
   return {
     ...queues,
@@ -143,9 +107,6 @@ export function clearGenerationQueue(queues: Queues): Queues {
   };
 }
 
-/**
- * 检查队列是否为空
- */
 export function isGenerationQueueEmpty(queues: Queues): boolean {
   return queues.generationQueue.length === 0;
 }

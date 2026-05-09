@@ -331,6 +331,65 @@ Beat 应优先制造矛盾、压力、翻盘机会、集火理由或环境事故
 
 当玩家刚输入上帝指令时，优先选择能回应玩家指令的 Beat。
 
+### 8.5 轻量 DramaBeat 数据结构 TODO
+
+> 目标：先把 DramaBeat 做成“内容创作池”，不做新状态机。
+> 这份结构只负责描述一个可抽取的小剧场模板，供 Showrunner / Actor Brain / Reporter / Zog 读取。
+
+建议字段控制在 8 个以内：
+
+1. `id`
+   - 唯一标识。
+   - 例如 `beat_fake_nest_scandal`。
+
+2. `title`
+   - 给创作者和调试看的名字。
+   - 例如 `假鸟巢丑闻`、`弱者反扑`。
+
+3. `tags`
+   - 标签数组。
+   - 用于筛选和随机抽取，比如 `["nest", "deception", "social"]`。
+
+4. `weight`
+   - 抽取权重。
+   - 数值越大越容易被选中。
+
+5. `durationHint`
+   - 持续时长提示。
+   - 例如 `2` 或 `3`，表示建议持续 2-3 次 Actor Action。
+
+6. `promptLine`
+   - 给 Actor Brain / Showrunner 的核心一句话。
+   - 这是这个小剧场的“节目约束”。
+
+7. `reporterHook`
+   - 给战地记者的切入角度。
+   - 例如“记者要把这段写成节目组识破假象的阶段简报”。
+
+8. `zogReactionHint`
+   - 给 Zog 的反应方向。
+   - 例如“困惑 / 嫌弃 / 激动 / 看热闹”。
+
+推荐 JSON 写法：
+
+```json
+{
+  "id": "beat_fake_nest_scandal",
+  "title": "假鸟巢丑闻",
+  "tags": ["nest", "deception", "social"],
+  "weight": 12,
+  "durationHint": 3,
+  "promptLine": "有人在伪装巢区，当前目标是引发误判和甩锅，不要只顾着打架。",
+  "reporterHook": "记者要把这段写成节目组识破假象的阶段简报。",
+  "zogReactionHint": "Zog 先困惑，再开始幸灾乐祸。"
+}
+```
+
+TODO 说明：
+- 首发只需要先填一批好玩的 beat 内容，不需要做复杂的节拍状态机。
+- 先由 Showrunner 按 tags + weight 轻量抽取。
+- 后续如果要补节奏调度，再把“持续时长 / 冷却 / 组合触发”从内容池外移成单独逻辑。
+
 ---
 
 ## 9. 战斗系统总览

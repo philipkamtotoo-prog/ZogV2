@@ -1,26 +1,14 @@
 import { create } from 'zustand';
-import type { ActorCombatState, ActorPromptInjection, BattleState, ProgramMutation, ProgramMutationId, BattleEvent } from '../../core/battle/types';
+import type { ActorPromptInjection, BattleState, ProgramMutation, ProgramMutationId } from '../../core/battle/types';
 import type { DisplayEvent } from './display/displayTypes';
 import type { ItemId } from '../../core/economy/items';
 import type { FinalScore } from '../../core/battle/finalScore';
-import { calculateFinalScores } from '../../core/battle/finalScore';
-import { generateFallbackLiveReport, type LiveReport } from '../reports/reportGenerator';
-import { createBattleEngine } from '../../engine/battleEngine';
-import { createLLMActorBrainProvider } from '../../llm/llmActorBrainProvider';
-import { createStubActorBrainProvider } from '../../llm/stubActorBrainProvider';
-import { createCommandGateProvider } from '../../llm/commandGateProvider';
-import { createLLMRoleRegistry } from '../../llm/clients/llmRoleRegistry';
-import { createShowrunnerProvider } from '../../llm/showrunnerProvider';
-import { createLiveReporterProvider } from '../../llm/liveReporterProvider';
-import { DEFAULT_ROSTER, type RosterActor } from '../actors/actorRoster';
 import { useLoungeStore, KEYBOARD_LIMITS } from '../lounge/loungeStore';
-import type { ActorTemplate } from '../../core/battle/initialState';
 import type { BetSlip } from '../../core/economy/betting';
 import { calculateOdds, createBetSlip, lockBet, calculatePayout, isValidBetAmount } from '../../core/economy/betting';
-import { randomInt } from '../../core/battle/rng';
 import { applyMutationToBattleState, drawMutationCandidates, getMutationById, MUTATION_LIQUID_COST } from '../../core/battle/programMutations';
-import { calculateSalaryAwards } from '../../core/battle/finalScore';
-import { generateZogReaction } from '../reports/zogReaction';
+import { createBattleSession } from './services/battleSessionFactory';
+import { drainDisplayQueue } from './services/battleDisplayDrain';
 
 type BattleView = 'LOBBY' | 'BETTING' | 'BATTLE' | 'RESULTS';
 
@@ -28,14 +16,15 @@ interface BattleStore {
   view: BattleView;
   battleState: BattleState | null;
   displayLog: DisplayEvent[];
+  battleSpeedMs: number;
   finalScores: FinalScore[];
   commandInput: string;
   commandStatus: string | null;
   isProcessing: boolean;
-  liveReport: LiveReport | null;
+  liveReport: { headline: string; summary: string; style: string } | null;
   lastLiveReportActionIndex: number;
 
-  engine: ReturnType<typeof createBattleEngine> | null;
+  engine: ReturnType<typeof import('../../engine/battleEngine').createBattleEngine> | null;
   engineId: string | null;
   _drainInterval: ReturnType<typeof setInterval> | null;
 
@@ -52,6 +41,7 @@ interface BattleStore {
   resumeBattle: () => void;
   stepBattle: () => Promise<void>;
   startAuto: () => void;
+  setBattleSpeed: (ms: number) => void;
   submitCommand: (input: string) => Promise<void>;
   setCommandInput: (input: string) => void;
   resolveAsk: (selectedActorId: string) => void;
@@ -74,30 +64,8 @@ interface BattleStore {
   useItem: (itemId: ItemId, targetActorId: string) => { ok: true; eventId: string } | { ok: false; reason: string } | undefined;
 }
 
-function drawEpisodeRoster(seed: string, rerollIndex: number, count = 5): RosterActor[] {
-  const pool = [...DEFAULT_ROSTER];
-  const picked: RosterActor[] = [];
-
-  for (let i = 0; i < count && pool.length > 0; i++) {
-    const index = randomInt(seed, rerollIndex * 10 + i, 'episodeRoster', 0, pool.length - 1);
-    const [actor] = pool.splice(index, 1);
-    picked.push(actor);
-  }
-
-  return picked;
-}
-
-function buildRosterTemplates(seed: string, rerollIndex: number): ActorTemplate[] {
-  return drawEpisodeRoster(seed, rerollIndex).map((r) => ({
-    actorId: r.actorId,
-    name: r.name,
-    ATK: r.baseATK,
-    DEF: r.baseDEF,
-    SPD: r.baseSPD,
-    baseThreat: r.baseThreat,
-    maxHP: r.baseHP ?? 100,
-  }));
-}
+// Module-level engineRef used during session creation (passed to handler)
+const engineRef: { current: ReturnType<typeof import('../../engine/battleEngine').createBattleEngine> | null } = { current: null };
 
 function chargeCommandTransactionIfNeeded(transaction: BattleState['commandTransactions'][number]): boolean {
   if (transaction.frozenCost <= 0 || transaction.paidCost > 0) return true;
@@ -120,6 +88,7 @@ export const useBattleStore = create<BattleStore>((set, get) => ({
   view: 'LOBBY',
   battleState: null,
   displayLog: [],
+  battleSpeedMs: 500,
   finalScores: [],
   commandInput: '',
   commandStatus: null,
@@ -150,123 +119,19 @@ export const useBattleStore = create<BattleStore>((set, get) => ({
       source: 'PERMANENT',
       createdAt: Date.now(),
     }));
-    const llmRegistry = createLLMRoleRegistry();
-    const itemUsesRemaining = useLoungeStore.getState().fridgeItemUseLimit;
+    const itemUses = useLoungeStore.getState().fridgeItemUseLimit;
 
-    // L2: 基于 role registry 的启用状态，不再依赖旧全局 LLMConfig
-    const actorBrainEnabled = llmRegistry.isRoleEnabled('actor_brain') && !!llmRegistry.getRoleConfig('actor_brain').apiKey;
-    const commandGateEnabled = llmRegistry.isRoleEnabled('command_gate') && !!llmRegistry.getRoleConfig('command_gate').apiKey;
+    engineRef.current = null;
+    const session = createBattleSession(battleSeed, rerollIndex, get, set as Parameters<typeof createBattleSession>[3], engineRef);
 
-    if (actorBrainEnabled) {
-      const cfg = llmRegistry.getRoleConfig('actor_brain');
-      console.info(`[LLM:MODE] ActorBrain role enabled, model=${cfg.model}, debug=${cfg.debugMode}`);
-      if (cfg.debugMode !== 'verbose') {
-        console.info('[LLM:MODE] Prompt/response logging is disabled. Set BYOK Settings -> debug verbose, then Save.');
-      }
-    } else {
-      console.info('[LLM:MODE] ActorBrain: stub mode (role disabled or no API key).');
-    }
-
-    const provider = actorBrainEnabled
-      ? createLLMActorBrainProvider({ registry: llmRegistry, timeout: 20000, maxRetries: 2 })
-      : createStubActorBrainProvider();
-
-    const commandGateProvider = commandGateEnabled
-      ? createCommandGateProvider({ registry: llmRegistry, timeout: 15000, maxRetries: 1 })
-      : undefined;
-
-    // L3: Showrunner provider (direct injection, off by default unless explicitly enabled)
-    const showrunnerProvider = createShowrunnerProvider({
-      registry: llmRegistry,
-      cooldown: 5, // fire every 5 actions
-      maxRetries: 1,
-    });
-
-    // L2: Live reporter provider (uses live_reporter role config)
-    const liveReporterProvider = createLiveReporterProvider({
-      registry: llmRegistry,
-      maxRetries: 2,
-    });
-
-    const templates = buildRosterTemplates(battleSeed, rerollIndex);
-    const engineId = `engine_${Date.now()}`;
-    const capturedId = engineId;
-
-    const engine = createBattleEngine({
-      actorBrainProvider: provider,
-      commandGateProvider,
-      showrunnerProvider,
-      maxActions: 40,
-      onStateChange: (state) => {
-        if (get().engineId !== capturedId) return;
-        set({ battleState: { ...state } });
-
-        if (state.phase === 'FINAL_REPORT') {
-          get().finalizePendingCommands();
-          const scores = calculateFinalScores(state.actors, state.eventLog);
-          const salaryAwards = calculateSalaryAwards(scores);
-          state.salaryAwards = salaryAwards;
-          for (const award of salaryAwards) {
-            useLoungeStore.getState().addActorSalary(award.actorId, award.totalSalary);
-          }
-          // 写入 Zog 反应事件
-          const engine = get().engine;
-          if (engine) {
-            const reaction = generateZogReaction(scores);
-            engine.recordFactEvent({
-              eventId: `evt_${Date.now()}_zog`,
-              actorActionIndex: state.actorActionIndex,
-              type: 'ZOG_REACTION_EMITTED',
-              activeActorId: undefined,
-              diffs: [],
-              tags: ['ZOG'],
-              createdAt: Date.now(),
-              zogReaction: reaction,
-            });
-          }
-          set({ finalScores: scores, battleState: { ...state }, view: 'RESULTS' });
-        } else if (state.phase === 'RUNNING') {
-          const currentStore = get();
-          const previousLiveReportActionIndex = currentStore.lastLiveReportActionIndex;
-          if (state.actorActionIndex - previousLiveReportActionIndex >= 3) {
-            set({ lastLiveReportActionIndex: state.actorActionIndex });
-            const memoryLogs = state.reporterMemory
-              .filter((m) => m.actorActionIndex > previousLiveReportActionIndex)
-              .sort((a, b) => b.severity - a.severity || b.actorActionIndex - a.actorActionIndex)
-              .map((m) => `[#${m.actorActionIndex}] ${m.title}: ${m.text}`);
-            const eventLogs = state.eventLog
-              .slice(-20)
-              .filter((e: BattleEvent) => e.line || e.type === 'ACTOR_ELIMINATED' || e.type === 'DIRECTOR_BROADCAST_INJECTED')
-              .map((e: BattleEvent) => {
-                if (e.type === 'ACTOR_ELIMINATED') return `[#${e.actorActionIndex}] 致命击杀: ${state.actors.find(a=>a.actorId===e.targetActorId)?.name} 阵亡！`;
-                if (e.type === 'DIRECTOR_BROADCAST_INJECTED') return `[#${e.actorActionIndex}] ✨ 上帝降临: ${e.diffs[0]?.newValue}`;
-                return `[#${e.actorActionIndex}] ${state.actors.find(a=>a.actorId===e.activeActorId)?.name}: ${e.line}`;
-              });
-            const recentLogs = memoryLogs.length > 0 ? memoryLogs : eventLogs;
-            // L2: 使用 liveReporterProvider，不再走旧 getLLMConfig()
-            liveReporterProvider.generateLiveReport(state, recentLogs).then((res) => {
-              if (res && get().engineId === capturedId) {
-                set({ liveReport: res });
-              }
-            }).catch(() => {
-              const fallback = generateFallbackLiveReport(state, recentLogs);
-              if (fallback) set({ liveReport: fallback });
-            });
-          }
-        }
-      },
-    });
-
-    engine.init(battleSeed, 5, templates, itemUsesRemaining, {
+    session.engine.init(battleSeed, 5, session.templates, itemUses, {
       actorPromptInjections,
       selectedMutation: selectedMutation ?? undefined,
     });
-    const engineState = engine.getState()!;
 
-    // 对每个永久注入写入 PROMPT_INJECTION_APPLIED 事件
     for (const inj of actorPromptInjections) {
       if (inj.source === 'PERMANENT') {
-        engine.recordFactEvent({
+        session.engine.recordFactEvent({
           eventId: `evt_${Date.now()}_perm_prompt_${inj.actorId}`,
           actorActionIndex: 0,
           type: 'PROMPT_INJECTION_APPLIED',
@@ -281,11 +146,11 @@ export const useBattleStore = create<BattleStore>((set, get) => ({
     }
 
     set({
-      engine,
-      engineId,
+      engine: session.engine,
+      engineId: session.engineId,
       _drainInterval: null,
       view: 'BETTING',
-      battleState: { ...engineState.battleState },
+      battleState: { ...session.engine.getState()!.battleState },
       displayLog: [],
       finalScores: [],
       commandStatus: null,
@@ -308,14 +173,21 @@ export const useBattleStore = create<BattleStore>((set, get) => ({
   },
 
   pauseBattle: () => {
-    const { engine } = get();
+    const { engine, _drainInterval } = get();
     if (!engine) return;
+    if (_drainInterval) clearInterval(_drainInterval);
     engine.pause();
+    set({ _drainInterval: null });
   },
 
   resumeBattle: () => {
     const { engine } = get();
     if (!engine) return;
+    const mode = engine.getState()?.battleState.runMode;
+    if (mode === 'AUTO') {
+      get().startAuto();
+      return;
+    }
     engine.resume();
   },
 
@@ -326,41 +198,49 @@ export const useBattleStore = create<BattleStore>((set, get) => ({
 
     await engine.stepManual();
 
-    let item = engine.consumeDisplayItem();
-    while (item) {
-      set((s) => ({ displayLog: [...s.displayLog, item!] }));
-      item = engine.consumeDisplayItem();
-    }
+    drainDisplayQueue(engine, (item) =>
+      set((s) => ({ displayLog: [...s.displayLog, item] }))
+    );
 
     set({ isProcessing: false });
   },
 
   startAuto: () => {
-    const { engine, _drainInterval: oldDrain } = get();
+    const { engine, _drainInterval: oldDrain, battleSpeedMs } = get();
     if (!engine) return;
     if (oldDrain) clearInterval(oldDrain);
 
-    const drain = () => {
-      let item = engine.consumeDisplayItem();
-      while (item) {
-        set((s) => ({ displayLog: [...s.displayLog, item!] }));
-        item = engine.consumeDisplayItem();
-      }
-    };
+    engine.startAuto(battleSpeedMs);
 
-    engine.startAuto(800);
+    const displayIntervalMs = Math.max(80, Math.floor(battleSpeedMs / 2));
 
     const interval = setInterval(() => {
-      drain();
+      drainDisplayQueue(engine, (item) =>
+        set((s) => ({ displayLog: [...s.displayLog, item] }))
+      );
       const state = engine.getState();
       if (state && state.battleState.phase === 'FINAL_REPORT') {
         clearInterval(interval);
+        drainDisplayQueue(engine, (item) =>
+          set((s) => ({ displayLog: [...s.displayLog, item] }))
+        );
         set({ _drainInterval: null });
-        drain();
       }
-    }, 400);
+    }, displayIntervalMs);
 
     set({ _drainInterval: interval });
+  },
+
+  setBattleSpeed: (ms: number) => {
+    const nextMs = Math.max(120, ms);
+    const { engine } = get();
+    const currentState = engine?.getState()?.battleState;
+
+    set({ battleSpeedMs: nextMs });
+
+    if (currentState?.phase === 'RUNNING' && currentState.runMode === 'AUTO' && currentState.clockState === 'PLAYING') {
+      get().startAuto();
+    }
   },
 
   submitCommand: async (input: string) => {
@@ -378,7 +258,7 @@ export const useBattleStore = create<BattleStore>((set, get) => ({
     const result = await engine.submitCommand(input);
     const engineState = engine.getState();
     const transaction = engineState?.battleState.commandTransactions.find(
-      (t) => t.transactionId === result.transactionId
+      (t: import('../../core/battle/types').CommandTransaction) => t.transactionId === result.transactionId
     );
 
     if (!transaction) {
@@ -450,7 +330,7 @@ export const useBattleStore = create<BattleStore>((set, get) => ({
   consumeDisplay: () => {
     const { engine } = get();
     if (!engine) return null;
-    return engine.consumeDisplayItem() ?? null;
+    return (engine.consumeDisplayItem() as DisplayEvent | null) ?? null;
   },
 
   goToLobby: () => {
@@ -475,7 +355,6 @@ export const useBattleStore = create<BattleStore>((set, get) => ({
     const actor = battleState.actors.find((a) => a.actorId === actorId);
     if (!actor) return;
 
-    // 扣本金 + 增加演员好感（文档7.1节）
     const spent = useLoungeStore.getState().spendGold(amount);
     if (!spent) return;
     const affectionGain = Math.floor(amount / 20);
@@ -510,94 +389,21 @@ export const useBattleStore = create<BattleStore>((set, get) => ({
     engine.dispose();
 
     const nextRerollIndex = rerollIndex + 1;
-    const llmRegistry = createLLMRoleRegistry();
-    const actorBrainEnabled = llmRegistry.isRoleEnabled('actor_brain') && !!llmRegistry.getRoleConfig('actor_brain').apiKey;
-    const commandGateEnabled = llmRegistry.isRoleEnabled('command_gate') && !!llmRegistry.getRoleConfig('command_gate').apiKey;
-    const provider = actorBrainEnabled
-      ? createLLMActorBrainProvider({ registry: llmRegistry, timeout: 20000, maxRetries: 2 })
-      : createStubActorBrainProvider();
-    const commandGateProvider = commandGateEnabled
-      ? createCommandGateProvider({ registry: llmRegistry, timeout: 15000, maxRetries: 1 })
-      : undefined;
-    const showrunnerProvider = createShowrunnerProvider({
-      registry: llmRegistry,
-      cooldown: 5,
-      maxRetries: 1,
-    });
-    const liveReporterProvider = createLiveReporterProvider({
-      registry: llmRegistry,
-      maxRetries: 2,
-    });
-    const engineId = `engine_${Date.now()}`;
-    const capturedId = engineId;
-    const templates = buildRosterTemplates(battleState.battleSeed, nextRerollIndex);
-    const newEngine = createBattleEngine({
-      actorBrainProvider: provider,
-      commandGateProvider,
-      showrunnerProvider,
-      maxActions: 40,
-      onStateChange: (state) => {
-        if (get().engineId !== capturedId) return;
-        set({ battleState: { ...state } });
-        if (state.phase === 'FINAL_REPORT') {
-          get().finalizePendingCommands();
-          const scores = calculateFinalScores(state.actors, state.eventLog);
-          const salaryAwards = calculateSalaryAwards(scores);
-          state.salaryAwards = salaryAwards;
-          const reaction = generateZogReaction(scores);
-          newEngine.recordFactEvent({
-            eventId: `evt_${Date.now()}_zog`,
-            actorActionIndex: state.actorActionIndex,
-            type: 'ZOG_REACTION_EMITTED',
-            activeActorId: undefined,
-            diffs: [],
-            tags: ['ZOG'],
-            createdAt: Date.now(),
-            zogReaction: reaction,
-          });
-          set({ finalScores: scores, battleState: { ...state }, view: 'RESULTS' });
-        } else if (state.phase === 'RUNNING') {
-          const currentStore = get();
-          const previousLiveReportActionIndex = currentStore.lastLiveReportActionIndex;
-          if (state.actorActionIndex - previousLiveReportActionIndex >= 3) {
-            set({ lastLiveReportActionIndex: state.actorActionIndex });
-            const memoryLogs = state.reporterMemory
-              .filter((m) => m.actorActionIndex > previousLiveReportActionIndex)
-              .sort((a, b) => b.severity - a.severity || b.actorActionIndex - a.actorActionIndex)
-              .map((m) => `[#${m.actorActionIndex}] ${m.title}: ${m.text}`);
-            const eventLogs = state.eventLog
-              .slice(-20)
-              .filter((e: BattleEvent) => e.line || e.type === 'ACTOR_ELIMINATED' || e.type === 'DIRECTOR_BROADCAST_INJECTED')
-              .map((e: BattleEvent) => {
-                if (e.type === 'ACTOR_ELIMINATED') return `[#${e.actorActionIndex}] 致命击杀: ${state.actors.find(a=>a.actorId===e.targetActorId)?.name} 阵亡！`;
-                if (e.type === 'DIRECTOR_BROADCAST_INJECTED') return `[#${e.actorActionIndex}] ✨ 上帝降临: ${e.diffs[0]?.newValue}`;
-                return `[#${e.actorActionIndex}] ${state.actors.find(a=>a.actorId===e.activeActorId)?.name}: ${e.line}`;
-              });
-            const recentLogs = memoryLogs.length > 0 ? memoryLogs : eventLogs;
-            // L2: 使用 liveReporterProvider，不再走旧 getLLMConfig()
-            liveReporterProvider.generateLiveReport(state, recentLogs).then((res) => {
-              if (res && get().engineId === capturedId) {
-                set({ liveReport: res });
-              }
-            }).catch(() => {
-              const fallback = generateFallbackLiveReport(state, recentLogs);
-              if (fallback) set({ liveReport: fallback });
-            });
-          }
-        }
-      },
-    });
+    const itemUses = useLoungeStore.getState().fridgeItemUseLimit;
 
-    newEngine.init(battleState.battleSeed, 5, templates, useLoungeStore.getState().fridgeItemUseLimit, {
+    engineRef.current = null;
+    const session = createBattleSession(battleState.battleSeed, nextRerollIndex, get, set as Parameters<typeof createBattleSession>[3], engineRef);
+
+    session.engine.init(battleState.battleSeed, 5, session.templates, itemUses, {
       selectedMutation: get().selectedMutation ?? undefined,
       actorPromptInjections: [],
     });
 
     set({
-      engine: newEngine,
-      engineId,
+      engine: session.engine,
+      engineId: session.engineId,
       _drainInterval: null,
-      battleState: { ...newEngine.getState()!.battleState },
+      battleState: { ...session.engine.getState()!.battleState },
       finalScores: [],
       displayLog: [],
       betSlip: null,
@@ -671,7 +477,7 @@ export const useBattleStore = create<BattleStore>((set, get) => ({
   useItem: (itemId: ItemId, targetActorId: string) => {
     const { engine, battleState } = get();
     if (!engine || !battleState) return { ok: false, reason: 'Engine not ready' };
-    
+
     const count = useLoungeStore.getState().inventory[itemId] ?? 0;
     if (count <= 0) return { ok: false, reason: 'Not enough in inventory' };
 
@@ -683,6 +489,6 @@ export const useBattleStore = create<BattleStore>((set, get) => ({
   },
 }));
 
-export function getAliveActors(actors: ActorCombatState[]): ActorCombatState[] {
+export function getAliveActors(actors: import('../../core/battle/types').ActorCombatState[]): import('../../core/battle/types').ActorCombatState[] {
   return actors.filter((a) => a.isAlive);
 }

@@ -1,32 +1,60 @@
 /**
- * BattleEngine - 战斗编排引擎
+ * BattleEngine orchestrates battle flow.
+ * Core owns hard rules, engine owns sequencing, features own presentation.
  */
 
-import type { BattleState, ActorBrainOutput, DirectorBroadcast, DirectorBroadcastDraft, CommitResult, BattleEvent, DramaBeat, ReporterMemoryEntry } from '../core/battle/types';
+import type {
+  BattleState,
+  ActorBrainOutput,
+  DirectorBroadcast,
+  DirectorBroadcastDraft,
+  CommitResult,
+  BattleEvent,
+  DramaBeat,
+  ReporterMemoryEntry,
+} from '../core/battle/types';
 import type { ActorBrainProvider } from '../llm/actorBrainProvider';
 import type { Queues } from './queues';
-import { createQueues, enqueueGeneration, dequeueGeneration, enqueueCommit, dequeueCommit, enqueueDisplay } from './queues';
+import {
+  createQueues,
+  enqueueGeneration,
+  dequeueGeneration,
+  enqueueCommit,
+  dequeueCommit,
+  enqueueDisplay,
+} from './queues';
 import { selectActiveActor } from '../core/battle/activeActorSelector';
 import { resolveLockedTarget } from '../core/battle/targetResolver';
 import { buildAllowedActionTypes } from '../core/battle/actionPolicy';
 import { validateActorBrainOutput, generateFallbackOutput } from '../core/battle/validator';
 import { combatRefereeCommit } from '../core/battle/combatReferee';
-import { shouldEndBattle, createInitialBattleState, type ActorTemplate, type InitialBattleSetup } from '../core/battle/initialState';
-import { mapBattleEventToDisplayEvents } from '../features/battle/display/displayMapper';
-import { mapReporterMemoryToDisplayEvents } from '../features/battle/display/reporterMemoryMapper';
-import { ITEM_DEFS, type ItemId } from '../core/economy/items';
+import {
+  shouldEndBattle,
+  createInitialBattleState,
+  type ActorTemplate,
+  type InitialBattleSetup,
+} from '../core/battle/initialState';
+import type { ItemId } from '../core/economy/items';
 import { applyGateResult, processCommand } from '../core/command/commandGate';
 import { applyPlayerItem } from '../core/battle/playerActionReferee';
-import { scanEventsForMemories, scanForStateBasedMemories, createStageBrief } from '../features/reports/reporterMemoryCollector';
+import { accumulateActorReadiness } from '../core/battle/turnPreparation';
+import { validateItemUse } from '../core/battle/playerActionPolicy';
 
-export type PlayerAction = 
+export interface EngineHooks {
+  mapBattleEventToDisplay?: (event: BattleEvent, state: BattleState) => unknown[];
+  mapReporterMemoryToDisplay?: (entries: ReporterMemoryEntry[]) => unknown[];
+  collectEventMemories?: (state: BattleState, fromIndex: number) => ReporterMemoryEntry[];
+  collectStateMemories?: (state: BattleState) => ReporterMemoryEntry[];
+  createStageBrief?: (state: BattleState) => ReporterMemoryEntry | null;
+  onEventRecorded?: (event: BattleEvent, state: BattleState) => void;
+}
+
+export type PlayerAction =
   | { type: 'USE_ITEM'; itemId: ItemId; targetActorId: string; eventId: string }
   | { type: 'INJECT_BROADCAST'; broadcast: DirectorBroadcast };
 
-
 export interface BattleEngineConfig {
   actorBrainProvider: ActorBrainProvider;
-
   commandGateProvider?: {
     evaluate: (rawInput: string, battleState: BattleState) => Promise<{
       decision: 'ALLOW' | 'ASK' | 'DOWNGRADE' | 'REJECT';
@@ -35,16 +63,22 @@ export interface BattleEngineConfig {
       directorBroadcastDraft?: DirectorBroadcastDraft;
     }>;
   };
-
-  // L3: Showrunner provider for director broadcasts (direct injection mode)
   showrunnerProvider?: {
-    shouldFire: (actorActionIndex: number, lastShowrunnerActionIndex: number, recentEvents: BattleState['eventLog']) => boolean;
-    generateDirectorBroadcast: (battleState: BattleState, reporterMemory: ReporterMemoryEntry[], currentBeat?: DramaBeat) => Promise<DirectorBroadcast | null>;
+    shouldFire: (
+      actorActionIndex: number,
+      lastShowrunnerActionIndex: number,
+      recentEvents: BattleState['eventLog']
+    ) => boolean;
+    generateDirectorBroadcast: (
+      battleState: BattleState,
+      reporterMemory: ReporterMemoryEntry[],
+      currentBeat?: DramaBeat
+    ) => Promise<DirectorBroadcast | null>;
   };
-
   maxActions: number;
   onStateChange?: (state: BattleState) => void;
   onEvent?: (event: BattleState['eventLog'][0]) => void;
+  hooks?: EngineHooks;
 }
 
 export interface BattleEngineState {
@@ -53,7 +87,7 @@ export interface BattleEngineState {
   playerActionQueue: PlayerAction[];
   isRunning: boolean;
   error: string | null;
-  lastShowrunnerActionIndex: number; // L3: track cooldown for showrunner
+  lastShowrunnerActionIndex: number;
 }
 
 export function createBattleEngine(config: BattleEngineConfig) {
@@ -62,6 +96,8 @@ export function createBattleEngine(config: BattleEngineConfig) {
   let disposed = false;
   let isStepping = false;
 
+  const hooks = config.hooks ?? {};
+
   function init(
     battleSeed: string,
     actorCount: number = 5,
@@ -69,7 +105,13 @@ export function createBattleEngine(config: BattleEngineConfig) {
     itemUsesRemaining: number = 1,
     setup: InitialBattleSetup = {}
   ): BattleEngineState {
-    const initialState = createInitialBattleState(battleSeed, actorCount, templates, itemUsesRemaining, setup);
+    const initialState = createInitialBattleState(
+      battleSeed,
+      actorCount,
+      templates,
+      itemUsesRemaining,
+      setup
+    );
 
     state = {
       battleState: { ...initialState, phase: 'PREPARING' },
@@ -77,7 +119,7 @@ export function createBattleEngine(config: BattleEngineConfig) {
       playerActionQueue: [],
       isRunning: false,
       error: null,
-      lastShowrunnerActionIndex: -10, // L3: allow immediate fire on first few actions
+      lastShowrunnerActionIndex: -10,
     };
 
     return state;
@@ -118,6 +160,7 @@ export function createBattleEngine(config: BattleEngineConfig) {
     stopAutoInterval();
     state.battleState.runMode = 'AUTO';
     state.battleState.clockState = 'PLAYING';
+    if (!disposed) config.onStateChange?.(state.battleState);
 
     autoInterval = setInterval(async () => {
       if (state.battleState.clockState !== 'PLAYING') return;
@@ -157,14 +200,16 @@ export function createBattleEngine(config: BattleEngineConfig) {
 
     isStepping = true;
     try {
-      if (shouldEndBattle(state.battleState) || state.battleState.actorActionIndex >= config.maxActions) {
+      if (
+        shouldEndBattle(state.battleState) ||
+        state.battleState.actorActionIndex >= config.maxActions
+      ) {
         endBattle();
         return state;
       }
 
       drainPlayerActions();
 
-      // L3: Showrunner direct injection - fire before each action if conditions met
       if (config.showrunnerProvider && state.battleState.phase === 'RUNNING') {
         const shouldFire = config.showrunnerProvider.shouldFire(
           state.battleState.actorActionIndex,
@@ -213,7 +258,11 @@ export function createBattleEngine(config: BattleEngineConfig) {
         state.battleState.directorBroadcasts
       );
 
-      state.queues = enqueueGeneration(state.queues, activeActor.actorId, state.battleState.stateVersion);
+      state.queues = enqueueGeneration(
+        state.queues,
+        activeActor.actorId,
+        state.battleState.stateVersion
+      );
 
       try {
         let brainOutput: ActorBrainOutput;
@@ -266,51 +315,14 @@ export function createBattleEngine(config: BattleEngineConfig) {
 
         state.battleState = applyCommitResult(state.battleState, commitResult);
         state.battleState.actorActionIndex++;
-
-        // --- ReporterMemory collection ---
-        const cursor = state.battleState.reporterMemoryCursor;
-        const newMemories = scanEventsForMemories(state.battleState, cursor);
-        if (newMemories.length > 0) {
-          state.battleState.reporterMemory.push(...newMemories);
-          const reporterEvents = mapReporterMemoryToDisplayEvents(newMemories);
-          for (const reporterEvent of reporterEvents) {
-            state.queues = enqueueDisplay(state.queues, reporterEvent);
-          }
-        }
-        state.battleState.reporterMemoryCursor = state.battleState.eventLog.length;
-        if (state.battleState.actorActionIndex % 8 === 0) {
-          const stageBrief = createStageBrief(
-            state.battleState.battleId,
-            state.battleState.actorActionIndex,
-            state.battleState
-          );
-          state.battleState.reporterMemory.push(stageBrief);
-          for (const reporterEvent of mapReporterMemoryToDisplayEvents([stageBrief])) {
-            state.queues = enqueueDisplay(state.queues, reporterEvent);
-          }
-        }
-        // Also scan for state-based memories (low HP, zero dodos) at key moments
-        if (state.battleState.actorActionIndex % 8 === 0) {
-          const stateMemories = scanForStateBasedMemories(state.battleState);
-          state.battleState.reporterMemory.push(...stateMemories);
-          for (const reporterEvent of mapReporterMemoryToDisplayEvents(stateMemories)) {
-            state.queues = enqueueDisplay(state.queues, reporterEvent);
-          }
-        }
-        // --- end ReporterMemory ---
-
         state.queues = dequeueCommit(state.queues, activeActor.actorId);
 
-        const displayItems = commitResult.events.flatMap((e) =>
-          mapBattleEventToDisplayEvents(e, state.battleState)
-        );
-        for (const item of displayItems) {
-          state.queues = enqueueDisplay(state.queues, item);
+        for (const event of commitResult.events) {
+          recordFactEvent(event);
         }
 
-        for (const event of commitResult.events) {
-          if (!disposed) config.onEvent?.(event);
-        }
+        collectPeriodicReporterMemories();
+
         if (!disposed) config.onStateChange?.(state.battleState);
 
         if (shouldEndBattle(state.battleState)) {
@@ -343,13 +355,20 @@ export function createBattleEngine(config: BattleEngineConfig) {
 
     for (const action of state.playerActionQueue) {
       if (action.type === 'USE_ITEM') {
-        const result = applyPlayerItem(state.battleState, action.itemId, action.targetActorId, action.eventId);
+        const result = applyPlayerItem(
+          state.battleState,
+          action.itemId,
+          action.targetActorId,
+          action.eventId
+        );
         for (const event of result.events) {
           recordFactEvent(event);
         }
       } else if (action.type === 'INJECT_BROADCAST') {
         state.battleState.directorBroadcasts.push(action.broadcast);
-        const tx = state.battleState.commandTransactions.find((t) => t.transactionId === action.broadcast.sourceTransactionId);
+        const tx = state.battleState.commandTransactions.find(
+          (t) => t.transactionId === action.broadcast.sourceTransactionId
+        );
         if (tx && tx.status === 'READY_TO_INJECT') {
           tx.status = 'INJECTED';
         }
@@ -366,20 +385,52 @@ export function createBattleEngine(config: BattleEngineConfig) {
         });
       }
     }
+
     state.playerActionQueue = [];
     if (!disposed) config.onStateChange?.(state.battleState);
   }
 
   function prepareActorsForSelection(): BattleState['actors'] {
-    state.battleState.actors = state.battleState.actors.map((actor) => {
-      if (!actor.isAlive) return actor;
-      return {
-        ...actor,
-        initiative: actor.initiative + actor.SPD * 10,
-        spotlightDebt: actor.spotlightDebt + 6,
-      };
-    });
+    state.battleState.actors = accumulateActorReadiness(state.battleState.actors);
     return state.battleState.actors;
+  }
+
+  function enqueueDisplayPayloads(payloads: unknown[]): void {
+    for (const payload of payloads) {
+      state.queues = enqueueDisplay(state.queues, payload);
+    }
+  }
+
+  function appendReporterMemories(entries: ReporterMemoryEntry[]): void {
+    if (!entries.length) return;
+    state.battleState.reporterMemory.push(...entries);
+    if (hooks.mapReporterMemoryToDisplay) {
+      enqueueDisplayPayloads(hooks.mapReporterMemoryToDisplay(entries));
+    }
+  }
+
+  function collectEventReporterMemories(): void {
+    if (!hooks.collectEventMemories) return;
+    const entries = hooks.collectEventMemories(
+      state.battleState,
+      state.battleState.reporterMemoryCursor
+    );
+    appendReporterMemories(entries);
+    state.battleState.reporterMemoryCursor = state.battleState.eventLog.length;
+  }
+
+  function collectPeriodicReporterMemories(): void {
+    if (state.battleState.actorActionIndex % 8 !== 0) return;
+
+    const staged: ReporterMemoryEntry[] = [];
+    const stageBrief = hooks.createStageBrief?.(state.battleState) ?? null;
+    if (stageBrief) staged.push(stageBrief);
+
+    if (hooks.collectStateMemories) {
+      staged.push(...hooks.collectStateMemories(state.battleState));
+    }
+
+    appendReporterMemories(staged);
   }
 
   function getState(): BattleEngineState | null {
@@ -391,34 +442,34 @@ export function createBattleEngine(config: BattleEngineConfig) {
     return state.queues.displayQueue[0] ?? null;
   }
 
-function consumeDisplayItem() {
+  function consumeDisplayItem() {
     if (!state) return null;
 
     const [item, ...rest] = state.queues.displayQueue;
     state.queues = { ...state.queues, displayQueue: rest };
-    return item;
+    return item ?? null;
+  }
+
+  function enqueueDisplayEvent(event: unknown): void {
+    if (!state) return;
+    state.queues = enqueueDisplay(state.queues, event);
   }
 
   function recordFactEvent(event: BattleEvent): void {
     if (!state) return;
-    // 1. 追加到 eventLog
+
     state.battleState.eventLog.push(event);
-    // 2. 映射到 displayQueue
-    const displayEvents = mapBattleEventToDisplayEvents(event, state.battleState);
-    for (const de of displayEvents) {
-      state.queues = enqueueDisplay(state.queues, de);
+
+    if (hooks.mapBattleEventToDisplay) {
+      enqueueDisplayPayloads(hooks.mapBattleEventToDisplay(event, state.battleState));
     }
-    // 3. 触发 reporterMemory 增量扫描
-    const newMemories = scanEventsForMemories(state.battleState, state.battleState.reporterMemoryCursor);
-    if (newMemories.length > 0) {
-      state.battleState.reporterMemory.push(...newMemories);
-      // 将新产生的 ReporterMemory 同步映射为 REPORTER DisplayEvent 推入表现队列
-      const reporterEvents = mapReporterMemoryToDisplayEvents(newMemories);
-      for (const re of reporterEvents) {
-        state.queues = enqueueDisplay(state.queues, re);
-      }
+
+    collectEventReporterMemories();
+
+    if (!disposed) {
+      config.onEvent?.(event);
+      hooks.onEventRecorded?.(event, state.battleState);
     }
-    state.battleState.reporterMemoryCursor = state.battleState.eventLog.length;
   }
 
   async function submitCommand(rawInput: string): Promise<{
@@ -457,7 +508,10 @@ function consumeDisplayItem() {
         transaction.frozenCost = hasPriorReject ? Math.floor(transaction.estimatedCost * 0.3) : 0;
       }
 
-      if (result.directorBroadcastDraft && (result.decision === 'ALLOW' || result.decision === 'DOWNGRADE')) {
+      if (
+        result.directorBroadcastDraft &&
+        (result.decision === 'ALLOW' || result.decision === 'DOWNGRADE')
+      ) {
         const draft = result.directorBroadcastDraft;
         const broadcast: DirectorBroadcast = {
           broadcastId: `broadcast_${Date.now()}`,
@@ -472,7 +526,7 @@ function consumeDisplayItem() {
         transaction.directorBroadcast = broadcast;
         state.playerActionQueue.push({ type: 'INJECT_BROADCAST', broadcast });
         if (!isStepping) {
-           drainPlayerActions();
+          drainPlayerActions();
         }
       }
 
@@ -495,33 +549,22 @@ function consumeDisplayItem() {
     }
   }
 
-  function useItem(itemId: ItemId, targetActorId: string): { ok: true; eventId: string } | { ok: false; reason: string } {
+  function useItem(
+    itemId: ItemId,
+    targetActorId: string
+  ): { ok: true; eventId: string } | { ok: false; reason: string } {
     if (!state) return { ok: false, reason: 'Engine not initialized' };
-    if (state.battleState.phase !== 'RUNNING') return { ok: false, reason: 'Battle not running' };
 
-    const itemDef = ITEM_DEFS[itemId];
-    if (!itemDef) return { ok: false, reason: 'Unknown item' };
-
-    const actor = state.battleState.actors.find((a) => a.actorId === targetActorId);
-    if (!actor) return { ok: false, reason: 'Actor not found' };
-    if (!actor.isAlive) return { ok: false, reason: 'Actor is dead' };
-
-    if (state.battleState.itemUsesRemaining <= 0) return { ok: false, reason: 'No uses remaining' };
-    if (
-      itemDef.healAmount &&
-      actor.lastHealedAtActorActionIndex !== undefined &&
-      state.battleState.actorActionIndex - actor.lastHealedAtActorActionIndex < 1
-    ) {
-      return { ok: false, reason: 'Actor was already healed this action interval' };
-    }
+    const validation = validateItemUse(state.battleState, itemId, targetActorId);
+    if (!validation.valid) return { ok: false, reason: validation.reason! };
 
     const eventId = `item_${Date.now()}`;
     state.battleState.itemUsesRemaining = Math.max(0, state.battleState.itemUsesRemaining - 1);
-    
+
     state.playerActionQueue.push({ type: 'USE_ITEM', itemId, targetActorId, eventId });
 
     if (!isStepping) {
-       drainPlayerActions();
+      drainPlayerActions();
     }
 
     return { ok: true, eventId };
@@ -540,9 +583,11 @@ function consumeDisplayItem() {
     }
 
     const rawInput = tx.pendingRawInput ?? tx.rawInput;
+    const targetName =
+      state.battleState.actors.find((actor) => actor.actorId === selectedActorId)?.name ?? selectedActorId;
     const broadcast: DirectorBroadcast = {
       broadcastId: `broadcast_${Date.now()}`,
-      text: rawInput,
+      text: `导播信号切向 ${targetName}：${rawInput}`,
       scope: 'TARGETED',
       targetActorIds: [selectedActorId],
       lifetime: 'NEXT_ACTION',
@@ -625,6 +670,7 @@ function consumeDisplayItem() {
     getState,
     getNextDisplayItem,
     consumeDisplayItem,
+    enqueueDisplayEvent,
     recordFactEvent,
     submitCommand,
     useItem,
@@ -640,7 +686,6 @@ function applyCommitResult(state: BattleState, result: CommitResult): BattleStat
     ...state,
     stateVersion: result.newStateVersion,
     actors: result.newActors ?? state.actors,
-    eventLog: [...state.eventLog, ...result.events],
     scene: {
       ...state.scene,
       ...result.sceneDiff,

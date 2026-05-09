@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { DEFAULT_ROSTER, type RosterActor } from '../actorRoster';
 import { ACTOR_GIFT_TIERS, useLoungeStore } from '../../lounge/loungeStore';
-import { BrokerPixiCanvas } from '../../shop/components/BrokerPixiCanvas';
-import '../../shop/components/ShopPage.css';
+import { BrokerPixiCanvas } from './BrokerPixiCanvas';
+import { LampGlow } from './LampGlow';
+import './BrokerOfficePage.css';
 
 interface BrokerOfficePageProps {
   onBack: () => void;
@@ -27,14 +28,15 @@ interface AppearanceOption {
 type StatKey = 'baseHP' | 'baseATK' | 'baseDEF' | 'baseSPD' | 'baseThreat';
 const STAGE_WIDTH = 2162;
 const STAGE_HEIGHT = 1216;
+const SOURCE_STAGE_OFFSET_X = 672;
 
 const TITLE_ASSET = assetPath('\u0041\u006c\u0069\u006e\u0065\u7ecf\u6d4e\u4ee3\u7406.png');
 const BACKGROUND_ASSET = assetPath('\u5e95\u677f.png');
 const NAMEPLATE_ASSET = assetPath('\u5df2\u89e3\u9501\u94ed\u724c.png');
 const AVATAR_ASSET = assetPath('\u5934\u50cf\u5360\u4f4d\u692d\u5706.png');
 const PIXI_FRAME_ASSET = assetPath('\u6f14\u5458\u7acb\u7ed8\u6846\u8499.png');
-const LAMP_ASSET = assetPath('\u706f\u6ce1.png');
 const CUP_ASSET = assetPath('\u5496\u5561\u676f.png');
+const BROKEROFFICE_EXIT_ASSET = assetPath('brokesofficeexit.png');
 
 const APPEARANCE_OPTIONS: AppearanceOption[] = [
   { id: 'basic_skin', asset: assetPath('\u5916\u89c21.png'), cost: 60, left: 1557, top: 655, width: 64, height: 68 },
@@ -49,6 +51,49 @@ const GIFT_ASSETS = new Map<number, string>([
   [350, assetPath('350G.png')],
   [800, assetPath('800G.png')],
 ]);
+
+const ACTOR_TAGS: Record<string, { label: string; tone: 'olive' | 'blue' | 'gray' | 'green' }[]> = {
+  tdog: [
+    { label: '易怒', tone: 'olive' },
+    { label: '嘴硬', tone: 'gray' },
+  ],
+  cybercat: [
+    { label: '速度快', tone: 'blue' },
+    { label: '高攻击', tone: 'green' },
+  ],
+  nanobot: [
+    { label: '害羞', tone: 'gray' },
+    { label: '防御强', tone: 'olive' },
+  ],
+  dodo_bishop: [
+    { label: '神叨叨', tone: 'olive' },
+    { label: '血量厚', tone: 'green' },
+  ],
+  glitch_witch: [
+    { label: '高风险', tone: 'blue' },
+    { label: '爆发强', tone: 'olive' },
+  ],
+  astro_toad: [
+    { label: '慢热', tone: 'gray' },
+    { label: '自信怪', tone: 'green' },
+  ],
+  sofa_mimic: [
+    { label: '隐忍', tone: 'green' },
+    { label: '难处理', tone: 'gray' },
+  ],
+  neon_crab: [
+    { label: '宇宙人气', tone: 'green' },
+    { label: '平衡型', tone: 'blue' },
+  ],
+  blob_accountant: [
+    { label: '精打细算', tone: 'gray' },
+    { label: '低调记仇', tone: 'olive' },
+  ],
+  tian_yake: [
+    { label: '冷面', tone: 'blue' },
+    { label: '吸睛怪', tone: 'green' },
+  ],
+};
 
 const AFFECTION_TIERS = [
   { tier: 1, min: 0, max: 100 },
@@ -65,6 +110,8 @@ const STAT_VALUE_LAYOUT: { key: StatKey; left: number; top: number; width: numbe
   { key: 'baseSPD', left: 1750, top: 506, width: 86, height: 28 },
   { key: 'baseThreat', left: 1750, top: 541, width: 86, height: 28 },
 ];
+const S_BALANCE_LAYOUT = { left: 1690, top: 606, width: 258, height: 32 };
+const GOLD_BALANCE_LAYOUT = { left: 1690, top: 736, width: 258, height: 32 };
 
 export function BrokerOfficePage({ onBack }: BrokerOfficePageProps) {
   const {
@@ -136,21 +183,20 @@ export function BrokerOfficePage({ onBack }: BrokerOfficePageProps) {
           }}
         >
         <img alt="" className="broker-art" src={BACKGROUND_ASSET} />
-        <img alt="" className="broker-art" src={TITLE_ASSET} style={absBox(239, 86, 381, 108)} />
+        <img alt="" className="broker-art" src={TITLE_ASSET} style={absBox(239, 81, 381, 108)} />
         <img alt="" className="broker-art" src={PIXI_FRAME_ASSET} style={absBox(779.67, 133, 636, 841)} />
-        <img alt="" className="broker-art" src={LAMP_ASSET} style={absBox(1389.67, -32, 102, 95)} />
+        <LampGlow />
         <img alt="" className="broker-art" src={CUP_ASSET} style={absBox(-31.33, 1029, 332, 323)} />
 
-        <button className="broker-back-button" onClick={onBack} type="button" style={absBox(1898, 66, 132, 38)}>
-          {'\u8fd4\u56de'}
+        <button className="broker-exit-button" onClick={onBack} style={sourceCenteredBox(2720, 65, 140, 140)} type="button">
+          <img alt="" className="broker-exit-button-art" src={BROKEROFFICE_EXIT_ASSET} />
         </button>
 
-        <div className="broker-gold-display" style={absBox(1690, 110, 210, 48)}>
-          <strong>{gold}</strong>
-          <span>G</span>
+        <div className="broker-balance-floating" style={absBox(GOLD_BALANCE_LAYOUT.left, GOLD_BALANCE_LAYOUT.top, GOLD_BALANCE_LAYOUT.width, GOLD_BALANCE_LAYOUT.height)}>
+          {`G币余额：${gold}`}
         </div>
 
-        <section className="broker-left-panel" style={absBox(157, 249, 522, 647)}>
+        <section className="broker-left-panel" style={absBox(157, 249, 522, 690)}>
           <div className="broker-list-scroll">
             {actors.map((actor) => {
               const isSelected = actor.actorId === selectedActor?.actorId;
@@ -167,7 +213,16 @@ export function BrokerOfficePage({ onBack }: BrokerOfficePageProps) {
                   <div className="broker-list-card-body">
                     <img alt="" className="broker-avatar" src={AVATAR_ASSET} />
                     <div className="broker-card-text">
-                      <div className="broker-card-name">{actor.name}</div>
+                      <div className="broker-card-header">
+                        <div className="broker-card-name">{actor.name}</div>
+                        <div className="broker-card-tags">
+                          {(ACTOR_TAGS[actor.actorId] ?? []).map((tag) => (
+                            <span className={`broker-card-tag is-${tag.tone}`} key={`${actor.actorId}-${tag.label}`}>
+                              {tag.label}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
                       {actor.unlocked ? (
                         <div className="broker-card-meta">
                           <span className="broker-card-level">{`LV${progress.tier}`}</span>
@@ -197,8 +252,8 @@ export function BrokerOfficePage({ onBack }: BrokerOfficePageProps) {
                 {selectedActor[stat.key]}
               </div>
             ))}
-            <div className="broker-salary-floating" style={absBox(1830, 458, 126, 36)}>
-              {`S\uff1a${selectedActorSalary}`}
+            <div className="broker-balance-floating" style={absBox(S_BALANCE_LAYOUT.left, S_BALANCE_LAYOUT.top, S_BALANCE_LAYOUT.width, S_BALANCE_LAYOUT.height)}>
+              {`S币余额：${selectedActorSalary}`}
             </div>
           </>
         ) : null}
@@ -251,8 +306,38 @@ export function BrokerOfficePage({ onBack }: BrokerOfficePageProps) {
             );
           })}
         </section>
+
+        <section className="broker-marquee" style={absBox(630, 1013, 910, 60)}>
+          <div className="broker-marquee-track">
+            <MarqueeContent />
+            <MarqueeContent />
+          </div>
+        </section>
         </div>
       </div>
+    </div>
+  );
+}
+
+function MarqueeContent() {
+  return (
+    <div className="broker-marquee-content">
+      <span>All Sales are</span>
+      <span className="broker-marquee-space" aria-hidden="true">{' '}</span>
+      <span className="is-accent">Final</span>
+      <span>.</span>
+      <span className="broker-marquee-space" aria-hidden="true">{' '}</span>
+      <span>{'\u6240\u6709\u6d88\u8d39'}</span>
+      <span className="is-accent">{'\u6982\u4e0d\u9000\u6b3e'}</span>
+      <span>.</span>
+      <span className="broker-marquee-space" aria-hidden="true">{' '}</span>
+      <span>{'\u52a0\u5165\u7c89\u4e1d\u540e\u63f4\u4f1a'}</span>
+      <span className="is-accent">{'\u79c1\u8054'}</span>
+      <span>{'\u6f14\u5458. Join the Fan Club for'}</span>
+      <span className="broker-marquee-space" aria-hidden="true">{' '}</span>
+      <span className="is-accent">Private Access</span>
+      <span className="broker-marquee-space" aria-hidden="true">{' '}</span>
+      <span>to Actors.</span>
     </div>
   );
 }
@@ -269,6 +354,10 @@ function absBox(left: number, top: number, width: number, height: number): CSSPr
     width,
     height,
   };
+}
+
+function sourceCenteredBox(centerX: number, centerY: number, width: number, height: number): CSSProperties {
+  return absBox(centerX - SOURCE_STAGE_OFFSET_X - width / 2, centerY - height / 2, width, height);
 }
 
 function getAffinityProgress(affection: number): { tier: number; percent: number; display: string } {

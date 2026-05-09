@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import type { DisplayEvent } from '../display/displayTypes';
 
 interface DisplayLogProps {
@@ -6,19 +6,19 @@ interface DisplayLogProps {
   actors?: Array<{ actorId: string; name: string }>;
 }
 
-const KIND_COLORS: Record<string, string> = {
-  ACTOR_LINE: '#eee',
-  ACTOR_ACTION: '#88ccff',
-  DAMAGE: '#f44336',
-  HEAL: '#4caf50',
-  STATUS: '#ffa726',
-  ELIMINATION: '#ff5252',
-  ITEM: '#ce93d8',
-  BROADCAST: '#ce93d8',
-  REPORTER: '#80cbc4',
-  ZOG: '#ffd54f',
-  MUTATION: '#ff9800',
-  PROMPT: '#80deea',
+const KIND_LABELS: Record<string, string> = {
+  ACTOR_LINE: 'Line',
+  ACTOR_ACTION: 'Action',
+  DAMAGE: 'Damage',
+  HEAL: 'Heal',
+  STATUS: 'Status',
+  ELIMINATION: 'Exit',
+  ITEM: 'Item',
+  BROADCAST: 'Director',
+  REPORTER: 'Reporter',
+  ZOG: 'Zog',
+  MUTATION: 'Mutation',
+  PROMPT: 'Script',
 };
 
 function getActorId(item: DisplayEvent): string | undefined {
@@ -27,48 +27,82 @@ function getActorId(item: DisplayEvent): string | undefined {
   return undefined;
 }
 
+function getMetadata(item: DisplayEvent) {
+  return 'metadata' in item ? item.metadata : undefined;
+}
+
+function getPerformanceText(
+  metadata: ReturnType<typeof getMetadata>,
+  key: 'actionDescription' | 'performanceIntent'
+): string {
+  const value = (metadata as Record<string, unknown> | undefined)?.[key];
+  return typeof value === 'string' ? value : '';
+}
+
 export function DisplayLog({ items, actors = [] }: DisplayLogProps) {
   const endRef = useRef<HTMLDivElement>(null);
+  const visibleItems = items.filter((item) => item.kind !== 'REPORTER');
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [items.length]);
+  }, [visibleItems.length]);
 
   const getActorName = (actorId: string | undefined) => {
     if (!actorId) return '';
-    const actor = actors.find((a) => a.actorId === actorId);
-    return actor?.name ?? '';
+    return actors.find((actor) => actor.actorId === actorId)?.name ?? '';
   };
 
   return (
-    <div
-      style={{
-        flex: 1,
-        overflow: 'auto',
-        padding: 8,
-        background: '#0a0a1a',
-        borderRadius: 8,
-        fontSize: 13,
-        lineHeight: 1.6,
-      }}
-    >
-      {items.length === 0 && (
-        <div style={{ color: '#555', textAlign: 'center', padding: 20 }}>
-          等待战斗开始...
-        </div>
-      )}
-      {items.map((item) => {
-        const actorId = getActorId(item);
-        const actorName = getActorName(actorId);
-        return (
-          <div key={item.eventId} style={{ color: KIND_COLORS[item.kind] ?? '#eee', marginBottom: 2 }}>
-            <span style={{ color: '#555', fontSize: 10, marginRight: 6 }}>#{item.actorActionIndex}</span>
-            {actorName && <span style={{ color: '#ffeb3b', fontWeight: 'bold', marginRight: 6 }}>{actorName}:</span>}
-            {item.content}
-          </div>
-        );
-      })}
-      <div ref={endRef} />
-    </div>
+    <section className="battle-script-panel" aria-label="Battle script">
+      <div className="battle-panel-heading">
+        <span>Director Script</span>
+        <strong>{visibleItems.length}</strong>
+      </div>
+
+      <div className="battle-script-list">
+        {visibleItems.length === 0 && (
+          <div className="battle-empty-state">Waiting for the first cue...</div>
+        )}
+
+        {visibleItems.map((item) => {
+          const actorId = getActorId(item);
+          const actorName = getActorName(actorId);
+          const metadata = getMetadata(item);
+          const actionDescription = getPerformanceText(metadata, 'actionDescription');
+          const performanceIntent = getPerformanceText(metadata, 'performanceIntent');
+          const hasPerformanceDetails = Boolean(actionDescription || performanceIntent);
+
+          return (
+            <article key={item.eventId} className={`battle-script-entry is-${item.kind.toLowerCase()}`}>
+              <div className="battle-script-entry-topline">
+                <span className="battle-script-index">#{item.actorActionIndex}</span>
+                <span className="battle-script-kind">{KIND_LABELS[item.kind] ?? item.kind}</span>
+                {actorName && <strong className="battle-script-actor">{actorName}</strong>}
+              </div>
+
+              <p className="battle-script-line">{item.content}</p>
+
+              {hasPerformanceDetails && (
+                <div className="battle-script-details">
+                  {actionDescription && (
+                    <p>
+                      <span>Full action</span>
+                      {actionDescription}
+                    </p>
+                  )}
+                  {performanceIntent && (
+                    <p>
+                      <span>Inner intent</span>
+                      {performanceIntent}
+                    </p>
+                  )}
+                </div>
+              )}
+            </article>
+          );
+        })}
+        <div ref={endRef} />
+      </div>
+    </section>
   );
 }

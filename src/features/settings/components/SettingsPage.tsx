@@ -85,6 +85,44 @@ function BYOKTab() {
   });
   const [savedMap, setSavedMap] = useState<Record<LLMRoleId, boolean>>({} as Record<LLMRoleId, boolean>);
   const [expanded, setExpanded] = useState<Record<LLMRoleId, boolean>>({} as Record<LLMRoleId, boolean>);
+  const [testingMap, setTestingMap] = useState<Record<LLMRoleId, string>>({} as Record<LLMRoleId, string>);
+
+  const testConnection = async (roleId: LLMRoleId, config: RoleLLMConfig) => {
+    if (!config.enabled || !config.apiKey) return;
+    setTestingMap((prev) => ({ ...prev, [roleId]: 'testing' }));
+
+    try {
+      const response = await fetch(`${config.baseUrl.replace(/\/$/, '')}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${config.apiKey}`,
+        },
+        body: JSON.stringify({
+          model: config.model,
+          messages: [{ role: 'user', content: 'hi' }],
+          max_tokens: 5,
+        }),
+        signal: AbortSignal.timeout(config.timeout),
+      });
+
+      if (response.ok) {
+        setTestingMap((prev) => ({ ...prev, [roleId]: 'ok' }));
+      } else {
+        setTestingMap((prev) => ({ ...prev, [roleId]: 'fail' }));
+      }
+    } catch {
+      setTestingMap((prev) => ({ ...prev, [roleId]: 'fail' }));
+    }
+
+    setTimeout(() => {
+      setTestingMap((prev) => {
+        const next = { ...prev };
+        delete next[roleId];
+        return next;
+      });
+    }, 3000);
+  };
 
   const updateConfig = (roleId: LLMRoleId, patch: Partial<RoleLLMConfig>) => {
     setConfigs((prev) => ({
@@ -198,6 +236,19 @@ function BYOKTab() {
                 }}
               >
                 {savedMap[roleId] ? 'Saved' : 'Save'}
+              </button>
+              <button
+                onClick={() => testConnection(roleId, configs[roleId])}
+                disabled={!config.enabled || !config.apiKey}
+                style={{
+                  padding: '4px 12px', borderRadius: 4, border: 'none',
+                  background: testingMap[roleId] ? '#1a1a2e' : '#333',
+                  color: testingMap[roleId] ? '#888' : '#aaa',
+                  cursor: testingMap[roleId] ? 'default' : 'pointer',
+                  fontSize: 11,
+                }}
+              >
+                {testingMap[roleId] === 'testing' ? 'Testing...' : testingMap[roleId] === 'ok' ? 'OK' : testingMap[roleId] === 'fail' ? 'Fail' : 'Test'}
               </button>
             </div>
 

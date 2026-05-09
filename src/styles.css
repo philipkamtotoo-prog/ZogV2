@@ -1,0 +1,47 @@
+@font-face {
+  font-family: 'Xiaolai';
+  src: url('/字体/Xiaolai-Regular.ttf') format('truetype');
+  font-display: swap;
+}
+
+:root {
+  font-family: 'Xiaolai', 'Microsoft YaHei', 'PingFang SC', sans-serif;
+  color: #f8f0d8;
+  background: #050505;
+  --game-font: 'Xiaolai', 'Microsoft YaHei', 'PingFang SC', sans-serif;
+  --broker-ink: #1b1209;
+  --broker-paper: #ecd2a0;
+  --broker-accent: #a7e61a;
+  --broker-glow: #7ee4ff;
+  --broker-blue: #2a67f2;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  min-height: 100%;
+  width: 100%;
+}
+
+body {
+  background: #050505;
+  color: #f8f0d8;
+}
+
+body,
+button,
+input,
+textarea {
+  font-family: var(--game-font);
+}
+
+button,
+input,
+textarea {
+  font-size: 100%;
+}

@@ -19,7 +19,7 @@ export const ZOG_GIFT_TIERS: { cost: number; affection: number }[] = [
 // Actor gift tiers per数值文档: 100G/+10, 300G/+35, 800G/+100
 export const ACTOR_GIFT_TIERS: { cost: number; affection: number }[] = [
   { cost: 100, affection: 10 },
-  { cost: 300, affection: 35 },
+    { cost: 350, affection: 35 },
   { cost: 800, affection: 100 },
 ];
 

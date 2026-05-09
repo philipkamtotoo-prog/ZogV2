@@ -31,10 +31,15 @@ export type RenderOp =
 export function displayEventToRenderOp(event: DisplayEvent): RenderOp[] {
   switch (event.kind) {
     case 'ACTOR_LINE':
-      return [{ type: 'ACTOR_SPEAK', actorId: event.actorId, text: event.content }];
+      return [{ type: 'ACTOR_SPEAK', actorId: event.actorId, text: event.metadata?.stageLine || event.content }];
 
     case 'ACTOR_ACTION':
-      return [{ type: 'ACTOR_MOVE', actorId: event.actorId, style: 'minor' }];
+      return [
+        { type: 'ACTOR_MOVE', actorId: event.actorId, style: 'minor' },
+        ...(event.metadata?.stageLine
+          ? [{ type: 'ACTOR_SPEAK' as const, actorId: event.actorId, text: event.metadata.stageLine }]
+          : []),
+      ];
 
     case 'DAMAGE':
       return [{ type: 'DAMAGE_NUMBER', targetId: event.targetId, amount: event.damage }];

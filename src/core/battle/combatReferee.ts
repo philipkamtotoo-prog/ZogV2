@@ -158,6 +158,17 @@ export function combatRefereeCommit(
     if (activeActorCopy.statuses.includes('STOMACHACHE_NO_ATTACK')) {
       removeStatus(activeActorCopy, 'STOMACHACHE_NO_ATTACK');
     }
+
+    // 所有存活演员 threat 衰减（每 action -2，但不能低于 baseThreat）
+    for (const actorCopy of actorCopies) {
+      if (actorCopy.isAlive && actorCopy.currentThreat > actorCopy.baseThreat) {
+        const oldThreat = actorCopy.currentThreat;
+        actorCopy.currentThreat = Math.max(actorCopy.baseThreat, actorCopy.currentThreat - 2);
+        if (actorCopy.currentThreat !== oldThreat) {
+          pushActorDiff(actorCopy.actorId, 'currentThreat', oldThreat, actorCopy.currentThreat);
+        }
+      }
+    }
   }
 
   function removeStatus(actor: ActorCombatState, status: ActorCombatState['statuses'][number]) {
@@ -321,6 +332,7 @@ export function combatRefereeCommit(
       actionType,
       line: actorBrainOutput.line,
       actionDescription: actorBrainOutput.actionDescription,
+      performanceIntent: actorBrainOutput.performanceIntent,
       diffs: [
         ...actorDiffs.flatMap((d) => d.diffs),
         ...Object.entries(sceneDiff).map(([path, newValue]) => ({

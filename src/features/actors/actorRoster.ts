@@ -81,7 +81,7 @@ export const DEFAULT_ROSTER: RosterActor[] = [
   },
   {
     actorId: 'blob_accountant',
-    name: 'Blob Accountant',
+    name: 'Blob Bob',
     title: 'Gelatinous accountant',
     bio: 'High defense, low threat, counts every humiliating incident.',
     baseHP: 95, baseThreat: 4, baseATK: 13, baseDEF: 13, baseSPD: 4,

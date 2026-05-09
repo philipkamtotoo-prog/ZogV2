@@ -18,8 +18,8 @@ export type DisplayEventKind =
   | 'PROMPT';       // Prompt 注入
 
 export type DisplayEvent =
-  | { kind: 'ACTOR_LINE';     eventId: string; actorActionIndex: number; actorId: string; content: string; metadata?: Record<string, unknown> }
-  | { kind: 'ACTOR_ACTION';   eventId: string; actorActionIndex: number; actorId: string; content: string; metadata?: Record<string, unknown> }
+  | { kind: 'ACTOR_LINE';     eventId: string; actorActionIndex: number; actorId: string; content: string; metadata?: { stageLine?: string; actionDescription?: string; performanceIntent?: string } & Record<string, unknown> }
+  | { kind: 'ACTOR_ACTION';   eventId: string; actorActionIndex: number; actorId: string; content: string; metadata?: { stageLine?: string; actionDescription?: string; performanceIntent?: string } & Record<string, unknown> }
   | { kind: 'DAMAGE';         eventId: string; actorActionIndex: number; targetId: string; damage: number; oldHp: number; newHp: number; content: string }
   | { kind: 'HEAL';            eventId: string; actorActionIndex: number; targetId: string; healAmount: number; oldHp: number; newHp: number; content: string }
   | { kind: 'STATUS';          eventId: string; actorActionIndex: number; targetId: string; status: string; added: boolean; content: string }

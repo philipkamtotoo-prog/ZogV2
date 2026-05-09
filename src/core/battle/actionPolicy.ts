@@ -13,7 +13,7 @@ import { ACTION_DEFS } from './actionDefs';
 export function buildAllowedActionTypes(
   activeActor: ActorCombatState,
   lockedTarget: ActorCombatState | null,
-  _scene: SceneState,
+  scene: SceneState,
   _currentBeat?: DramaBeat,
   _directorBroadcasts?: DirectorBroadcast[]
 ): ActionType[] {
@@ -56,7 +56,7 @@ export function buildAllowedActionTypes(
     allowed.push(actionType);
   }
 
-  return allowed;
+  return sortActionTypesByBattlefieldPriority(allowed, activeActor, lockedTarget, scene);
 }
 
 /**
@@ -90,4 +90,44 @@ export function buildBattlefieldSummary(
   ];
 
   return summaryLines.join('\n');
+}
+
+function sortActionTypesByBattlefieldPriority(
+  allowed: ActionType[],
+  activeActor: ActorCombatState,
+  lockedTarget: ActorCombatState | null,
+  scene: SceneState
+): ActionType[] {
+  const score = (actionType: ActionType): number => {
+    let value = 0;
+
+    if (scene.wildDodos > 0 && activeActor.scene.dodosControlled === 0) {
+      if (actionType === 'BRIBE_DODOS_WITH_FOOD') value += 8;
+      if (actionType === 'BUILD_FAKE_NEST') value += 4;
+      if (actionType === 'CALM_HERD') value += 2;
+    }
+
+    if (lockedTarget && lockedTarget.scene.dodosControlled > 0) {
+      if (actionType === 'STEAL_DODOS') value += 7;
+      if (actionType === 'CLAIM_NEST_AREA') value += 3;
+    }
+
+    if (activeActor.scene.nestInfluence < 12) {
+      if (actionType === 'BUILD_FAKE_NEST') value += 3;
+      if (actionType === 'CLAIM_NEST_AREA') value += 2;
+    }
+
+    if (activeActor.currentHP < activeActor.maxHP * 0.35) {
+      if (actionType === 'CALM_HERD') value += 1;
+      if (actionType === 'FALLBACK_SIGNAL_STUMBLE') value += 1;
+    }
+
+    if (actionType === 'BRIBE_DODOS_WITH_FOOD' || actionType === 'STEAL_DODOS') {
+      value += 1;
+    }
+
+    return value;
+  };
+
+  return [...allowed].sort((a, b) => score(b) - score(a));
 }

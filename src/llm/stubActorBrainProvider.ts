@@ -40,7 +40,6 @@ export function createStubActorBrainProvider(): ActorBrainProvider {
       const validActions = allowedActionTypes.filter((at) => {
         const policy = ACTION_DEFS[at].targetPolicy;
         if (policy === 'TARGET_REQUIRED' && !lockedTargetId) return false;
-        if (policy === 'SELF_ONLY' && lockedTargetId) return false;
         return true;
       });
 

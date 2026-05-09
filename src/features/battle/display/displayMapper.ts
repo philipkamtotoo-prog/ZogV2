@@ -1,14 +1,43 @@
-/**
- * displayMapper - BattleEvent -> DisplayEvent
- * 将战斗事件转换为表现项（DisplayEvent discriminated union）
- */
-
 import type { BattleEvent, BattleState } from '../../../core/battle/types';
 import type { DisplayEvent } from './displayTypes';
 
-/**
- * 将 BattleEvent 映射为 DisplayEvent[]
- */
+function actorName(state: BattleState, actorId: string | undefined): string {
+  if (!actorId) return 'Unknown';
+  return state.actors.find((actor) => actor.actorId === actorId)?.name ?? 'Unknown';
+}
+
+function buildStageLine(text: string | undefined): string {
+  const clean = (text ?? '').replace(/\s+/g, ' ').trim();
+  if (!clean) return '';
+
+  const sentences = clean.match(/[^.!?。！？]+[.!?。！？]?/g) ?? [clean];
+  const short = sentences.slice(0, 2).join('').trim();
+  return short.length > 42 ? `${short.slice(0, 40)}...` : short;
+}
+
+function performanceMetadata(event: BattleEvent) {
+  return {
+    stageLine: buildStageLine(event.line),
+    actionDescription: event.actionDescription ?? '',
+    performanceIntent: event.performanceIntent ?? '',
+  };
+}
+
+function actorLineEvent(
+  event: BattleEvent,
+  fallback: string,
+  suffix = ''
+): DisplayEvent {
+  return {
+    kind: 'ACTOR_LINE',
+    eventId: `display_${event.eventId}${suffix}`,
+    actorActionIndex: event.actorActionIndex,
+    actorId: event.activeActorId ?? '',
+    content: event.line ?? fallback,
+    metadata: performanceMetadata(event),
+  };
+}
+
 export function mapBattleEventToDisplayEvents(
   event: BattleEvent,
   battleState: BattleState
@@ -17,103 +46,77 @@ export function mapBattleEventToDisplayEvents(
 
   switch (event.type) {
     case 'ACTION_TAKEN': {
-      const actor = battleState.actors.find((a) => a.actorId === event.activeActorId);
-      const actorName = actor?.name ?? 'Unknown';
-
-      items.push({
-        kind: 'ACTOR_LINE',
-        eventId: `display_${event.eventId}`,
-        actorActionIndex: event.actorActionIndex,
-        actorId: event.activeActorId ?? '',
-        content: event.line ?? `${actorName} 采取了行动`,
-        metadata: {
-          actionDescription: event.actionDescription,
-          performanceIntent: '',
-        },
-      });
+      const name = actorName(battleState, event.activeActorId);
+      items.push(actorLineEvent(event, `${name} takes action.`));
       break;
     }
 
     case 'DAMAGE_DEALT': {
-      const actor = battleState.actors.find((a) => a.actorId === event.activeActorId);
-      const target = battleState.actors.find((a) => a.actorId === event.targetActorId);
-      const actorName = actor?.name ?? 'Unknown';
-      const targetName = target?.name ?? 'Unknown';
+      const attacker = actorName(battleState, event.activeActorId);
+      const target = actorName(battleState, event.targetActorId);
+      items.push(actorLineEvent(event, `${attacker} attacks ${target}.`, '_line'));
 
-      items.push({
-        kind: 'ACTOR_LINE',
-        eventId: `display_${event.eventId}_line`,
-        actorActionIndex: event.actorActionIndex,
-        actorId: event.activeActorId ?? '',
-        content: event.line ?? `${actorName} 对 ${targetName} 造成了伤害`,
-      });
-
-      const hpDiff = event.diffs.find((d) => d.path === 'currentHP');
+      const hpDiff = event.diffs.find((diff) => diff.path === 'currentHP');
       if (hpDiff) {
         const oldHp = hpDiff.oldValue as number;
         const newHp = hpDiff.newValue as number;
+        const damage = Math.abs(newHp - oldHp);
         items.push({
           kind: 'DAMAGE',
           eventId: `display_${event.eventId}_hp`,
           actorActionIndex: event.actorActionIndex,
           targetId: event.targetActorId ?? '',
-          damage: Math.abs(newHp - oldHp),
+          damage,
           oldHp,
           newHp,
-          content: `${targetName} 受到了 ${Math.abs(newHp - oldHp)} 点伤害`,
+          content: `${target} takes ${damage} damage.`,
         });
       }
       break;
     }
 
     case 'DODOS_STOLEN': {
-      const actor = battleState.actors.find((a) => a.actorId === event.activeActorId);
-      const target = battleState.actors.find((a) => a.actorId === event.targetActorId);
-      const actorName = actor?.name ?? 'Unknown';
-      const targetName = target?.name ?? 'Unknown';
-
+      const actor = actorName(battleState, event.activeActorId);
+      const target = actorName(battleState, event.targetActorId);
       items.push({
         kind: 'ACTOR_ACTION',
         eventId: `display_${event.eventId}`,
         actorActionIndex: event.actorActionIndex,
         actorId: event.activeActorId ?? '',
-        content: `${actorName} 从 ${targetName} 那里偷走了渡渡鸟！`,
+        content: event.actionDescription ?? `${actor} steals dodos from ${target}.`,
+        metadata: performanceMetadata(event),
       });
       break;
     }
 
     case 'DODOS_BRIBED': {
-      const actor = battleState.actors.find((a) => a.actorId === event.activeActorId);
-      const actorName = actor?.name ?? 'Unknown';
-
+      const actor = actorName(battleState, event.activeActorId);
       items.push({
         kind: 'ACTOR_ACTION',
         eventId: `display_${event.eventId}`,
         actorActionIndex: event.actorActionIndex,
         actorId: event.activeActorId ?? '',
-        content: `${actorName} 用食物引诱了野生渡渡鸟！`,
+        content: event.actionDescription ?? `${actor} bribes wild dodos with food.`,
+        metadata: performanceMetadata(event),
       });
       break;
     }
 
     case 'NEST_CLAIMED': {
-      const actor = battleState.actors.find((a) => a.actorId === event.activeActorId);
-      const actorName = actor?.name ?? 'Unknown';
-
+      const actor = actorName(battleState, event.activeActorId);
       items.push({
         kind: 'ACTOR_ACTION',
         eventId: `display_${event.eventId}`,
         actorActionIndex: event.actorActionIndex,
         actorId: event.activeActorId ?? '',
-        content: `${actorName} 占领了新的巢区！`,
+        content: event.actionDescription ?? `${actor} claims nest influence.`,
+        metadata: performanceMetadata(event),
       });
       break;
     }
 
     case 'STATUS_APPLIED': {
-      const target = battleState.actors.find((a) => a.actorId === event.targetActorId);
-      const targetName = target?.name ?? 'Unknown';
-
+      const target = actorName(battleState, event.targetActorId);
       items.push({
         kind: 'STATUS',
         eventId: `display_${event.eventId}`,
@@ -121,15 +124,13 @@ export function mapBattleEventToDisplayEvents(
         targetId: event.targetActorId ?? '',
         status: event.actionType ?? 'UNKNOWN',
         added: true,
-        content: `${targetName} 被施加了新的状态`,
+        content: `${target} gains a status.`,
       });
       break;
     }
 
     case 'STATUS_REMOVED': {
-      const target = battleState.actors.find((a) => a.actorId === event.targetActorId);
-      const targetName = target?.name ?? 'Unknown';
-
+      const target = actorName(battleState, event.targetActorId);
       items.push({
         kind: 'STATUS',
         eventId: `display_${event.eventId}`,
@@ -137,21 +138,19 @@ export function mapBattleEventToDisplayEvents(
         targetId: event.targetActorId ?? '',
         status: event.actionType ?? 'UNKNOWN',
         added: false,
-        content: `${targetName} 的状态解除了`,
+        content: `${target} loses a status.`,
       });
       break;
     }
 
     case 'ACTOR_ELIMINATED': {
-      const target = battleState.actors.find((a) => a.actorId === event.targetActorId);
-      const targetName = target?.name ?? 'Unknown';
-
+      const target = actorName(battleState, event.targetActorId);
       items.push({
         kind: 'ELIMINATION',
         eventId: `display_${event.eventId}`,
         actorActionIndex: event.actorActionIndex,
         targetId: event.targetActorId ?? '',
-        content: `${targetName} 被淘汰了！`,
+        content: `${target} is eliminated.`,
       });
       break;
     }
@@ -161,7 +160,7 @@ export function mapBattleEventToDisplayEvents(
         kind: 'BROADCAST',
         eventId: `display_${event.eventId}`,
         actorActionIndex: event.actorActionIndex,
-        content: event.broadcastText ?? '导演广播',
+        content: `Director signal: ${event.broadcastText ?? 'The show changes course.'}`,
         metadata: {
           broadcastId: event.directorBroadcastId,
         },
@@ -175,34 +174,35 @@ export function mapBattleEventToDisplayEvents(
         eventId: `display_${event.eventId}`,
         actorActionIndex: event.actorActionIndex,
         actorId: '',
-        content: `第 ${event.actorActionIndex} 回合结束`,
+        content: `Action ${event.actorActionIndex} ends.`,
       });
       break;
     }
 
     case 'MUTATION_SELECTED': {
-      const mutationName = event.diffs.find((d) => d.path === 'selectedMutation')?.newValue as string ?? '';
+      const mutationName = (event.diffs.find((diff) => diff.path === 'selectedMutation')?.newValue as string) ?? '';
       items.push({
         kind: 'MUTATION',
         eventId: `display_${event.eventId}`,
         actorActionIndex: event.actorActionIndex,
         mutationId: event.mutationId ?? '',
         mutationName,
-        content: `节目突变规则激活：${mutationName}`,
+        content: `Program mutation activated: ${mutationName}`,
       });
       break;
     }
 
     case 'PROMPT_INJECTION_APPLIED': {
-      const actor = battleState.actors.find((a) => a.actorId === event.activeActorId);
+      const actor = actorName(battleState, event.activeActorId);
       items.push({
         kind: 'PROMPT',
         eventId: `display_${event.eventId}`,
         actorActionIndex: event.actorActionIndex,
         actorId: event.activeActorId ?? '',
-        content: event.promptSource === 'PERMANENT'
-          ? `永久剧本指令已激活：${actor?.name ?? event.activeActorId}`
-          : `为 ${actor?.name ?? event.activeActorId} 注入了临时剧本指令`,
+        content:
+          event.promptSource === 'PERMANENT'
+            ? `Permanent script injected: ${actor}`
+            : `Episode script injected: ${actor}`,
         source: event.promptSource ?? 'EPISODE',
       });
       break;
@@ -213,32 +213,28 @@ export function mapBattleEventToDisplayEvents(
         kind: 'ZOG',
         eventId: `display_${event.eventId}`,
         actorActionIndex: event.actorActionIndex,
-        content: event.zogReaction ?? 'Zog 无话可说',
+        content: event.zogReaction ?? 'Zog has no comment.',
       });
       break;
     }
 
     case 'ITEM_USED': {
-      const actor = battleState.actors.find((a) => a.actorId === event.activeActorId);
-      const target = battleState.actors.find((a) => a.actorId === event.targetActorId);
-      const actorName = actor?.name ?? 'Unknown';
-      const targetName = target?.name ?? 'Unknown';
-
-        items.push({
-          kind: 'ITEM',
-          eventId: `display_${event.eventId}`,
-          actorActionIndex: event.actorActionIndex,
-          actorId: event.activeActorId,
-          targetId: event.targetActorId ?? '',
-          itemId: event.itemId ?? event.actionType ?? 'ITEM',
-          itemName: event.actionType ?? 'ITEM',
+      const actor = actorName(battleState, event.activeActorId);
+      const target = actorName(battleState, event.targetActorId);
+      items.push({
+        kind: 'ITEM',
+        eventId: `display_${event.eventId}`,
+        actorActionIndex: event.actorActionIndex,
+        actorId: event.activeActorId,
+        targetId: event.targetActorId ?? '',
+        itemId: event.itemId ?? event.actionType ?? 'ITEM',
+        itemName: event.actionType ?? 'ITEM',
         source: 'PLAYER',
-        content: event.actionDescription ?? `${actorName} 对 ${targetName} 使用了道具`,
+        content: event.actionDescription ?? `${actor} uses an item on ${target}.`,
       });
 
-      // 如果有回血 diff，额外出 HEAL
       const healDiff = event.diffs.find(
-        (d) => d.path === 'currentHP' && (d.newValue as number) > (d.oldValue as number)
+        (diff) => diff.path === 'currentHP' && (diff.newValue as number) > (diff.oldValue as number)
       );
       if (healDiff) {
         const oldHp = healDiff.oldValue as number;
@@ -251,17 +247,17 @@ export function mapBattleEventToDisplayEvents(
           healAmount: Math.abs(newHp - oldHp),
           oldHp,
           newHp,
-          content: `${targetName} 回复了 HP`,
+          content: `${target} recovers ${Math.abs(newHp - oldHp)} HP.`,
         });
       }
 
-      // 如果有状态 diff（可能有多条），额外出 STATUS
-      const statusDiffs = event.diffs.filter((d) => d.path === 'statuses');
+      const statusDiffs = event.diffs.filter((diff) => diff.path === 'statuses');
       for (const statusDiff of statusDiffs) {
         const oldStatuses = (statusDiff.oldValue as string[]) ?? [];
         const newStatuses = (statusDiff.newValue as string[]) ?? [];
-        const added = newStatuses.filter((s) => !oldStatuses.includes(s));
-        const removed = oldStatuses.filter((s) => !newStatuses.includes(s));
+        const added = newStatuses.filter((status) => !oldStatuses.includes(status));
+        const removed = oldStatuses.filter((status) => !newStatuses.includes(status));
+
         for (const status of added) {
           items.push({
             kind: 'STATUS',
@@ -270,9 +266,10 @@ export function mapBattleEventToDisplayEvents(
             targetId: event.targetActorId ?? '',
             status,
             added: true,
-            content: `${targetName} 获得了状态: ${status}`,
+            content: `${target} gains status ${status}.`,
           });
         }
+
         for (const status of removed) {
           items.push({
             kind: 'STATUS',
@@ -281,7 +278,7 @@ export function mapBattleEventToDisplayEvents(
             targetId: event.targetActorId ?? '',
             status,
             added: false,
-            content: `${targetName} 失去了状态: ${status}`,
+            content: `${target} loses status ${status}.`,
           });
         }
       }
@@ -289,17 +286,16 @@ export function mapBattleEventToDisplayEvents(
     }
 
     default:
-      // 未识别的事件类型，静默返回空数组
       break;
   }
 
   return items;
 }
 
-/**
- * 将多个 BattleEvent 转换为 DisplayEvent 数组
- */
-export function mapEventLogToDisplayEvents(eventLog: BattleEvent[], battleState: BattleState): DisplayEvent[] {
+export function mapEventLogToDisplayEvents(
+  eventLog: BattleEvent[],
+  battleState: BattleState
+): DisplayEvent[] {
   const items: DisplayEvent[] = [];
 
   for (const event of eventLog) {

@@ -299,6 +299,7 @@ export interface BattleEvent {
   actionType?: ActionType;
   line?: string;
   actionDescription?: string;
+  performanceIntent?: string;
   directorBroadcastId?: string;
   broadcastText?: string; // DIRECTOR_BROADCAST_INJECTED 的真实广播文本
   diffs: BattleDiff[];

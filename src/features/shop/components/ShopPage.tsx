@@ -7,10 +7,10 @@ interface ShopPageProps {
 }
 
 export function ShopPage({ onBack }: ShopPageProps) {
-  const { 
-    gold, inventory, 
-    fridgeLevel, keyboardLevel, 
-    upgradeEquipment 
+  const {
+    gold, inventory,
+    fridgeLevel, keyboardLevel,
+    upgradeEquipment,
   } = useLoungeStore();
   const items = getShopItems();
   const equipmentLevel = Math.max(fridgeLevel, keyboardLevel);
@@ -31,51 +31,51 @@ export function ShopPage({ onBack }: ShopPageProps) {
         <section>
           <div style={{ color: '#88ccff', fontSize: 12, fontWeight: 'bold', marginBottom: 8 }}>Consumables</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {items.map((item) => {
-          const owned = inventory[item.itemId] ?? 0;
-          const canBuy = gold >= item.cost;
+            {items.map((item) => {
+              const owned = inventory[item.itemId] ?? 0;
+              const canBuy = gold >= item.cost;
 
-          return (
-            <div
-              key={item.itemId}
-              style={{
-                padding: 12,
-                background: '#1a1a2e',
-                borderRadius: 8,
-                border: '1px solid #333',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-              }}
-            >
-              <div>
-                <div style={{ color: '#eee', fontWeight: 'bold', fontSize: 14 }}>{item.name}</div>
-                <div style={{ color: '#888', fontSize: 12 }}>{item.description}</div>
-                {owned > 0 && <div style={{ color: '#4caf50', fontSize: 11, marginTop: 2 }}>Owned: {owned}</div>}
-              </div>
-              <button
-                onClick={() => buyItem(item.itemId, item.cost)}
-                disabled={!canBuy}
-                style={{
-                  padding: '6px 16px', borderRadius: 4, border: 'none', fontSize: 12,
-                  background: canBuy ? '#ff9800' : '#333',
-                  color: canBuy ? '#fff' : '#666',
-                  cursor: canBuy ? 'pointer' : 'default',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {item.cost}G
-              </button>
-            </div>
-          );
-        })}
+              return (
+                <div
+                  key={item.itemId}
+                  style={{
+                    padding: 12,
+                    background: '#1a1a2e',
+                    borderRadius: 8,
+                    border: '1px solid #333',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                  }}
+                >
+                  <div>
+                    <div style={{ color: '#eee', fontWeight: 'bold', fontSize: 14 }}>{item.name}</div>
+                    <div style={{ color: '#888', fontSize: 12 }}>{item.description}</div>
+                    {owned > 0 && <div style={{ color: '#4caf50', fontSize: 11, marginTop: 2 }}>Owned: {owned}</div>}
+                  </div>
+                  <button
+                    onClick={() => buyItem(item.itemId, item.cost)}
+                    disabled={!canBuy}
+                    style={{
+                      padding: '6px 16px', borderRadius: 4, border: 'none', fontSize: 12,
+                      background: canBuy ? '#ff9800' : '#333',
+                      color: canBuy ? '#fff' : '#666',
+                      cursor: canBuy ? 'pointer' : 'default',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {item.cost}G
+                  </button>
+                </div>
+              );
+            })}
           </div>
         </section>
 
         <section>
           <div style={{ color: '#88ccff', fontSize: 12, fontWeight: 'bold', marginBottom: 8 }}>Upgrades</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            
+
             <div style={upgradeCardStyle}>
               <div>
                 <div style={{ color: '#eee', fontWeight: 'bold', fontSize: 14 }}>Shared Equipment Lv.{equipmentLevel}</div>
