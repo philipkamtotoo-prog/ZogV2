@@ -108,12 +108,20 @@ export interface ActorCombatState {
   stats: ActorBattleStats;
 }
 
-// DramaBeat - 未完成，需要业务设计补充
+// DramaBeat - 节目节奏引导，不直接修改硬数值
 export interface DramaBeat {
   beatId: string;
   type: string;
+  title: string;
   focusActorId?: string;
   text: string;
+  reporterLine: string;
+  startedAtActionIndex: number;
+  expiresAtActionIndex: number;
+  conflictActorIds: string[];
+  sideActorIds: string[];
+  conflictActionTypes: ActionType[];
+  sideActionTypes: ActionType[];
 }
 
 // DirectorBroadcast
@@ -269,6 +277,7 @@ export type BattleEventType =
   | 'STATUS_REMOVED'
   | 'ACTOR_ELIMINATED'
   | 'DIRECTOR_BROADCAST_INJECTED'
+  | 'DRAMA_BEAT_STARTED'
   | 'ITEM_USED'
   | 'ROUND_END'
   | 'MUTATION_SELECTED'        // 新增
@@ -283,6 +292,7 @@ export type BattleEventTag =
   | 'STATUS'
   | 'ELIMINATION'
   | 'BROADCAST'
+  | 'BEAT'
   | 'ITEM'
   | 'SHAME'
   | 'MUTATION'   // 新增

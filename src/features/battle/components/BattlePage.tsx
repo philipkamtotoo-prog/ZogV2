@@ -100,6 +100,20 @@ export function BattlePage() {
 
         <aside className="battle-status-rail" aria-label="Battle status">
           <DodoScoreboard actors={battleState.actors} scene={battleState.scene} />
+          {battleState.currentBeat && (
+            <div className="battle-beat-card">
+              <div className="battle-panel-heading">
+                <span>Current Beat</span>
+                <strong>{battleState.currentBeat.type}</strong>
+              </div>
+              <h2>{battleState.currentBeat.title}</h2>
+              <p>{battleState.currentBeat.text}</p>
+              <div className="battle-beat-groups">
+                <span>冲突组：{namesFor(battleState.currentBeat.conflictActorIds, battleState.actors)}</span>
+                <span>偷蛋组：{namesFor(battleState.currentBeat.sideActorIds, battleState.actors)}</span>
+              </div>
+            </div>
+          )}
           <div className="battle-actor-roster">
             <div className="battle-panel-heading">
               <span>Cast Status</span>
@@ -156,4 +170,9 @@ export function BattlePage() {
       )}
     </div>
   );
+}
+
+function namesFor(actorIds: string[], actors: Array<{ actorId: string; name: string }>): string {
+  if (actorIds.length === 0) return '无人';
+  return actorIds.map((id) => actors.find((actor) => actor.actorId === id)?.name ?? id).join('、');
 }

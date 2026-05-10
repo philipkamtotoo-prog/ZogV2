@@ -14,7 +14,7 @@ export function buildAllowedActionTypes(
   activeActor: ActorCombatState,
   lockedTarget: ActorCombatState | null,
   scene: SceneState,
-  _currentBeat?: DramaBeat,
+  currentBeat?: DramaBeat,
   _directorBroadcasts?: DirectorBroadcast[]
 ): ActionType[] {
   const allowed: ActionType[] = [];
@@ -39,8 +39,11 @@ export function buildAllowedActionTypes(
     return ['FALLBACK_SIGNAL_STUMBLE', 'MOCK_ANIMAL_MANAGEMENT', 'CALM_HERD'];
   }
 
+  const beatLimitedActions = getBeatLimitedActions(activeActor, currentBeat);
+  const candidateActions = beatLimitedActions.length > 0 ? beatLimitedActions : allActionTypes;
+
   // 检查是否有 TARGET_REQUIRED 但没有目标
-  for (const actionType of allActionTypes) {
+  for (const actionType of candidateActions) {
     const def = ACTION_DEFS[actionType];
 
     if (def.targetPolicy === 'TARGET_REQUIRED' && !lockedTarget) {
@@ -57,6 +60,17 @@ export function buildAllowedActionTypes(
   }
 
   return sortActionTypesByBattlefieldPriority(allowed, activeActor, lockedTarget, scene);
+}
+
+function getBeatLimitedActions(activeActor: ActorCombatState, currentBeat?: DramaBeat): ActionType[] {
+  if (!currentBeat) return [];
+  if (currentBeat.conflictActorIds.includes(activeActor.actorId)) {
+    return currentBeat.conflictActionTypes;
+  }
+  if (currentBeat.sideActorIds.includes(activeActor.actorId)) {
+    return currentBeat.sideActionTypes;
+  }
+  return [];
 }
 
 /**

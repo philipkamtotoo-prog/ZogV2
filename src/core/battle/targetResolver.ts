@@ -20,6 +20,22 @@ export function resolveLockedTarget(
     if (legacyTauntSource) return legacyTauntSource;
   }
 
+  if (currentBeat?.sideActorIds.includes(activeActor.actorId)) {
+    return null;
+  }
+
+  if (currentBeat?.conflictActorIds.includes(activeActor.actorId)) {
+    const conflictTargets = currentBeat.conflictActorIds
+      .filter((actorId) => actorId !== activeActor.actorId)
+      .map((actorId) => aliveTargets.find((a) => a.actorId === actorId))
+      .filter(Boolean) as ActorCombatState[];
+
+    if (conflictTargets.length > 0) {
+      const targetIndex = ((actorActionIndex ?? 0) + activeActor.actorId.length) % conflictTargets.length;
+      return conflictTargets[targetIndex];
+    }
+  }
+
   if (currentBeat?.focusActorId) {
     const target = aliveTargets.find((a) => a.actorId === currentBeat.focusActorId);
     if (target) return target;

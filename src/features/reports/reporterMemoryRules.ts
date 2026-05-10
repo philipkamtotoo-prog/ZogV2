@@ -142,6 +142,23 @@ export function evaluateEvent(event: BattleEvent, state: BattleState): ReporterM
       );
     }
 
+    case 'DRAMA_BEAT_STARTED': {
+      const beat = state.currentBeat;
+      const conflictNames = beat?.conflictActorIds.map((id) => getActorName(state, id)).join('、') ?? '若干演员';
+      const sideNames = beat?.sideActorIds.map((id) => getActorName(state, id)).join('、') || '镜头边缘的人';
+      return makeMemory(
+        battleId,
+        eventIndex,
+        'STAGE_BRIEF',
+        beat?.title ?? '节目 Beat 变更',
+        beat?.reporterLine ?? event.broadcastText ?? '节目节奏突然变了。',
+        [...(beat?.conflictActorIds ?? []), ...(beat?.sideActorIds ?? [])],
+        [event.eventId],
+        4,
+        ['beat', 'brief', `conflict:${conflictNames}`, `side:${sideNames}`],
+      );
+    }
+
     case 'DODOS_STOLEN': {
       const targetDodoDiff = event.diffs.find((diff) => diff.path === 'scene.dodosControlled');
       const stolen = targetDodoDiff

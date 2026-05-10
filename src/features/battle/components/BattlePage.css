@@ -122,6 +122,35 @@
   padding: 10px;
 }
 
+.battle-beat-card {
+  padding: 10px;
+  border: 1px solid rgba(255, 93, 123, 0.5);
+  background: rgba(31, 14, 24, 0.78);
+}
+
+.battle-beat-card h2 {
+  margin: 0 0 7px;
+  color: #fff3dc;
+  font-size: 16px;
+  line-height: 1.2;
+}
+
+.battle-beat-card p {
+  margin: 0;
+  color: #d8c7a6;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.battle-beat-groups {
+  display: grid;
+  gap: 5px;
+  margin-top: 9px;
+  color: #8ee1c1;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
 .battle-panel-heading {
   display: flex;
   align-items: center;

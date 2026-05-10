@@ -109,7 +109,10 @@ export function createStageBrief(
 ): ReporterMemoryEntry {
   const alive = state.actors.filter((a) => a.isAlive);
   const hpList = alive.map((a) => `${a.name}:${a.currentHP}/${a.maxHP}`).join(', ');
-  const text = `第 ${actionIndex} 回合当前状态：存活 ${alive.length}人。${hpList}`;
+  const beatText = state.currentBeat
+    ? ` 当前 Beat「${state.currentBeat.title}」：冲突组 ${namesFor(state, state.currentBeat.conflictActorIds)}；偷蛋/巢区组 ${namesFor(state, state.currentBeat.sideActorIds)}。`
+    : '';
+  const text = `第 ${actionIndex} 回合当前状态：存活 ${alive.length}人。${hpList}${beatText}`;
 
   return {
     memoryId: nextBriefId(),
@@ -125,4 +128,11 @@ export function createStageBrief(
     source: 'SYSTEM',
     createdAt: Date.now(),
   };
+}
+
+function namesFor(state: BattleState, actorIds: string[]): string {
+  if (actorIds.length === 0) return '无人';
+  return actorIds
+    .map((id) => state.actors.find((a) => a.actorId === id)?.name ?? id)
+    .join('、');
 }

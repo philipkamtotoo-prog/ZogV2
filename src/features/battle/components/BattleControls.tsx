@@ -45,7 +45,12 @@ export function BattleControls({
       </span>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-        {[{ label: '0.5x', ms: 900 }, { label: '1x', ms: 500 }, { label: '2x', ms: 250 }].map((preset) => (
+        {[
+          { label: '0.5x', ms: 900 },
+          { label: '1x', ms: 500 },
+          { label: '2x', ms: 250 },
+          { label: '4x', ms: 125 },
+        ].map((preset) => (
           <button
             key={preset.ms}
             style={btnStyle(battleSpeedMs === preset.ms)}

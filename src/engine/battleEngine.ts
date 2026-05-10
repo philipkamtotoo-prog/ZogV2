@@ -39,6 +39,7 @@ import { applyGateResult, processCommand } from '../core/command/commandGate';
 import { applyPlayerItem } from '../core/battle/playerActionReferee';
 import { accumulateActorReadiness } from '../core/battle/turnPreparation';
 import { validateItemUse } from '../core/battle/playerActionPolicy';
+import { createBeatStartedEvent, createNextDramaBeat, shouldStartNewBeat } from '../core/battle/beatDeck';
 
 export interface EngineHooks {
   mapBattleEventToDisplay?: (event: BattleEvent, state: BattleState) => unknown[];
@@ -209,8 +210,9 @@ export function createBattleEngine(config: BattleEngineConfig) {
       }
 
       drainPlayerActions();
+      const beatStarted = advanceDramaBeatIfNeeded();
 
-      if (config.showrunnerProvider && state.battleState.phase === 'RUNNING') {
+      if (!beatStarted && config.showrunnerProvider && state.battleState.phase === 'RUNNING') {
         const shouldFire = config.showrunnerProvider.shouldFire(
           state.battleState.actorActionIndex,
           state.lastShowrunnerActionIndex,
@@ -388,6 +390,23 @@ export function createBattleEngine(config: BattleEngineConfig) {
 
     state.playerActionQueue = [];
     if (!disposed) config.onStateChange?.(state.battleState);
+  }
+
+  function advanceDramaBeatIfNeeded(): boolean {
+    if (!state || state.battleState.phase !== 'RUNNING') return false;
+    if (!shouldStartNewBeat(state.battleState)) return false;
+
+    const nextBeat = createNextDramaBeat(state.battleState);
+    if (!nextBeat) {
+      state.battleState.currentBeat = undefined;
+      return false;
+    }
+
+    const event = createBeatStartedEvent(state.battleState, nextBeat);
+    state.battleState.currentBeat = nextBeat;
+    recordFactEvent(event);
+    state.lastShowrunnerActionIndex = state.battleState.actorActionIndex;
+    return true;
   }
 
   function prepareActorsForSelection(): BattleState['actors'] {

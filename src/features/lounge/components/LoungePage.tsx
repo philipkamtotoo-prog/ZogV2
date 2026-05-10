@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { LoungePixiCanvas } from '../renderer/LoungePixiCanvas';
 import { useLoungeStore } from '../loungeStore';
+import { DEFAULT_ROSTER } from '../../actors/actorRoster';
 
 interface LoungePageProps {
   onEnterTV: () => void;
@@ -92,7 +93,10 @@ export function LoungePage({
 }: LoungePageProps) {
   const gold = useLoungeStore((s) => s.gold);
   const zogAffection = useLoungeStore((s) => s.zogAffection);
+  const actorSalary = useLoungeStore((s) => s.actorSalary);
   const collectIdleIncome = useLoungeStore((s) => s.collectIdleIncome);
+  const addGold = useLoungeStore((s) => s.addGold);
+  const addActorSalary = useLoungeStore((s) => s.addActorSalary);
   const scale = useViewportScale();
   const [hoveredHotspot, setHoveredHotspot] = useState<string | null>(null);
 
@@ -112,6 +116,12 @@ export function LoungePage({
 
   const sceneWidth = SCENE_WIDTH * scale;
   const sceneHeight = SCENE_HEIGHT * scale;
+  const totalSalary = Object.values(actorSalary).reduce((sum, value) => sum + value, 0);
+
+  const handleCheatResources = () => {
+    addGold(5000);
+    DEFAULT_ROSTER.forEach((actor) => addActorSalary(actor.actorId, 300));
+  };
 
   return (
     <div
@@ -195,6 +205,7 @@ export function LoungePage({
             >
               <div style={{ fontSize: 22, fontWeight: 800 }}>Zog 好感度</div>
               <div style={{ marginTop: 8, fontSize: 44, fontWeight: 900 }}>{zogAffection.toLocaleString()}</div>
+              <div style={{ marginTop: 8, fontSize: 22, fontWeight: 800 }}>S 币合计 {totalSalary.toLocaleString()}</div>
             </div>
 
             {hotspots.map((hotspot) => (
@@ -222,6 +233,25 @@ export function LoungePage({
           </div>
         </div>
       </div>
+
+      <button
+        onClick={handleCheatResources}
+        style={{
+          position: 'absolute',
+          left: 18,
+          bottom: 18,
+          zIndex: 80,
+          padding: '10px 14px',
+          border: '1px solid rgba(255, 223, 142, 0.42)',
+          background: 'rgba(32, 16, 20, 0.9)',
+          color: '#ffdf8e',
+          cursor: 'pointer',
+          fontWeight: 800,
+          fontSize: 13,
+        }}
+      >
+        Cheat +5000G / 全员 +300S
+      </button>
 
       <div
         style={{

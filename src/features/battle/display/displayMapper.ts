@@ -168,6 +168,16 @@ export function mapBattleEventToDisplayEvents(
       break;
     }
 
+    case 'DRAMA_BEAT_STARTED': {
+      items.push({
+        kind: 'BROADCAST',
+        eventId: `display_${event.eventId}`,
+        actorActionIndex: event.actorActionIndex,
+        content: event.broadcastText ?? '节目 Beat 发生变化',
+      });
+      break;
+    }
+
     case 'ROUND_END': {
       items.push({
         kind: 'ACTOR_ACTION',

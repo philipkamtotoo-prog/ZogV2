@@ -41,6 +41,18 @@ export function buildActorBrainPrompt(params: ActorBrainPromptParams): string {
     ? ['[本期节目突变规则]', battleState.selectedMutation.promptConstraint].join('\n')
     : '';
 
+  const beatSection = battleState.currentBeat
+    ? [
+        '[当前节目 Beat - 必须服从]',
+        `${battleState.currentBeat.title}: ${battleState.currentBeat.text}`,
+        battleState.currentBeat.conflictActorIds.includes(activeActor.actorId)
+          ? '你的本轮职责：进入冲突组，必须和锁定目标制造正面冲突，不要偷摸经营鸟群。'
+          : battleState.currentBeat.sideActorIds.includes(activeActor.actorId)
+            ? '你的本轮职责：趁乱偷摸经营鸟蛋、鸟群或巢区，不要主动加入主战团。'
+            : '你的本轮职责：根据可用行动参与节目效果。',
+      ].join('\n')
+    : '';
+
   const injectionSection = actorInjection
     ? actorInjection.source === 'PERMANENT'
       ? [
@@ -112,6 +124,7 @@ export function buildActorBrainPrompt(params: ActorBrainPromptParams): string {
     systemRules,
     broadcastSection,
     mutationSection,
+    beatSection,
     injectionSection,
     actorStatus,
     targetStatus,
