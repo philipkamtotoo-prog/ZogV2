@@ -754,6 +754,7 @@ V2战斗采用三队列分离架构：
 **displayQueue（展示队列）**
 - 负责前端渐显、toast、字幕、记者播报、Zog反应
 - 只消费已提交事件，不决定战斗
+- 不写入 `BattleState`；engine 内部短暂排队，前端 drain 后落到 battle store 的 `displayLog`
 
 **核心规则**
 ```

@@ -1,4 +1,5 @@
 import { useReportStore } from '../reportStore';
+import type { BillLineItem } from '../bill';
 
 interface ReportPageProps {
   onBack: () => void;
@@ -122,11 +123,16 @@ export function ReportPage({ onBack }: ReportPageProps) {
       {currentBill && (
         <Section title="Episode Bill">
           {currentBill.lineItems.map((item, i) => (
-            <div key={i} style={rowStyle}>
-              <span>{item.label}</span>
-              <span style={{ color: item.type === 'INCOME' ? '#4caf50' : '#f44336' }}>
-                {item.type === 'INCOME' ? '+' : '-'}{item.amount}G
-              </span>
+            <div key={i} style={{ padding: '3px 0' }}>
+              <div style={rowStyle}>
+                <span style={{ color: item.appliedToSettlement === false ? '#aaa' : '#ccc' }}>{item.label}</span>
+                <span style={{ color: getBillLineColor(item), whiteSpace: 'nowrap' }}>
+                  {formatBillLineAmount(item)}
+                </span>
+              </div>
+              {item.note && (
+                <div style={{ color: '#777', fontSize: 11, marginTop: 1 }}>{item.note}</div>
+              )}
             </div>
           ))}
           <div style={{ borderTop: '1px solid #444', marginTop: 8, paddingTop: 8, ...rowStyle }}>
@@ -154,6 +160,18 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 function Tag({ color, children }: { color: string; children: React.ReactNode }) {
   return <span style={{ color, fontSize: 10, marginLeft: 4, fontWeight: 'bold' }}>{children}</span>;
+}
+
+function formatBillLineAmount(item: BillLineItem): string {
+  const sign = item.type === 'INCOME' ? '+' : '-';
+  const currency = item.currency ?? 'G';
+  if (currency === 'AFFECTION') return `${sign}${item.amount} affection`;
+  return `${sign}${item.amount}${currency}`;
+}
+
+function getBillLineColor(item: BillLineItem): string {
+  if (item.appliedToSettlement === false) return '#aaa';
+  return item.type === 'INCOME' ? '#4caf50' : '#f44336';
 }
 
 const rowStyle: React.CSSProperties = {

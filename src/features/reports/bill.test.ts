@@ -34,6 +34,7 @@ describe('bill', () => {
     const bet = createBetSlip(winner.actorId, 50, 2.0);
     const bill = calculateEpisodeBill(sim.battleState, scores, bet, 0);
 
+    expect(bill.lineItems.some((i) => i.label.startsWith('Prepaid bet stake'))).toBe(true);
     expect(bill.lineItems.some((i) => i.label === 'Bet payout')).toBe(true);
     expect(bill.lineItems.some((i) => i.label === 'Bet principal')).toBe(false);
     expect(bill.totalExpense).toBe(0);
@@ -63,8 +64,32 @@ describe('bill', () => {
       actorBrainProvider: createStubActorBrainProvider(),
     });
     const scores = calculateFinalScores(sim.battleState.actors, sim.battleState.eventLog);
+    sim.battleState.usedItemIds = ['HEAL_SMALL', 'HEAL_SMALL', 'HEAL_TINY'];
     const bill = calculateEpisodeBill(sim.battleState, scores, null, 3);
 
+    const smallOilLine = bill.lineItems.find((i) => i.label === 'Item stock consumed: Bad Engine Oil x2');
+    const coolantLine = bill.lineItems.find((i) => i.label === 'Item stock consumed: Pocket Coolant Pack x1');
+    expect(smallOilLine?.amount).toBe(160);
+    expect(smallOilLine?.appliedToSettlement).toBe(false);
+    expect(coolantLine?.amount).toBe(45);
+    expect(bill.totalExpense).toBe(0);
+  });
+
+  it('shows actor salary and relationship changes without mixing them into gold settlement', async () => {
+    const sim = await runBattleSimulation({
+      battleSeed: 'salary_relationship_bill',
+      actorCount: 3,
+      maxActions: 10,
+      actorBrainProvider: createStubActorBrainProvider(),
+    });
+    const scores = calculateFinalScores(sim.battleState.actors, sim.battleState.eventLog);
+    const supported = scores[0];
+    const bet = createBetSlip(supported.actorId, 50, 2.0);
+    const bill = calculateEpisodeBill(sim.battleState, scores, bet, 0);
+
+    expect(bill.lineItems.some((i) => i.label.startsWith('Actor salary:') && i.currency === 'S')).toBe(true);
+    expect(bill.lineItems.some((i) => i.label === `Relationship gain: ${supported.name}` && i.currency === 'AFFECTION')).toBe(true);
+    expect(bill.totalIncome).toBeGreaterThanOrEqual(10);
     expect(bill.totalExpense).toBe(0);
   });
 

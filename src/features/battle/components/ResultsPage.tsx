@@ -1,7 +1,7 @@
 import { useBattleStore } from '../battleStore';
 import { useReportStore } from '../../reports/reportStore';
 import { extractBattleReport, type BattleReport } from '../../reports/finalReport';
-import { calculateEpisodeBill } from '../../reports/bill';
+import { calculateEpisodeBill, type BillLineItem } from '../../reports/bill';
 import { useLoungeStore } from '../../lounge/loungeStore';
 import { createLLMRoleRegistry } from '../../../llm/clients/llmRoleRegistry';
 import { createFinalReporterProvider } from '../../../llm/finalReporterProvider';
@@ -128,11 +128,16 @@ export function ResultsPage() {
         <div style={{ marginTop: 16, padding: 12, background: '#1a1a2e', borderRadius: 8 }}>
           <div style={{ color: '#88ccff', fontSize: 12, fontWeight: 'bold', marginBottom: 8 }}>收支明细</div>
           {currentBill.lineItems.map((item, i) => (
-            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '2px 0' }}>
-              <span style={{ color: '#ccc' }}>{item.label}</span>
-              <span style={{ color: item.type === 'INCOME' ? '#4caf50' : '#f44336', fontWeight: 'bold' }}>
-                {item.type === 'INCOME' ? '+' : '-'}{item.amount}G
-              </span>
+            <div key={i} style={{ fontSize: 12, padding: '3px 0' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+                <span style={{ color: item.appliedToSettlement === false ? '#aaa' : '#ccc' }}>{item.label}</span>
+                <span style={{ color: getBillLineColor(item), fontWeight: 'bold', whiteSpace: 'nowrap' }}>
+                  {formatBillLineAmount(item)}
+                </span>
+              </div>
+              {item.note && (
+                <div style={{ color: '#777', fontSize: 11, marginTop: 1 }}>{item.note}</div>
+              )}
             </div>
           ))}
           <div style={{ borderTop: '1px solid #444', marginTop: 8, paddingTop: 4, display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: 13 }}>
@@ -161,4 +166,16 @@ export function ResultsPage() {
       </button>
     </div>
   );
+}
+
+function formatBillLineAmount(item: BillLineItem): string {
+  const sign = item.type === 'INCOME' ? '+' : '-';
+  const currency = item.currency ?? 'G';
+  if (currency === 'AFFECTION') return `${sign}${item.amount} affection`;
+  return `${sign}${item.amount}${currency}`;
+}
+
+function getBillLineColor(item: BillLineItem): string {
+  if (item.appliedToSettlement === false) return '#aaa';
+  return item.type === 'INCOME' ? '#4caf50' : '#f44336';
 }

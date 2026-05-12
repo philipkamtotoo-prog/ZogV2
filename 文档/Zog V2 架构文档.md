@@ -134,7 +134,7 @@ src/
 - 在安全点推进一次 Actor Action。
 - 调用 core 纯规则函数。
 - 调用 LLM Provider。
-- 调用 DisplayQueue。
+- 维护 engine 内部的临时 DisplayQueue，并提供 drain 接口给 feature store。
 
 禁止：
 
@@ -173,7 +173,7 @@ AI 适配层。
 允许：
 
 - 展示战斗状态。
-- 展示 DisplayQueue。
+- 展示 battle store 中的 displayLog。
 - 发出玩家意图。
 - 管理页面级 UI 状态。
 - 在粗 UI 阶段用 CSS/HTML 占位表现角色、渡渡鸟、巢区和行动反馈。
@@ -194,7 +194,7 @@ AI 适配层。
 允许：
 
 - 读取 BattleState 中的 actor 位置、状态、HP 比例。
-- 读取 DisplayQueue 中的事件来驱动动画。
+- 读取 battle store 中的 displayLog / 新增 DisplayEvent 来驱动动画。
 - 管理 PIXI Application 生命周期。
 - 处理输入事件并转发为玩家意图。
 
@@ -246,13 +246,20 @@ export interface BattleState {
   commandTransactions: CommandTransaction[];
 
   eventLog: BattleEvent[];
-  displayQueue: DisplayItem[];
 
   playerSupport?: PlayerSupportState;
   itemUsesRemaining: number;
   usedItemIds: string[];
+  actorPromptInjections: ActorPromptInjection[];
+  selectedMutation?: ProgramMutation;
+  stageBriefs: StageBrief[];
+  salaryAwards: SalaryAward[];
+  reporterMemory: ReporterMemoryEntry[];
+  reporterMemoryCursor: number;
 }
 ```
+
+注意：`BattleState` 不保存 `displayQueue`。展示队列是 `BattleEngine` 内部的 transient queue；`battleStore` 在安全点 drain 后写入 feature 层的 `displayLog`，React 粗 UI 和 PIXI 都消费这个展示历史。这样表现失败不会污染战斗事实状态，也不会要求回滚 `BattleState`。
 
 ### 4.2 BattlePhase
 
@@ -817,7 +824,7 @@ class BattleRenderer {
   // 同步 BattleState -> PIXI 场景
   syncState(state: BattleState): void
 
-  // 消费 DisplayQueue，驱动动画播放
+  // 消费 battleStore.displayLog / 新增 DisplayEvent，驱动动画播放
   playNextDisplayItem(): void
 
   // 处理输入事件，转发为玩家意图
@@ -850,11 +857,11 @@ V2 明确采用“先粗 UI 跑通，后批量替换美术”的开发策略。
 
 **阶段 B：表现协议冻结**
 
-- 固定 `DisplayEvent` / `DisplayQueue` 字段
+- 固定 `DisplayEvent` / engine DisplayQueue / battleStore displayLog 字段
 - 固定 BattleEvent 到 DisplayEvent 的映射
 - 固定每种 `ActionType` 至少对应一个表现事件
 - UI 和 PIXI 都只能消费 DisplayEvent，不允许从台词里猜动画
-- DisplayQueue 播放失败只影响表现，不回滚战斗状态
+- DisplayQueue / displayLog 播放失败只影响表现，不回滚战斗状态
 
 **阶段 C：PIXI 渲染接入**
 
@@ -934,7 +941,7 @@ type DisplayEventKind =
 - DisplayEvent 只能由 BattleEvent 映射生成。
 - DisplayEvent 不允许携带新的战斗结算结果。
 - PIXI 可以根据 DisplayEvent 选择动画，但不能修改 BattleState。
-- React 粗 UI 和 PIXI 渲染层消费同一套 DisplayEvent。
+- React 粗 UI 和 PIXI 渲染层消费同一套 DisplayEvent/displayLog。
 - 批量替换美术时只允许改 `renderer/`、`AssetManifest`、资源文件和表现样式，不允许改 core 规则。
 
 ---

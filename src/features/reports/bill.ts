@@ -30,7 +30,6 @@ export function calculateEpisodeBill(
   bet: BetSlip | null,
   itemsUsedCount: number
 ): EpisodeBill {
-  void itemsUsedCount;
   const items: BillLineItem[] = [];
 
   items.push({ label: 'Viewing reward', amount: 10, type: 'INCOME' });
