@@ -1,16 +1,31 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
+import { ITEM_DEFS, type ItemId } from '../../../core/economy/items';
+import { useLoungeStore } from '../../lounge/loungeStore';
+import { FixedStage } from '../../../shared/game-ui';
 import { useBattleStore } from '../battleStore';
+import { BattleCommandPanel } from './BattleCommandPanel';
+import { BattleCastStatusPanel } from './BattleCastStatusPanel';
+import { BattleItemSlots, type BattleOwnedItem } from './BattleItemSlots';
+import { BattleLogContent } from './BattleLogContent';
+import { BattleOverlayPanel } from './BattleOverlays';
 import { BattlePixiCanvas } from '../renderer/BattlePixiCanvas';
-import { ActorPanel } from './ActorPanel';
-import { BattleControls } from './BattleControls';
-import { CommandInput } from './CommandInput';
-import { DodoScoreboard } from './DodoScoreboard';
-import { DisplayLog } from './DisplayLog';
-import { ItemPanel } from './ItemPanel';
-import { ZogNoteOverlay } from './ZogNoteOverlay';
+import { BattleScoreboardPanel } from './BattleScoreboardPanel';
+import { BattleToolButtons } from './BattleToolButtons';
+import { BattleTopControls } from './BattleTopControls';
+import { BattleZogSeatPanel } from './BattleZogSeatPanel';
+import { useBattlePageUiState } from './useBattlePageUiState';
+import {
+  BATTLE_ASSETS,
+  BATTLE_STAGE,
+  LOG_TABS,
+  PIXI_BOX,
+  SPEED_BUTTONS,
+  box,
+} from './battlePageConfig';
+import './BattleGlowEffects.css';
 import './BattlePage.css';
 
-export function BattlePage() {
+export function BattlePage({ onOpenSettings }: { onOpenSettings?: () => void }) {
   const {
     battleState,
     displayLog,
@@ -23,16 +38,35 @@ export function BattlePage() {
     resumeBattle,
     stepBattle,
     startAuto,
+    switchToManual,
     setBattleSpeed,
     submitCommand,
     setCommandInput,
     resolveAsk,
     cancelAsk,
     liveReport,
-    clearLiveReport,
+    goToLobby,
     engine,
     engineId,
   } = useBattleStore();
+  const inventory = useLoungeStore((state) => state.inventory);
+  const gold = useLoungeStore((state) => state.gold);
+  const {
+    activeOverlay,
+    activeTab,
+    hasUnreadReporter,
+    openReporterId,
+    reporterReports,
+    selectedItemId,
+    selectLogTab,
+    setActiveOverlay,
+    setOpenReporterId,
+    setSelectedItemId,
+  } = useBattlePageUiState({
+    actorActionIndex: battleState?.actorActionIndex,
+    battleId: battleState?.battleId,
+    liveReport,
+  });
 
   useEffect(() => {
     if (battleState?.phase === 'PREPARING') {
@@ -40,139 +74,132 @@ export function BattlePage() {
     }
   }, [battleState?.phase, startBattle]);
 
+  const ownedItems = useMemo(
+    (): BattleOwnedItem[] =>
+      Object.entries(inventory)
+        .filter(([, count]) => count > 0)
+        .filter(([id]) => Boolean(ITEM_DEFS[id as ItemId]))
+        .map(([id, count]) => ({ ...ITEM_DEFS[id as ItemId], count, itemId: id as ItemId })),
+    [inventory],
+  );
+
   if (!battleState) {
     return <div className="battle-empty-page">No battle loaded.</div>;
   }
 
-  const aliveCount = battleState.actors.filter((actor) => actor.isAlive).length;
+  const aliveActors = battleState.actors.filter((actor) => actor.isAlive);
+  const isPlaying = battleState.phase === 'RUNNING' && battleState.clockState === 'PLAYING';
+  const isAskMode = commandStatus === 'WAITING_CLARIFICATION';
+  const askTransaction = isAskMode ? engine?.getPendingAskTransaction() : undefined;
 
   return (
     <div className="battle-page">
-      <header className="battle-topbar">
-        <div className="battle-title-block">
-          <span className="battle-kicker">Live Battle</span>
-          <h1>Dodo Riot Stage</h1>
-        </div>
-
-        <BattleControls
-          phase={battleState.phase}
-          clockState={battleState.clockState}
-          runMode={battleState.runMode}
-          battleSpeedMs={battleSpeedMs}
-          actorActionIndex={battleState.actorActionIndex}
-          isProcessing={isProcessing}
-          onStart={startBattle}
-          onPause={pauseBattle}
-          onResume={resumeBattle}
-          onStep={stepBattle}
-          onAuto={startAuto}
-          onSpeedChange={setBattleSpeed}
-        />
-      </header>
-
-      <main className="battle-director-layout">
-        <section className="battle-stage-shell" aria-label="Battle stage">
-          <div className="battle-stage-meta">
-            <div>
-              <span>Action</span>
-              <strong>#{battleState.actorActionIndex}</strong>
-            </div>
-            <div>
-              <span>Alive</span>
-              <strong>{aliveCount}/{battleState.actors.length}</strong>
-            </div>
-            <div>
-              <span>Wild dodos</span>
-              <strong>{battleState.scene.wildDodos}</strong>
-            </div>
+      <FixedStage className="battle-stage" fit="cover" height={BATTLE_STAGE.height} viewportClassName="battle-viewport" width={BATTLE_STAGE.width}>
+          <img alt="" className="battle-bg" src={BATTLE_ASSETS.background} />
+          <div className="battle-title-glow-layer" style={box(107, 39, 258.5, 80.5)} aria-hidden="true">
+            <img alt="" src={BATTLE_ASSETS.title} />
           </div>
+          <img alt="" className="battle-art battle-title-art" src={BATTLE_ASSETS.title} style={box(107, 39, 258.5, 80.5)} />
 
-          <div className="battle-stage-frame">
-            <BattlePixiCanvas
-              battleState={battleState}
-              displayLog={displayLog}
-              engineId={engineId}
-              width={960}
-              height={560}
-            />
-          </div>
-        </section>
+          <section className="battle-pixi-slot" style={PIXI_BOX} aria-label="Pixi battle canvas">
+            <BattlePixiCanvas battleState={battleState} displayLog={displayLog} engineId={engineId} width={1421} height={645} />
+          </section>
 
-        <aside className="battle-status-rail" aria-label="Battle status">
-          <DodoScoreboard actors={battleState.actors} scene={battleState.scene} />
-          {battleState.currentBeat && (
-            <div className="battle-beat-card">
-              <div className="battle-panel-heading">
-                <span>Current Beat</span>
-                <strong>{battleState.currentBeat.type}</strong>
-              </div>
-              <h2>{battleState.currentBeat.title}</h2>
-              <p>{battleState.currentBeat.text}</p>
-              <div className="battle-beat-groups">
-                <span>冲突组：{namesFor(battleState.currentBeat.conflictActorIds, battleState.actors)}</span>
-                <span>偷蛋组：{namesFor(battleState.currentBeat.sideActorIds, battleState.actors)}</span>
-              </div>
-            </div>
-          )}
-          <div className="battle-actor-roster">
-            <div className="battle-panel-heading">
-              <span>Cast Status</span>
-              <strong>{aliveCount}</strong>
-            </div>
-            <div className="battle-actor-grid">
-              {battleState.actors.map((actor) => (
-                <ActorPanel key={actor.actorId} actor={actor} />
-              ))}
-            </div>
-          </div>
-          <ZogNoteOverlay />
-        </aside>
-      </main>
+          <BattleTopControls
+            actionIndex={battleState.actorActionIndex}
+            aliveCount={aliveActors.length}
+            battleSpeedMs={battleSpeedMs}
+            gold={gold}
+            isPlaying={isPlaying}
+            isProcessing={isProcessing}
+            onClose={goToLobby}
+            onPause={pauseBattle}
+            onResume={resumeBattle}
+            onSetBattleSpeed={setBattleSpeed}
+            onStartAuto={startAuto}
+            onStep={stepBattle}
+            onSwitchToManual={switchToManual}
+            runMode={battleState.runMode}
+            totalActors={battleState.actors.length}
+            totalDodos={battleState.scene.totalDodos}
+            wildDodos={battleState.scene.wildDodos}
+          />
 
-      <section className="battle-lower-deck">
-        <DisplayLog items={displayLog} actors={battleState.actors} />
+          <BattleScoreboardPanel actors={battleState.actors} eventLog={battleState.eventLog} />
+          <BattleCastStatusPanel actors={battleState.actors} />
+          <BattleZogSeatPanel displayLog={displayLog} />
 
-        <aside className="battle-control-desk" aria-label="Director controls">
-          <div className="battle-panel-heading">
-            <span>Intervention Desk</span>
-            <strong>{battleState.itemUsesRemaining}</strong>
-          </div>
-          <ItemPanel />
-          {battleState.phase === 'RUNNING' && (
-            <CommandInput
-              value={commandInput}
-              onChange={setCommandInput}
-              onSubmit={submitCommand}
-              onResolveAsk={resolveAsk}
-              onCancelAsk={cancelAsk}
-              disabled={isProcessing}
-              status={commandStatus}
-              askTargetQuestion={commandStatus === 'WAITING_CLARIFICATION' ? engine?.getPendingAskTransaction()?.targetQuestion : undefined}
-              askTargetOptions={commandStatus === 'WAITING_CLARIFICATION' ? engine?.getPendingAskTransaction()?.targetOptions : undefined}
-            />
-          )}
-        </aside>
-      </section>
-
-      {liveReport && (
-        <div className="battle-live-report">
-          <div className="battle-live-report-header">
-            <div>
-              <span>Field Reporter</span>
-              <h3>{liveReport.headline}</h3>
-            </div>
-            <button onClick={clearLiveReport} aria-label="Close live report">
-              x
+          {LOG_TABS.map((tab) => (
+            <button
+              className={`battle-log-tab${tab.key === 'reporter' && hasUnreadReporter ? ' has-reporter-alert' : ''}${tab.key === 'reporter' && activeTab === 'reporter' ? ' is-reporter-read' : ''}`}
+              key={tab.key}
+              onClick={() => {
+                selectLogTab(tab.key);
+              }}
+              style={tab.box}
+              type="button"
+            >
+              <img alt="" src={activeTab === tab.key ? BATTLE_ASSETS.tabActive : BATTLE_ASSETS.tabIdle} />
+              <span>{tab.label}</span>
             </button>
-          </div>
-          <p>{liveReport.summary}</p>
-        </div>
-      )}
+          ))}
+          <BattleToolButtons
+            onOpenOverlay={setActiveOverlay}
+            onOpenSettings={onOpenSettings ?? (() => setActiveOverlay('settings'))}
+          />
+
+          <section className="battle-log-panel" style={box(130, 854, 1424, 210)}>
+            <BattleLogContent
+              activeTab={activeTab}
+              actors={battleState.actors}
+              avatarPlaceholderSrc={BATTLE_ASSETS.avatarPlaceholder}
+              currentBeat={battleState.currentBeat}
+              displayLog={displayLog}
+              openReporterId={openReporterId}
+              reporterMemory={battleState.reporterMemory}
+              reporterReports={reporterReports}
+              reportCardSrc={BATTLE_ASSETS.reportCard}
+              setOpenReporterId={setOpenReporterId}
+            />
+          </section>
+
+          <BattleItemSlots ownedItems={ownedItems} onSelectItem={setSelectedItemId} selectedItemId={selectedItemId} />
+
+          <BattleCommandPanel
+            askTargetOptions={askTransaction?.targetOptions}
+            askTargetQuestion={askTransaction?.targetQuestion}
+            commandInput={commandInput}
+            commandStatus={commandStatus}
+            disabled={isProcessing || battleState.phase !== 'RUNNING'}
+            isAskMode={isAskMode}
+            onCancelAsk={cancelAsk}
+            onChangeCommandInput={setCommandInput}
+            onResolveAsk={resolveAsk}
+            onSubmitCommand={submitCommand}
+          />
+
+          {activeOverlay ? (
+            <BattleOverlayPanel
+              activeOverlay={activeOverlay}
+              actors={battleState.actors}
+              avatarPlaceholderSrc={BATTLE_ASSETS.avatarPlaceholder}
+              battleSpeedMs={battleSpeedMs}
+              currentBeat={battleState.currentBeat}
+              displayLog={displayLog}
+              isPlaying={isPlaying}
+              onClose={() => setActiveOverlay(null)}
+              pauseBattle={pauseBattle}
+              reporterMemory={battleState.reporterMemory}
+              reporterReports={reporterReports}
+              resumeBattle={resumeBattle}
+              runMode={battleState.runMode}
+              setBattleSpeed={setBattleSpeed}
+              speedButtons={SPEED_BUTTONS}
+              startAuto={startAuto}
+              switchToManual={switchToManual}
+            />
+          ) : null}
+      </FixedStage>
     </div>
   );
-}
-
-function namesFor(actorIds: string[], actors: Array<{ actorId: string; name: string }>): string {
-  if (actorIds.length === 0) return '无人';
-  return actorIds.map((id) => actors.find((actor) => actor.actorId === id)?.name ?? id).join('、');
 }

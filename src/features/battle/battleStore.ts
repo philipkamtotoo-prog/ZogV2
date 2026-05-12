@@ -39,6 +39,7 @@ interface BattleStore {
   startBattle: () => void;
   pauseBattle: () => void;
   resumeBattle: () => void;
+  switchToManual: () => void;
   stepBattle: () => Promise<void>;
   startAuto: () => void;
   setBattleSpeed: (ms: number) => void;
@@ -191,9 +192,22 @@ export const useBattleStore = create<BattleStore>((set, get) => ({
     engine.resume();
   },
 
-  stepBattle: async () => {
-    const { engine } = get();
+  switchToManual: () => {
+    const { engine, _drainInterval } = get();
     if (!engine) return;
+    if (_drainInterval) clearInterval(_drainInterval);
+
+    const engineState = engine.switchManual();
+    drainDisplayQueue(engine, (item) =>
+      set((s) => ({ displayLog: [...s.displayLog, item] }))
+    );
+    set({ _drainInterval: null, battleState: { ...engineState.battleState } });
+  },
+
+  stepBattle: async () => {
+    const { engine, _drainInterval } = get();
+    if (!engine) return;
+    if (_drainInterval) clearInterval(_drainInterval);
     set({ isProcessing: true });
 
     await engine.stepManual();
@@ -202,7 +216,12 @@ export const useBattleStore = create<BattleStore>((set, get) => ({
       set((s) => ({ displayLog: [...s.displayLog, item] }))
     );
 
-    set({ isProcessing: false });
+    const state = engine.getState();
+    set({
+      _drainInterval: null,
+      battleState: state ? { ...state.battleState } : get().battleState,
+      isProcessing: false,
+    });
   },
 
   startAuto: () => {

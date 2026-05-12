@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { DEFAULT_ROSTER, type RosterActor } from '../actorRoster';
 import { ACTOR_GIFT_TIERS, useLoungeStore } from '../../lounge/loungeStore';
+import { CurrencyDisplay, FixedStage, assetPath as gameAssetPath } from '../../../shared/game-ui';
 import { BrokerPixiCanvas } from './BrokerPixiCanvas';
 import { LampGlow } from './LampGlow';
 import './BrokerOfficePage.css';
@@ -30,26 +31,27 @@ const STAGE_WIDTH = 2162;
 const STAGE_HEIGHT = 1216;
 const SOURCE_STAGE_OFFSET_X = 672;
 
-const TITLE_ASSET = assetPath('\u0041\u006c\u0069\u006e\u0065\u7ecf\u6d4e\u4ee3\u7406.png');
-const BACKGROUND_ASSET = assetPath('\u5e95\u677f.png');
-const NAMEPLATE_ASSET = assetPath('\u5df2\u89e3\u9501\u94ed\u724c.png');
-const AVATAR_ASSET = assetPath('\u5934\u50cf\u5360\u4f4d\u692d\u5706.png');
-const PIXI_FRAME_ASSET = assetPath('\u6f14\u5458\u7acb\u7ed8\u6846\u8499.png');
-const CUP_ASSET = assetPath('\u5496\u5561\u676f.png');
-const BROKEROFFICE_EXIT_ASSET = assetPath('brokesofficeexit.png');
+const brokerAssetPath = (fileName: string) => gameAssetPath('brokerOffice', fileName);
+const TITLE_ASSET = brokerAssetPath('\u0041\u006c\u0069\u006e\u0065\u7ecf\u6d4e\u4ee3\u7406.png');
+const BACKGROUND_ASSET = brokerAssetPath('\u5e95\u677f.png');
+const NAMEPLATE_ASSET = brokerAssetPath('\u5df2\u89e3\u9501\u94ed\u724c.png');
+const AVATAR_ASSET = brokerAssetPath('\u5934\u50cf\u5360\u4f4d\u692d\u5706.png');
+const PIXI_FRAME_ASSET = brokerAssetPath('\u6f14\u5458\u7acb\u7ed8\u6846\u8499.png');
+const CUP_ASSET = brokerAssetPath('\u5496\u5561\u676f.png');
+const BROKEROFFICE_EXIT_ASSET = brokerAssetPath('brokesofficeexit.png');
 
 const APPEARANCE_OPTIONS: AppearanceOption[] = [
-  { id: 'basic_skin', asset: assetPath('\u5916\u89c21.png'), cost: 60, left: 1557, top: 655, width: 64, height: 68 },
-  { id: 'advanced_skin', asset: assetPath('\u5916\u89c22.png'), cost: 180, left: 1640, top: 657, width: 65, height: 66 },
-  { id: 'skin_3', asset: assetPath('\u5916\u89c23.png'), left: 1724, top: 656, width: 66, height: 69 },
-  { id: 'skin_4', asset: assetPath('\u5916\u89c24.png'), left: 1811, top: 654, width: 67, height: 69 },
-  { id: 'skin_5', asset: assetPath('\u56fe\u5c42 2.png'), left: 1899, top: 654, width: 71, height: 69 },
+  { id: 'basic_skin', asset: brokerAssetPath('\u5916\u89c21.png'), cost: 60, left: 1557, top: 655, width: 64, height: 68 },
+  { id: 'advanced_skin', asset: brokerAssetPath('\u5916\u89c22.png'), cost: 180, left: 1640, top: 657, width: 65, height: 66 },
+  { id: 'skin_3', asset: brokerAssetPath('\u5916\u89c23.png'), left: 1724, top: 656, width: 66, height: 69 },
+  { id: 'skin_4', asset: brokerAssetPath('\u5916\u89c24.png'), left: 1811, top: 654, width: 67, height: 69 },
+  { id: 'skin_5', asset: brokerAssetPath('\u56fe\u5c42 2.png'), left: 1899, top: 654, width: 71, height: 69 },
 ];
 
 const GIFT_ASSETS = new Map<number, string>([
-  [100, assetPath('100G .png')],
-  [350, assetPath('350G.png')],
-  [800, assetPath('800G.png')],
+  [100, brokerAssetPath('100G .png')],
+  [350, brokerAssetPath('350G.png')],
+  [800, brokerAssetPath('800G.png')],
 ]);
 
 const ACTOR_TAGS: Record<string, { label: string; tone: 'olive' | 'blue' | 'gray' | 'green' }[]> = {
@@ -96,11 +98,11 @@ const ACTOR_TAGS: Record<string, { label: string; tone: 'olive' | 'blue' | 'gray
 };
 
 const AFFECTION_TIERS = [
-  { tier: 1, min: 0, max: 100 },
-  { tier: 2, min: 100, max: 300 },
-  { tier: 3, min: 300, max: 700 },
-  { tier: 4, min: 700, max: 1500 },
-  { tier: 5, min: 1500, max: null },
+  { tier: 1, min: 0, max: 150 },
+  { tier: 2, min: 150, max: 500 },
+  { tier: 3, min: 500, max: 1200 },
+  { tier: 4, min: 1200, max: 3000 },
+  { tier: 5, min: 3000, max: null },
 ] as const;
 
 const STAT_VALUE_LAYOUT: { key: StatKey; left: number; top: number; width: number; height: number }[] = [
@@ -165,23 +167,10 @@ export function BrokerOfficePage({ onBack }: BrokerOfficePageProps) {
   const selectedActor = actors.find((actor) => actor.actorId === selectedActorId) ?? actors[0] ?? null;
   const selectedActorSalary = selectedActor ? actorSalary[selectedActor.actorId] ?? 0 : 0;
   const selectedActorPurchases = selectedActor ? actorPurchases[selectedActor.actorId] ?? [] : [];
-  const stageScale = useFixedStageScale();
-  const scaledWidth = STAGE_WIDTH * stageScale;
-  const scaledHeight = STAGE_HEIGHT * stageScale;
 
   return (
     <div className="broker-page">
-      <div className="broker-viewport">
-        <div
-          className="broker-stage"
-          style={{
-            transform: `scale(${stageScale})`,
-            width: STAGE_WIDTH,
-            height: STAGE_HEIGHT,
-            marginLeft: `${(window.innerWidth - scaledWidth) / 2}px`,
-            marginTop: `${(window.innerHeight - scaledHeight) / 2}px`,
-          }}
-        >
+      <FixedStage className="broker-stage" fit="cover" height={STAGE_HEIGHT} viewportClassName="broker-viewport" width={STAGE_WIDTH}>
         <img alt="" className="broker-art" src={BACKGROUND_ASSET} />
         <img alt="" className="broker-art" src={TITLE_ASSET} style={absBox(239, 81, 381, 108)} />
         <img alt="" className="broker-art" src={PIXI_FRAME_ASSET} style={absBox(779.67, 133, 636, 841)} />
@@ -192,9 +181,13 @@ export function BrokerOfficePage({ onBack }: BrokerOfficePageProps) {
           <img alt="" className="broker-exit-button-art" src={BROKEROFFICE_EXIT_ASSET} />
         </button>
 
-        <div className="broker-balance-floating" style={absBox(GOLD_BALANCE_LAYOUT.left, GOLD_BALANCE_LAYOUT.top, GOLD_BALANCE_LAYOUT.width, GOLD_BALANCE_LAYOUT.height)}>
-          {`G币余额：${gold}`}
-        </div>
+        <CurrencyDisplay
+          className="broker-balance-floating"
+          label="G币余额："
+          style={absBox(GOLD_BALANCE_LAYOUT.left, GOLD_BALANCE_LAYOUT.top, GOLD_BALANCE_LAYOUT.width, GOLD_BALANCE_LAYOUT.height)}
+          value={gold}
+          variant="gold"
+        />
 
         <section className="broker-left-panel" style={absBox(157, 249, 522, 690)}>
           <div className="broker-list-scroll">
@@ -252,9 +245,13 @@ export function BrokerOfficePage({ onBack }: BrokerOfficePageProps) {
                 {selectedActor[stat.key]}
               </div>
             ))}
-            <div className="broker-balance-floating" style={absBox(S_BALANCE_LAYOUT.left, S_BALANCE_LAYOUT.top, S_BALANCE_LAYOUT.width, S_BALANCE_LAYOUT.height)}>
-              {`S币余额：${selectedActorSalary}`}
-            </div>
+            <CurrencyDisplay
+              className="broker-balance-floating"
+              label="S币余额："
+              style={absBox(S_BALANCE_LAYOUT.left, S_BALANCE_LAYOUT.top, S_BALANCE_LAYOUT.width, S_BALANCE_LAYOUT.height)}
+              value={selectedActorSalary}
+              variant="scoin"
+            />
           </>
         ) : null}
 
@@ -313,8 +310,7 @@ export function BrokerOfficePage({ onBack }: BrokerOfficePageProps) {
             <MarqueeContent />
           </div>
         </section>
-        </div>
-      </div>
+      </FixedStage>
     </div>
   );
 }
@@ -342,10 +338,6 @@ function MarqueeContent() {
   );
 }
 
-function assetPath(fileName: string): string {
-  return `/brokeroffice/${encodeURIComponent(fileName)}`;
-}
-
 function absBox(left: number, top: number, width: number, height: number): CSSProperties {
   return {
     position: 'absolute',
@@ -367,7 +359,7 @@ function getAffinityProgress(affection: number): { tier: number; percent: number
     AFFECTION_TIERS[AFFECTION_TIERS.length - 1];
 
   if (currentTier.max === null) {
-    return { tier: currentTier.tier, percent: 100, display: '100/100' };
+    return { tier: currentTier.tier, percent: 100, display: 'MAX' };
   }
 
   const span = currentTier.max - currentTier.min;
@@ -377,21 +369,7 @@ function getAffinityProgress(affection: number): { tier: number; percent: number
   return {
     tier: currentTier.tier,
     percent,
-    display: `${Math.round(withinTier)}/100`,
+    display: `${safeAffection}/${currentTier.max}`,
   };
 }
 
-function useFixedStageScale(): number {
-  const [scale, setScale] = useState(() => Math.min(window.innerWidth / STAGE_WIDTH, window.innerHeight / STAGE_HEIGHT));
-
-  useEffect(() => {
-    const updateScale = () => {
-      setScale(Math.min(window.innerWidth / STAGE_WIDTH, window.innerHeight / STAGE_HEIGHT));
-    };
-
-    window.addEventListener('resize', updateScale);
-    return () => window.removeEventListener('resize', updateScale);
-  }, []);
-
-  return scale;
-}

@@ -1,4 +1,4 @@
-import type { BattleState, BattleEvent, BattleDiff } from './types';
+import type { BattleState, BattleEvent, BattleDiff, ActorCombatState } from './types';
 import { ITEM_DEFS, type ItemId } from '../economy/items';
 import { seededRng } from './rng';
 
@@ -13,39 +13,53 @@ export function applyPlayerItem(
   if (!actor || !actor.isAlive) return { events: [] };
 
   const diffs: BattleDiff[] = [];
+  let actionDescription = `Used ${itemDef.name} on ${actor.name}`;
 
   switch (itemId) {
+    case 'HEAL_TINY': {
+      applyHeal(actor, 10, diffs, battleState.actorActionIndex);
+      break;
+    }
     case 'HEAL_SMALL': {
-      const healAmount = 20;
-      const oldHP = actor.currentHP;
-      actor.currentHP = Math.min(actor.maxHP, actor.currentHP + healAmount);
-      actor.lastHealedAtActorActionIndex = battleState.actorActionIndex;
-      diffs.push({ path: 'currentHP', oldValue: oldHP, newValue: actor.currentHP });
+      applyHeal(actor, 20, diffs, battleState.actorActionIndex);
 
-      const roll = seededRng(battleState.battleSeed, battleState.actorActionIndex, 'itemStomachache', actor.actorId);
-      if (roll < 0.2) {
-        if (!actor.statuses.includes('STOMACHACHE_NO_ATTACK')) {
-          const oldStatuses = [...actor.statuses];
-          actor.statuses.push('STOMACHACHE_NO_ATTACK');
-          diffs.push({ path: 'statuses', oldValue: oldStatuses, newValue: [...actor.statuses] });
-        }
+      const roll = seededRng(
+        battleState.battleSeed,
+        battleState.actorActionIndex,
+        'itemStomachache',
+        actor.actorId
+      );
+      if (roll < 0.2 && !actor.statuses.includes('STOMACHACHE_NO_ATTACK')) {
+        const oldStatuses = [...actor.statuses];
+        actor.statuses.push('STOMACHACHE_NO_ATTACK');
+        diffs.push({ path: 'statuses', oldValue: oldStatuses, newValue: [...actor.statuses] });
       }
       break;
     }
     case 'HEAL_MEDIUM': {
-      const healAmount = 35;
-      const oldHP = actor.currentHP;
-      actor.currentHP = Math.min(actor.maxHP, actor.currentHP + healAmount);
-      actor.lastHealedAtActorActionIndex = battleState.actorActionIndex;
-      diffs.push({ path: 'currentHP', oldValue: oldHP, newValue: actor.currentHP });
+      applyHeal(actor, 35, diffs, battleState.actorActionIndex);
+      break;
+    }
+    case 'HEAL_GAMBLE': {
+      const failChance = itemDef.healFailChance ?? 0;
+      const roll = seededRng(
+        battleState.battleSeed,
+        battleState.actorActionIndex,
+        'itemHealFail',
+        actor.actorId,
+        itemId
+      );
+
+      if (roll < failChance) {
+        actionDescription = `Used ${itemDef.name} on ${actor.name}, but the charge fizzled`;
+        break;
+      }
+
+      applyHeal(actor, 100, diffs, battleState.actorActionIndex);
       break;
     }
     case 'SHIELD_GRANT': {
-      const healAmount = 60;
-      const oldHP = actor.currentHP;
-      actor.currentHP = Math.min(actor.maxHP, actor.currentHP + healAmount);
-      actor.lastHealedAtActorActionIndex = battleState.actorActionIndex;
-      diffs.push({ path: 'currentHP', oldValue: oldHP, newValue: actor.currentHP });
+      applyHeal(actor, 60, diffs, battleState.actorActionIndex);
 
       if (!actor.statuses.includes('SHIELD_ONCE')) {
         const oldStatuses = [...actor.statuses];
@@ -77,9 +91,21 @@ export function applyPlayerItem(
       { path: 'usedItemIds', oldValue: oldUsedItemIds, newValue: [...battleState.usedItemIds] },
     ],
     tags: ['ITEM'],
-    actionDescription: `对 ${actor.name} 使用了 ${itemDef.name}`,
+    actionDescription,
     createdAt: Date.now(),
   };
 
   return { events: [event] };
+}
+
+function applyHeal(
+  actor: ActorCombatState,
+  amount: number,
+  diffs: BattleDiff[],
+  actorActionIndex: number
+): void {
+  const oldHP = actor.currentHP;
+  actor.currentHP = Math.min(actor.maxHP, actor.currentHP + amount);
+  actor.lastHealedAtActorActionIndex = actorActionIndex;
+  diffs.push({ path: 'currentHP', oldValue: oldHP, newValue: actor.currentHP });
 }

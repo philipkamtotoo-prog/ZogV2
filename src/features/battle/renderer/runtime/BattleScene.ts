@@ -79,9 +79,6 @@ export class BattleScene {
   executeOps(ops: RenderOp[]): void {
     for (const op of ops) {
       switch (op.type) {
-        case 'ACTOR_SPEAK':
-          this.effectLayer.showSpeechBubble(op.actorId, op.text);
-          break;
         case 'ACTOR_MOVE':
           this.actorLayer.playMove(op.actorId, op.style);
           break;
@@ -97,20 +94,11 @@ export class BattleScene {
         case 'ITEM_CAST':
           this.effectLayer.showItemCast(op.targetId, op.itemId, op.source, op.actorId);
           break;
-        case 'BROADCAST_BANNER':
-          this.overlayLayer.showBroadcast(op.text);
-          break;
-        case 'REPORTER_BANNER':
-          this.overlayLayer.showReporter(op.text, op.severity);
-          break;
         case 'MUTATION_FLASH':
           this.overlayLayer.showMutation(op.mutationName);
           break;
         case 'PROMPT_SIGNAL':
           this.actorLayer.showPromptSignal(op.actorId, op.source);
-          break;
-        case 'ZOG_REACTION':
-          this.overlayLayer.showZog(op.text);
           break;
       }
     }

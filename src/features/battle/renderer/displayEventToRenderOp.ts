@@ -12,34 +12,28 @@ import type { DisplayEvent } from '../display/displayTypes';
  * RenderOp - Pixi 内部的渲染操作指令
  */
 export type RenderOp =
-  | { type: 'ACTOR_SPEAK'; actorId: string; text: string }
   | { type: 'ACTOR_MOVE'; actorId: string; style: 'minor' | 'attack' | 'hit' | 'eliminated' }
   | { type: 'DAMAGE_NUMBER'; targetId: string; amount: number }
   | { type: 'HEAL_NUMBER'; targetId: string; amount: number }
   | { type: 'STATUS_BADGE'; targetId: string; status: string; added: boolean }
   | { type: 'ITEM_CAST'; targetId: string; itemId: string; source: 'PLAYER' | 'ACTOR'; actorId?: string }
-  | { type: 'BROADCAST_BANNER'; text: string }
-  | { type: 'REPORTER_BANNER'; text: string; severity: number }
   | { type: 'MUTATION_FLASH'; mutationName: string }
-  | { type: 'PROMPT_SIGNAL'; actorId: string; source: 'PERMANENT' | 'EPISODE' }
-  | { type: 'ZOG_REACTION'; text: string };
+  | { type: 'PROMPT_SIGNAL'; actorId: string; source: 'PERMANENT' | 'EPISODE' };
 
 /**
  * 将 DisplayEvent 转换为 RenderOp[]
  * 这是 Pixi 层内部的桥接函数，不回写到 battle core
+ *
+ * 下方日志栏已经承载完整文本信息，所以 Pixi 舞台不再重复播放台词、导演播报、
+ * 战地记者和 Zog 反应文本，只保留行动、数值、状态等视觉反馈。
  */
 export function displayEventToRenderOp(event: DisplayEvent): RenderOp[] {
   switch (event.kind) {
     case 'ACTOR_LINE':
-      return [{ type: 'ACTOR_SPEAK', actorId: event.actorId, text: event.metadata?.stageLine || event.content }];
+      return [];
 
     case 'ACTOR_ACTION':
-      return [
-        { type: 'ACTOR_MOVE', actorId: event.actorId, style: 'minor' },
-        ...(event.metadata?.stageLine
-          ? [{ type: 'ACTOR_SPEAK' as const, actorId: event.actorId, text: event.metadata.stageLine }]
-          : []),
-      ];
+      return [{ type: 'ACTOR_MOVE', actorId: event.actorId, style: 'minor' }];
 
     case 'DAMAGE':
       return [{ type: 'DAMAGE_NUMBER', targetId: event.targetId, amount: event.damage }];
@@ -63,13 +57,13 @@ export function displayEventToRenderOp(event: DisplayEvent): RenderOp[] {
       }];
 
     case 'BROADCAST':
-      return [{ type: 'BROADCAST_BANNER', text: event.content }];
+      return [];
 
     case 'REPORTER':
-      return [{ type: 'REPORTER_BANNER', text: event.content, severity: event.severity }];
+      return [];
 
     case 'ZOG':
-      return [{ type: 'ZOG_REACTION', text: event.content }];
+      return [];
 
     case 'MUTATION':
       return [{ type: 'MUTATION_FLASH', mutationName: event.mutationName }];

@@ -5,7 +5,7 @@ import { ITEM_DEFS, type ItemId } from '../../../core/economy/items';
 
 export function ItemPanel() {
   const { battleState, useItem } = useBattleStore();
-  const { inventory, removeItem } = useLoungeStore();
+  const { inventory } = useLoungeStore();
   const [selectedItem, setSelectedItem] = useState<ItemId | null>(null);
 
   if (!battleState || battleState.phase !== 'RUNNING') return null;
@@ -22,7 +22,6 @@ export function ItemPanel() {
     if (!selectedItem) return;
     const result = useItem(selectedItem, actorId);
     if (!result || !result.ok) return;
-    removeItem(selectedItem);
     setSelectedItem(null);
   };
 

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { LoungePixiCanvas } from '../renderer/LoungePixiCanvas';
 import { useLoungeStore } from '../loungeStore';
 import { DEFAULT_ROSTER } from '../../actors/actorRoster';
+import { FixedStage, assetPath as gameAssetPath } from '../../../shared/game-ui';
 
 interface LoungePageProps {
   onEnterTV: () => void;
@@ -15,7 +16,7 @@ interface LoungePageProps {
 const SCENE_WIDTH = 2162;
 const SCENE_HEIGHT = 1216;
 
-const asset = (file: string) => `/hub/${file}`;
+const asset = (file: string) => gameAssetPath('hub', file);
 
 interface LayerConfig {
   key: string;
@@ -62,27 +63,6 @@ const decorativeLayers: LayerConfig[] = [
   { key: 'shop-name', src: asset('ShOp.png'), left: 1872, top: 270, width: 127, height: 57, zIndex: 10 },
 ];
 
-function useViewportScale() {
-  const [viewport, setViewport] = useState(() => ({
-    width: window.innerWidth,
-    height: window.innerHeight,
-  }));
-
-  useEffect(() => {
-    const handleResize = () => {
-      setViewport({
-        width: window.innerWidth,
-        height: window.innerHeight,
-      });
-    };
-
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  return Math.min(viewport.width / SCENE_WIDTH, viewport.height / SCENE_HEIGHT);
-}
-
 export function LoungePage({
   onEnterTV,
   onOpenBackpack,
@@ -97,7 +77,6 @@ export function LoungePage({
   const collectIdleIncome = useLoungeStore((s) => s.collectIdleIncome);
   const addGold = useLoungeStore((s) => s.addGold);
   const addActorSalary = useLoungeStore((s) => s.addActorSalary);
-  const scale = useViewportScale();
   const [hoveredHotspot, setHoveredHotspot] = useState<string | null>(null);
 
   useEffect(() => {
@@ -114,8 +93,6 @@ export function LoungePage({
     { key: 'settings', left: 2009, top: 77, width: 175, height: 209, onClick: onOpenSettings, label: '打开设置' },
   ];
 
-  const sceneWidth = SCENE_WIDTH * scale;
-  const sceneHeight = SCENE_HEIGHT * scale;
   const totalSalary = Object.values(actorSalary).reduce((sum, value) => sum + value, 0);
 
   const handleCheatResources = () => {
@@ -133,34 +110,7 @@ export function LoungePage({
         background: '#140d07',
       }}
     >
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        <div
-          style={{
-            position: 'relative',
-            width: sceneWidth,
-            height: sceneHeight,
-            overflow: 'hidden',
-          }}
-        >
-          <div
-            style={{
-              position: 'absolute',
-              left: 0,
-              top: 0,
-              width: SCENE_WIDTH,
-              height: SCENE_HEIGHT,
-              transform: `scale(${scale})`,
-              transformOrigin: 'top left',
-            }}
-          >
+      <FixedStage fit="cover" height={SCENE_HEIGHT} width={SCENE_WIDTH}>
             {decorativeLayers.map((layer) => (
               <SceneLayer key={layer.key} layer={layer} hoveredHotspot={hoveredHotspot} />
             ))}
@@ -230,9 +180,7 @@ export function LoungePage({
                 }}
               />
             ))}
-          </div>
-        </div>
-      </div>
+      </FixedStage>
 
       <button
         onClick={handleCheatResources}

@@ -173,6 +173,17 @@ export function createBattleEngine(config: BattleEngineConfig) {
     }, intervalMs);
   }
 
+  function switchManual(): BattleEngineState {
+    if (!state) throw new Error('Engine not initialized');
+
+    stopAutoInterval();
+    state.battleState.runMode = 'MANUAL';
+    state.battleState.clockState = 'PAUSED';
+    if (!disposed) config.onStateChange?.(state.battleState);
+
+    return state;
+  }
+
   function stopAutoInterval(): void {
     if (autoInterval) {
       clearInterval(autoInterval);
@@ -189,7 +200,9 @@ export function createBattleEngine(config: BattleEngineConfig) {
   function stepManual(): Promise<BattleEngineState | null> {
     if (!state) throw new Error('Engine not initialized');
 
+    stopAutoInterval();
     state.battleState.runMode = 'MANUAL';
+    state.battleState.clockState = 'PAUSED';
     return step();
   }
 
@@ -682,6 +695,7 @@ export function createBattleEngine(config: BattleEngineConfig) {
     pause,
     resume,
     startAuto,
+    switchManual,
     stepManual,
     step,
     endBattle,

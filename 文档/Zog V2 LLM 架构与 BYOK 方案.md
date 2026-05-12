@@ -8,10 +8,11 @@
 2. 让每个功能区都能单独配置 provider / baseUrl / model / key / prompt。
 3. 为后续 BYOK 的“分角色选模型”UI 提供确定的数据结构和开发顺序。
 
-本方案采用：
+当前实机代码采用：
 
-- `5 个正式 LLM 功能区`
+- `5 个正式战斗/报道 LLM 功能区`
 - `1 个可选的裁判顾问功能区`
+- `2 个 Zog 表现/陪伴扩展功能区`
 
 其中“裁判顾问”默认关闭，不拥有真实裁判权。
 
@@ -21,17 +22,20 @@
 
 V1 那种“按功能拆角色，并允许每个角色单独指定模型”的方法，完全适用于现在的 V2，而且应该升级为正式架构。
 
-V2 当前代码虽然已经有一部分拆分：
+V2 当前代码已经完成 role-based BYOK 基础拆分：
 
 - `ActorBrain` 独立
 - `CommandGate` 独立
-- `Reporter` prompt 层部分独立
+- `ShowrunnerDirector` 独立 provider 槽位
+- `LiveReporter` 独立 provider 槽位
+- `FinalReporter` 独立 provider 槽位
+- `ZogLounge` / `ZogBattleReaction` 已有独立 role 配置
 
-但整体仍然存在三个问题：
+当前仍然存在三个问题：
 
-1. `BYOK` 还是单一全局配置，不能按角色选模型。
-2. `Reporter` 和 `Director` 还没有完全变成独立 provider 槽位。
-3. 后续调 prompt 时，仍然会出现“角色职责不够清、配置不够独立”的问题。
+1. 角色槽位是按功能区配置，不是“每个演员一个模型槽位”。
+2. `showrunner_director` 默认关闭，需要用户在设置页启用并配置 key。
+3. `zog_battle_reaction` provider 存在，但当前战斗主界面主要只使用结算 Zog 反应；事件驱动战中 Zog 批注仍未完整接入。
 
 所以 V2 的正确目标不是继续堆 prompt 文件，而是先把“角色槽位”冻结。
 
@@ -61,17 +65,17 @@ V2 当前代码虽然已经有一部分拆分：
 - 当前状态：
   - 战中 reporter prompt 存在
   - 战后 reporter prompt 存在
-  - 但 provider/config 仍共用同一套 `LLMConfig`
-- 现状评价：`PARTIAL`
+  - `live_reporter` 和 `final_reporter` 已经拆成独立 role provider
+- 现状评价：`GOOD`
 
 #### D. 导演 Director / Showrunner
 
 - 职责：节目节奏控制、导演信号生成、非玩家来源的节目引导
 - 当前状态：
-  - 文档概念上存在
-  - 代码里尚未形成独立 provider / runtime
-  - 当前更像 `CommandGate + directorBroadcast`
-- 现状评价：`MISSING`
+  - 已有 `showrunner_director` role provider
+  - 默认关闭，用户配置 API key 后才会触发
+  - 当前用于生成导演广播，不拥有真实规则权
+- 现状评价：`PARTIAL`
 
 ### 3.3 当前不是 LLM 的部分
 
@@ -87,7 +91,7 @@ V2 当前代码虽然已经有一部分拆分：
 
 ## 4. 正式 LLM 功能区定义
 
-V2 正式定义以下 5 个 LLM 功能区：
+V2 当前实机定义以下 8 个 LLM role 槽位：
 
 | 功能区 ID | 中文名 | 是否首发必做 | 主要职责 |
 | --- | --- | --- | --- |
@@ -96,12 +100,9 @@ V2 正式定义以下 5 个 LLM 功能区：
 | `showrunner_director` | 导演 / 节目总控 | 是 | 生成节目广播、控制节目节奏、制造看点 |
 | `live_reporter` | 战中记者 | 是 | 战中口播、阶段简报、名场面播报 |
 | `final_reporter` | 战后记者 | 是 | 赛后战报、黑历史、事故总结、Zog 批注整理 |
-
-此外定义一个可选功能区：
-
-| 功能区 ID | 中文名 | 默认状态 | 主要职责 |
-| --- | --- | --- | --- |
-| `referee_llm_advisor` | 裁判顾问 | 关闭 | 提供戏剧系数建议、风格标签、演出解释，不决定真实结算 |
+| `referee_llm_advisor` | 裁判顾问 | 否，默认关闭 | 提供戏剧系数建议、风格标签、演出解释，不决定真实结算 |
+| `zog_lounge` | 客厅 Zog 聊天 | 否，默认关闭 | 客厅聊天与陪伴文案 |
+| `zog_battle_reaction` | 战中 Zog 批注 | 否，默认关闭 | 对高光事件生成 Zog 短句；当前未完整接入主战斗流程 |
 
 ---
 
@@ -334,21 +335,15 @@ V1 的“LLM 裁判”在体验上是有魅力的，但 V2 不建议把真实裁
 
 ## 9. BYOK 新架构目标
 
-当前代码里，`byokConfig.ts` 是单一配置：
+当前代码已经从旧的单一 `LLMConfig` 迁移到 `LLMRoleConfigMap`。设置页按 role 展示，每个 role 可以独立保存 provider / baseUrl / model / apiKey / timeout / temperature。
 
-- 一个 provider
-- 一个 baseUrl
-- 一个 model
-- 一个 apiKey
-
-这不符合 V2 的目标。
-
-V2 的 BYOK 目标必须改成：
+当前实机目标：
 
 - 每个 LLM 功能区一个独立槽位
 - 每个槽位都可以单独启用/禁用
 - 每个槽位都可以单独选 provider / baseUrl / model / key
 - 每个槽位都可以单独配 timeout / debug / thinking / temperature
+- 目前是按功能区配置模型，不是每个演员单独配置模型；“多模型演员”仍是后续任务
 
 ---
 
@@ -363,7 +358,9 @@ export type LLMRoleId =
   | 'showrunner_director'
   | 'live_reporter'
   | 'final_reporter'
-  | 'referee_llm_advisor';
+  | 'referee_llm_advisor'
+  | 'zog_lounge'
+  | 'zog_battle_reaction';
 ```
 
 ### 10.2 单角色配置
@@ -776,12 +773,12 @@ interface LLMConfig {
 
 正式建议如下：
 
-1. V2 采用 `5 个正式 LLM 功能区 + 可选第 6 个裁判顾问` 的架构。
+1. V2 当前实机采用 `8 个 LLM role 槽位`：5 个战斗/报道功能区、1 个可选裁判顾问、2 个 Zog 扩展槽位。
 2. `CombatReferee` 继续保留为唯一真实裁判。
 3. `showrunner_director` 必须独立出 `command_gate`。
 4. `live_reporter` 和 `final_reporter` 必须拆成两个 role slot。
-5. `BYOK` 必须从单一 `LLMConfig` 升级为 `LLMRoleConfigMap`。
-6. 后续 prompt 调整以“角色槽位”为单位，不再以“全局模型”方式调整。
+5. `BYOK` 已升级为 `LLMRoleConfigMap`，后续继续按 role 粒度调整。
+6. 当前不是每个演员独立模型；多模型演员需要另开演员级模型映射任务。
 
 如果按这个方案推进，后面你就可以非常自然地做到：
 
@@ -803,22 +800,24 @@ interface LLMConfig {
 
 基于当前代码状态，先给一个明确结论：
 
-- `actor_brain`：已落地，但仍使用全局 `LLMConfig`
-- `command_gate`：已落地，但仍使用全局 `LLMConfig`
-- `live_reporter`：已落地为功能逻辑，但还不是独立 role provider
-- `final_reporter`：已落地为功能逻辑，但还不是独立 role provider
-- `showrunner_director`：文档存在，代码未正式落地
+- `actor_brain`：已落地，按 `actor_brain` role 读取配置；所有演员共用该槽位
+- `command_gate`：已落地，按 `command_gate` role 读取配置
+- `live_reporter`：已落地为独立 role provider
+- `final_reporter`：已落地为独立 role provider
+- `showrunner_director`：已落地为独立 role provider，但默认关闭，需用户配置 key 后启用
 - `referee_llm_advisor`：未落地，且默认不应阻塞首发
-- `LLMRoleConfigMap / role-based BYOK`：未落地
+- `zog_lounge`：已有 role 配置和 provider，客厅 UI 入口仍待补
+- `zog_battle_reaction`：已有 role 配置和 provider，战中事件驱动接入仍待补
+- `LLMRoleConfigMap / role-based BYOK`：已落地，设置页可按 role 保存配置
 
-因此开发目标不是“继续堆 prompt”，而是先把：
+因此下一步开发目标不是“继续堆 prompt”，而是补齐：
 
-1. 角色槽位  
-2. role registry  
-3. showrunner runtime  
-4. BYOK 分角色配置  
+1. 演员级模型映射（如仍需要多模型演员）
+2. Zog 战中反应接入主流程
+3. 客厅 Zog 聊天 UI 入口
+4. showrunner 默认关闭状态下的体验提示
 
-这四件事做成正式基础设施。
+这些是现有基础设施之上的功能接入任务。
 
 ### 20.2 开发总原则
 

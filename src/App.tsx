@@ -20,10 +20,10 @@ function App() {
   const [loungeView, setLoungeView] = useState<AppView>('LOUNGE');
 
   const resolvedView: AppView =
+    loungeView === 'SETTINGS' ? 'SETTINGS' :
     battleView === 'BETTING' ? 'BETTING' :
     battleView === 'BATTLE' ? 'BATTLE' :
     battleView === 'RESULTS' ? 'RESULTS' :
-    loungeView === 'SETTINGS' ? 'SETTINGS' :
     currentReport && loungeView === 'REPORT_DETAIL' ? 'REPORT_DETAIL' :
     loungeView;
 
@@ -41,7 +41,7 @@ function App() {
       )}
       {resolvedView === 'BACKPACK' && <BackpackPage onBack={() => setLoungeView('LOUNGE')} />}
       {resolvedView === 'BETTING' && <BettingPage />}
-      {resolvedView === 'BATTLE' && <BattlePage />}
+      {resolvedView === 'BATTLE' && <BattlePage onOpenSettings={() => setLoungeView('SETTINGS')} />}
       {resolvedView === 'RESULTS' && <ResultsPage />}
       {resolvedView === 'SHOP' && <ShopPage onBack={() => setLoungeView('LOUNGE')} />}
       {resolvedView === 'ROSTER' && <BrokerOfficePage onBack={() => setLoungeView('LOUNGE')} />}
