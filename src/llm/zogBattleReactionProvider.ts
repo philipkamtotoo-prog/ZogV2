@@ -39,36 +39,36 @@ function buildReactionPrompt(event: BattleEvent, battleState: BattleState): stri
     case 'DAMAGE_DEALT': {
       const diff = event.diffs?.find((d) => d.path.includes('currentHP'));
       const damage = diff ? Math.abs(Number(diff.newValue) - Number(diff.oldValue)) : 0;
-      context = `${actorName} dealt ${damage} damage to ${targetName}`;
+      context = `${actorName} 对 ${targetName} 造成 ${damage} 点伤害`;
       break;
     }
     case 'ACTOR_ELIMINATED':
-      context = `${actorName} eliminated ${targetName}!`;
+      context = `${actorName} 淘汰了 ${targetName}`;
       break;
     case 'STATUS_APPLIED': {
       const status = event.diffs?.find((d) => d.path.includes('status'))?.newValue ?? '';
-      context = `${actorName} applied ${String(status)} to ${targetName}`;
+      context = `${actorName} 给 ${targetName} 挂上 ${String(status)} 状态`;
       break;
     }
     case 'DODOS_STOLEN':
-      context = `${actorName} stole dodos from ${targetName}`;
+      context = `${actorName} 从 ${targetName} 那里偷走渡渡鸟`;
       break;
     case 'DODOS_BRIBED':
-      context = `${actorName} bribed a dodo`;
+      context = `${actorName} 贿赂了渡渡鸟`;
       break;
     case 'NEST_CLAIMED':
-      context = `${actorName} claimed a nest`;
+      context = `${actorName} 抢占了巢区`;
       break;
     default:
-      context = `${actorName} did something notable`;
+      context = `${actorName} 做了一件显眼的事`;
   }
 
-  return `${context}\n\nZog, give a short, sarcastic one-sentence reaction to this moment. Be witty and brief.`;
+  return `${context}\n\n请用 Zog 的口吻给一句中文短吐槽。最多 22 个中文字，像电视前小声冒泡，不要解释。`;
 }
 
 export function createZogBattleReactionProvider(config: ZogBattleReactionProviderConfig = {}): ZogBattleReactionProvider {
   const {
-    systemPrompt = 'You are Zog, a sarcastic ancient dragon watching a battle unfold. You make short, witty, occasionally grumpy comments. Keep reactions to ONE sentence only. Never break character.',
+    systemPrompt = '你是 Zog，来自 Doda 的小外星人，飞鼠系可爱、傲娇、爱捡垃圾、看不懂但很爱看宇宙电视。战斗吐槽必须中文，一句话，最多 22 个中文字，嘴硬、短促、荒诞，禁止恋爱感。',
     maxRetries = 2,
   } = config;
 

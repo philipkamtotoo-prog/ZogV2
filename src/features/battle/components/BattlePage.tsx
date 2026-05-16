@@ -44,6 +44,7 @@ export function BattlePage({ onOpenSettings }: { onOpenSettings?: () => void }) 
     setCommandInput,
     resolveAsk,
     cancelAsk,
+    useItem,
     liveReport,
     goToLobby,
     engine,
@@ -51,6 +52,7 @@ export function BattlePage({ onOpenSettings }: { onOpenSettings?: () => void }) 
   } = useBattleStore();
   const inventory = useLoungeStore((state) => state.inventory);
   const gold = useLoungeStore((state) => state.gold);
+  const battleQuickSlots = useLoungeStore((state) => state.battleQuickSlots);
   const {
     activeOverlay,
     activeTab,
@@ -74,13 +76,15 @@ export function BattlePage({ onOpenSettings }: { onOpenSettings?: () => void }) 
     }
   }, [battleState?.phase, startBattle]);
 
-  const ownedItems = useMemo(
-    (): BattleOwnedItem[] =>
-      Object.entries(inventory)
-        .filter(([, count]) => count > 0)
-        .filter(([id]) => Boolean(ITEM_DEFS[id as ItemId]))
-        .map(([id, count]) => ({ ...ITEM_DEFS[id as ItemId], count, itemId: id as ItemId })),
-    [inventory],
+  const slotItems = useMemo(
+    (): (BattleOwnedItem | null)[] =>
+      Array.from({ length: 4 }, (_, index) => {
+        const itemId = battleQuickSlots[index];
+        if (!itemId || !ITEM_DEFS[itemId as ItemId]) return null;
+        const def = ITEM_DEFS[itemId as ItemId];
+        return { ...def, count: inventory[itemId] ?? 0, itemId: itemId as ItemId };
+      }),
+    [battleQuickSlots, inventory],
   );
 
   if (!battleState) {
@@ -91,6 +95,15 @@ export function BattlePage({ onOpenSettings }: { onOpenSettings?: () => void }) 
   const isPlaying = battleState.phase === 'RUNNING' && battleState.clockState === 'PLAYING';
   const isAskMode = commandStatus === 'WAITING_CLARIFICATION';
   const askTransaction = isAskMode ? engine?.getPendingAskTransaction() : undefined;
+  const selectedItem = selectedItemId ? ITEM_DEFS[selectedItemId] : null;
+
+  const handleUseSelectedItem = (targetActorId: string) => {
+    if (!selectedItemId) return;
+    const result = useItem(selectedItemId, targetActorId);
+    if (result?.ok) {
+      setSelectedItemId(null);
+    }
+  };
 
   return (
     <div className="battle-page">
@@ -126,8 +139,12 @@ export function BattlePage({ onOpenSettings }: { onOpenSettings?: () => void }) 
           />
 
           <BattleScoreboardPanel actors={battleState.actors} eventLog={battleState.eventLog} />
-          <BattleCastStatusPanel actors={battleState.actors} />
-          <BattleZogSeatPanel displayLog={displayLog} />
+          <BattleCastStatusPanel
+            actors={battleState.actors}
+            onUseItem={handleUseSelectedItem}
+            selectedItemName={selectedItem?.name ?? null}
+          />
+          <BattleZogSeatPanel battleState={battleState} displayLog={displayLog} />
 
           {LOG_TABS.map((tab) => (
             <button
@@ -163,7 +180,7 @@ export function BattlePage({ onOpenSettings }: { onOpenSettings?: () => void }) 
             />
           </section>
 
-          <BattleItemSlots ownedItems={ownedItems} onSelectItem={setSelectedItemId} selectedItemId={selectedItemId} />
+          <BattleItemSlots slotItems={slotItems} onSelectItem={setSelectedItemId} selectedItemId={selectedItemId} />
 
           <BattleCommandPanel
             askTargetOptions={askTransaction?.targetOptions}

@@ -3,6 +3,7 @@ import { LoungePixiCanvas } from '../renderer/LoungePixiCanvas';
 import { useLoungeStore } from '../loungeStore';
 import { DEFAULT_ROSTER } from '../../actors/actorRoster';
 import { FixedStage, assetPath as gameAssetPath } from '../../../shared/game-ui';
+import { ZogFridgePanel } from './ZogFridgePanel';
 
 interface LoungePageProps {
   onEnterTV: () => void;
@@ -78,13 +79,14 @@ export function LoungePage({
   const addGold = useLoungeStore((s) => s.addGold);
   const addActorSalary = useLoungeStore((s) => s.addActorSalary);
   const [hoveredHotspot, setHoveredHotspot] = useState<string | null>(null);
+  const [isZogFridgeOpen, setIsZogFridgeOpen] = useState(false);
 
   useEffect(() => {
     collectIdleIncome();
   }, [collectIdleIncome]);
 
   const hotspots: HotspotConfig[] = [
-    { key: 'fridge', left: 130, top: 225, width: 483, height: 758, onClick: onOpenBackpack, label: '打开冰箱' },
+    { key: 'fridge', left: 130, top: 225, width: 483, height: 758, onClick: () => setIsZogFridgeOpen(true), label: '和 Zog 交流' },
     { key: 'tv', left: 1508, top: 324, width: 546, height: 670, onClick: onEnterTV, label: '进入电视' },
     { key: 'reports', left: 106, top: -19, width: 289, height: 343, onClick: onOpenReports, label: '打开战报' },
     { key: 'broker', left: 1573, top: 86, width: 164, height: 229, onClick: onOpenRoster, label: '打开经纪人' },
@@ -215,6 +217,8 @@ export function LoungePage({
           opacity: 0.72,
         }}
       />
+
+      {isZogFridgeOpen && <ZogFridgePanel onClose={() => setIsZogFridgeOpen(false)} />}
     </div>
   );
 }

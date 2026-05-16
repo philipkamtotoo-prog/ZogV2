@@ -2,6 +2,13 @@ import { create } from 'zustand';
 import { calculateIdleIncome } from '../../core/economy/loungeIncome';
 import { begZogForGold, getBegCooldownMs } from '../../core/economy/begging';
 import type { ItemId } from '../../core/economy/items';
+import {
+  ZOG_GIFTS,
+  buildZogLoungeSystemPrompt,
+  getZogGiftById,
+  rollZogGiftResult,
+  type ZogGiftResult,
+} from '../zog/zogAffinity';
 
 // Shared upgrade tree for equipment (fridge + keyboard share same level)
 // Lv2/3/4/5 = 300/900/2500/7000G (per数值文档)
@@ -9,12 +16,11 @@ export const EQUIPMENT_UPGRADE_COSTS: Record<number, number> = { 1: 300, 2: 900,
 export const FRIDGE_USES: Record<number, number> = { 1: 1, 2: 2, 3: 3, 4: 4, 5: 5 };
 export const KEYBOARD_LIMITS: Record<number, number> = { 1: 5, 2: 8, 3: 12, 4: 20, 5: 30 };
 
-// Zog gift tiers per数值文档: 50G/+10, 150G/+35, 500G/+130
-export const ZOG_GIFT_TIERS: { cost: number; affection: number }[] = [
-  { cost: 50, affection: 10 },
-  { cost: 150, affection: 35 },
-  { cost: 500, affection: 130 },
-];
+export const ZOG_GIFT_TIERS: { id: string; cost: number; affection: number }[] = ZOG_GIFTS.map((gift) => ({
+  id: gift.giftId,
+  cost: gift.cost,
+  affection: gift.affection,
+}));
 
 // Actor gift tiers per数值文档: 100G/+10, 300G/+35, 800G/+100
 export const ACTOR_GIFT_TIERS: { cost: number; affection: number }[] = [
@@ -33,6 +39,7 @@ interface LoungeState {
   gold: number;
   zogAffection: number;
   inventory: Record<string, number>;
+  battleQuickSlots: (ItemId | null)[];
   lastActiveTime: number;
   begAttempts: number;
   lastBegTime: number;
@@ -45,6 +52,8 @@ interface LoungeState {
   actorSalary: Record<string, number>;
   actorPurchases: Record<string, string[]>;
   actorPermanentPrompts: Record<string, string>;
+  zogGiftAttempts: number;
+  lastZogGiftResult: ZogGiftResult | null;
 }
 
 export interface ChatMessage {
@@ -61,7 +70,9 @@ interface LoungeStore extends LoungeState {
   spendGold: (amount: number) => boolean;
   addItem: (itemId: ItemId) => void;
   removeItem: (itemId: ItemId) => boolean;
+  setBattleQuickSlot: (slotIndex: number, itemId: ItemId | null) => void;
   giftZog: (cost: number) => boolean;
+  giftZogById: (giftId: string) => ZogGiftResult | null;
   updateLastActiveTime: () => void;
   unlockActor: (actorId: string) => boolean;
   addActorAffection: (actorId: string, amount: number) => void;
@@ -104,6 +115,7 @@ function pickState(s: LoungeStore): LoungeState {
     gold: s.gold,
     zogAffection: s.zogAffection,
     inventory: s.inventory,
+    battleQuickSlots: normalizeBattleQuickSlots(s.battleQuickSlots),
     lastActiveTime: s.lastActiveTime,
     begAttempts: s.begAttempts,
     lastBegTime: s.lastBegTime,
@@ -116,13 +128,24 @@ function pickState(s: LoungeStore): LoungeState {
     actorSalary: s.actorSalary,
     actorPurchases: s.actorPurchases,
     actorPermanentPrompts: s.actorPermanentPrompts,
+    zogGiftAttempts: s.zogGiftAttempts ?? 0,
+    lastZogGiftResult: s.lastZogGiftResult ?? null,
   };
+}
+
+function normalizeBattleQuickSlots(value: unknown): (ItemId | null)[] {
+  const rawSlots = Array.isArray(value) ? value : [];
+  return Array.from({ length: 4 }, (_, index) => {
+    const raw = rawSlots[index];
+    return typeof raw === 'string' ? (raw as ItemId) : null;
+  });
 }
 
 const defaults: LoungeState & Pick<LoungeStore, 'chatMessages' | 'isZogTyping'> = {
   gold: 100,
   zogAffection: 0,
   inventory: {},
+  battleQuickSlots: [null, null, null, null],
   lastActiveTime: Date.now(),
   begAttempts: 0,
   lastBegTime: 0,
@@ -135,6 +158,8 @@ const defaults: LoungeState & Pick<LoungeStore, 'chatMessages' | 'isZogTyping'> 
   actorSalary: {},
   actorPurchases: {},
   actorPermanentPrompts: {},
+  zogGiftAttempts: 0,
+  lastZogGiftResult: null,
   chatMessages: [],
   isZogTyping: false,
 };
@@ -152,6 +177,7 @@ function normalizeLoadedState(state: Partial<LoungeState>): Partial<LoungeState>
   );
   return {
     ...state,
+    battleQuickSlots: normalizeBattleQuickSlots(state.battleQuickSlots),
     fridgeLevel: level,
     keyboardLevel: level,
     fridgeItemUseLimit: FRIDGE_USES[level],
@@ -239,6 +265,21 @@ export const useLoungeStore = create<LoungeStore>((set, get) => ({
     return true;
   },
 
+  setBattleQuickSlot: (slotIndex, itemId) => {
+    if (slotIndex < 0 || slotIndex >= 4) return;
+    set((s) => {
+      const nextSlots = normalizeBattleQuickSlots(s.battleQuickSlots);
+      const existingIndex = itemId ? nextSlots.findIndex((slot) => slot === itemId) : -1;
+      if (existingIndex >= 0) {
+        nextSlots[existingIndex] = null;
+      }
+      nextSlots[slotIndex] = itemId;
+      const next = { ...s, battleQuickSlots: nextSlots };
+      saveState(pickState(next as LoungeStore));
+      return next;
+    });
+  },
+
   giftZog: (cost: number) => {
     const { gold } = get();
     if (gold < cost) return false;
@@ -254,6 +295,31 @@ export const useLoungeStore = create<LoungeStore>((set, get) => ({
       return next;
     });
     return true;
+  },
+
+  giftZogById: (giftId: string) => {
+    const gift = getZogGiftById(giftId);
+    if (!gift) return null;
+
+    const { gold, zogAffection, zogGiftAttempts } = get();
+    if (gold < gift.cost) return null;
+
+    const result = rollZogGiftResult(giftId, zogAffection, zogGiftAttempts);
+    if (!result) return null;
+
+    set((s) => {
+      const next = {
+        ...s,
+        gold: s.gold - gift.cost,
+        zogAffection: s.zogAffection + result.totalAffection,
+        zogGiftAttempts: s.zogGiftAttempts + 1,
+        lastZogGiftResult: result,
+      };
+      saveState(pickState(next as LoungeStore));
+      return next;
+    });
+
+    return result;
   },
 
   updateLastActiveTime: () => set((s) => {
@@ -442,17 +508,19 @@ export const useLoungeStore = create<LoungeStore>((set, get) => ({
   isZogTyping: false,
 
   sendChat: async (message: string) => {
-    const { chatMessages } = get();
+    const { chatMessages, zogAffection } = get();
     const userMsg: ChatMessage = { role: 'user', content: message, timestamp: Date.now() };
     set((s) => ({ ...s, chatMessages: [...s.chatMessages, userMsg], isZogTyping: true }));
 
     try {
       const { createZogLoungeProvider } = await import('../../llm/zogLoungeProvider');
-      const response = await createZogLoungeProvider().chat(message, chatMessages);
+      const response = await createZogLoungeProvider({
+        systemPrompt: buildZogLoungeSystemPrompt(zogAffection),
+      }).chat(message, chatMessages);
       const zogMsg: ChatMessage = { role: 'zog', content: response, timestamp: Date.now() };
       set((s) => ({ ...s, chatMessages: [...s.chatMessages, zogMsg], isZogTyping: false }));
     } catch (err) {
-      const errorMsg: ChatMessage = { role: 'zog', content: `...Zog is speechless. (${err})`, timestamp: Date.now() };
+      const errorMsg: ChatMessage = { role: 'zog', content: `喂，信号坏了。不是我咬的。(${err})`, timestamp: Date.now() };
       set((s) => ({ ...s, chatMessages: [...s.chatMessages, errorMsg], isZogTyping: false }));
     }
   },

@@ -30,12 +30,12 @@ export interface ZogLoungeProviderConfig {
 }
 
 export function createZogLoungeProvider(config: ZogLoungeProviderConfig = {}): ZogLoungeProvider {
-  const { systemPrompt = 'You are Zog, a quirky and sarcastic ancient dragon watching TV with the player. Keep responses short, witty, and in character.', maxRetries = 2 } = config;
+  const { systemPrompt = '你是 Zog，来自 Doda 的小外星人，傲娇、护食、爱捡垃圾，正在客厅冰箱旁和玩家短句聊天。回复中文，1-3 个短句，不超过 42 个中文字。', maxRetries = 2 } = config;
 
   return {
     async chat(userMessage: string, history: StoreChatMessage[]): Promise<string> {
       if (!registry.isRoleEnabled(roleId)) {
-        return 'Zog is not configured. Please set up Zog in Settings.';
+        return '冰箱信号没接好。先去设置里把 Zog 接上线。';
       }
 
       const roleConfig = registry.getRoleConfig(roleId);
@@ -91,14 +91,14 @@ export function createZogLoungeProvider(config: ZogLoungeProviderConfig = {}): Z
           const content = response.choices[0]?.message?.content ?? '';
           // 尝试从 JSON 响应中提取文字
           const text = extractJsonFromResponse(content) ?? content.trim();
-          return text || 'Zog has nothing to say.';
+          return text || 'Zog 暂时只想盯着冰箱。';
         } catch (err) {
           logLLMError(traceId, err);
           console.warn(`ZogLounge attempt ${attempt + 1} failed:`, err);
         }
       }
 
-      return 'Zog is speechless right now.';
+      return 'Zog 现在装作没听见。';
     },
   };
 }

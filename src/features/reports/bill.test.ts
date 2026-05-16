@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { calculateFinalScores } from '../../core/battle/finalScore';
 import { createBetSlip } from '../../core/economy/betting';
+import { getItemDef } from '../../core/economy/items';
 import { runBattleSimulation } from '../../engine/battleSimulation';
 import { createStubActorBrainProvider } from '../../llm/stubActorBrainProvider';
 import { calculateEpisodeBill } from './bill';
@@ -67,8 +68,8 @@ describe('bill', () => {
     sim.battleState.usedItemIds = ['HEAL_SMALL', 'HEAL_SMALL', 'HEAL_TINY'];
     const bill = calculateEpisodeBill(sim.battleState, scores, null, 3);
 
-    const smallOilLine = bill.lineItems.find((i) => i.label === 'Item stock consumed: Bad Engine Oil x2');
-    const coolantLine = bill.lineItems.find((i) => i.label === 'Item stock consumed: Pocket Coolant Pack x1');
+    const smallOilLine = bill.lineItems.find((i) => i.label === `Item stock consumed: ${getItemDef('HEAL_SMALL').name} x2`);
+    const coolantLine = bill.lineItems.find((i) => i.label === `Item stock consumed: ${getItemDef('HEAL_TINY').name} x1`);
     expect(smallOilLine?.amount).toBe(160);
     expect(smallOilLine?.appliedToSettlement).toBe(false);
     expect(coolantLine?.amount).toBe(45);

@@ -4,8 +4,8 @@ export function generateZogReaction(scores: FinalScore[]): string {
   const winner = scores.find((s) => s.isWinner);
   const mvp = scores.find((s) => s.isMVP);
   if (winner && mvp && winner.actorId !== mvp.actorId) {
-    return `Zog enjoyed that the winner and MVP were different disasters.`;
+    return '赢的人和最会闹的人不是同一个。好，节目有皱褶。';
   }
-  if ((winner?.finalScore ?? 0) > 160) return 'Zog considers this acceptable television.';
-  return 'Zog writes a complaint to the island, then eats it.';
+  if ((winner?.finalScore ?? 0) > 160) return '这期电视很响。Zog 批准它进入垃圾收藏。';
+  return 'Zog 写了投诉信，然后把信吃掉了。';
 }
