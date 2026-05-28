@@ -1,0 +1,2074 @@
+﻿{
+  "actorId": "astro_toad",
+  "animationKey": "attack",
+  "anchor": {
+    "x": 0.5,
+    "y": 1
+  },
+  "canvas": {
+    "height": 640,
+    "width": 512
+  },
+  "fps": 12,
+  "frames": [
+    {
+      "alignment": {
+        "h": 478,
+        "w": 331,
+        "x": 433,
+        "y": 139
+      },
+      "bbox": {
+        "h": 478,
+        "w": 331,
+        "x": 433,
+        "y": 139
+      },
+      "name": "0001.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 71,
+        "desiredY": 142,
+        "x": 71,
+        "y": 142
+      },
+      "requestedScale": 1,
+      "scale": 1,
+      "sourceName": "attack_0001.png",
+      "targetSize": {
+        "h": 518,
+        "w": 371
+      }
+    },
+    {
+      "alignment": {
+        "h": 478,
+        "w": 331,
+        "x": 433,
+        "y": 139
+      },
+      "bbox": {
+        "h": 478,
+        "w": 331,
+        "x": 433,
+        "y": 139
+      },
+      "name": "0002.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 71,
+        "desiredY": 142,
+        "x": 71,
+        "y": 142
+      },
+      "requestedScale": 1,
+      "scale": 1,
+      "sourceName": "attack_0002.png",
+      "targetSize": {
+        "h": 518,
+        "w": 371
+      }
+    },
+    {
+      "alignment": {
+        "h": 478,
+        "w": 331,
+        "x": 433,
+        "y": 139
+      },
+      "bbox": {
+        "h": 478,
+        "w": 331,
+        "x": 433,
+        "y": 139
+      },
+      "name": "0003.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 71,
+        "desiredY": 142,
+        "x": 71,
+        "y": 142
+      },
+      "requestedScale": 1,
+      "scale": 1,
+      "sourceName": "attack_0003.png",
+      "targetSize": {
+        "h": 518,
+        "w": 371
+      }
+    },
+    {
+      "alignment": {
+        "h": 477,
+        "w": 330,
+        "x": 434,
+        "y": 140
+      },
+      "bbox": {
+        "h": 477,
+        "w": 330,
+        "x": 434,
+        "y": 140
+      },
+      "name": "0004.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 71,
+        "desiredY": 143,
+        "x": 71,
+        "y": 143
+      },
+      "requestedScale": 1,
+      "scale": 1,
+      "sourceName": "attack_0004.png",
+      "targetSize": {
+        "h": 517,
+        "w": 370
+      }
+    },
+    {
+      "alignment": {
+        "h": 477,
+        "w": 330,
+        "x": 434,
+        "y": 140
+      },
+      "bbox": {
+        "h": 477,
+        "w": 330,
+        "x": 434,
+        "y": 140
+      },
+      "name": "0005.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 71,
+        "desiredY": 143,
+        "x": 71,
+        "y": 143
+      },
+      "requestedScale": 1,
+      "scale": 1,
+      "sourceName": "attack_0005.png",
+      "targetSize": {
+        "h": 517,
+        "w": 370
+      }
+    },
+    {
+      "alignment": {
+        "h": 476,
+        "w": 329,
+        "x": 435,
+        "y": 142
+      },
+      "bbox": {
+        "h": 476,
+        "w": 329,
+        "x": 435,
+        "y": 142
+      },
+      "name": "0006.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 72,
+        "desiredY": 144,
+        "x": 72,
+        "y": 144
+      },
+      "requestedScale": 1,
+      "scale": 1,
+      "sourceName": "attack_0006.png",
+      "targetSize": {
+        "h": 516,
+        "w": 369
+      }
+    },
+    {
+      "alignment": {
+        "h": 472,
+        "w": 330,
+        "x": 438,
+        "y": 146
+      },
+      "bbox": {
+        "h": 472,
+        "w": 330,
+        "x": 438,
+        "y": 146
+      },
+      "name": "0007.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 71,
+        "desiredY": 148,
+        "x": 71,
+        "y": 148
+      },
+      "requestedScale": 1,
+      "scale": 1,
+      "sourceName": "attack_0007.png",
+      "targetSize": {
+        "h": 512,
+        "w": 370
+      }
+    },
+    {
+      "alignment": {
+        "h": 463,
+        "w": 336,
+        "x": 444,
+        "y": 155
+      },
+      "bbox": {
+        "h": 463,
+        "w": 336,
+        "x": 444,
+        "y": 155
+      },
+      "name": "0008.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 68,
+        "desiredY": 157,
+        "x": 68,
+        "y": 157
+      },
+      "requestedScale": 1,
+      "scale": 1,
+      "sourceName": "attack_0008.png",
+      "targetSize": {
+        "h": 503,
+        "w": 376
+      }
+    },
+    {
+      "alignment": {
+        "h": 463,
+        "w": 335,
+        "x": 445,
+        "y": 155
+      },
+      "bbox": {
+        "h": 463,
+        "w": 335,
+        "x": 445,
+        "y": 155
+      },
+      "name": "0009.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 69,
+        "desiredY": 157,
+        "x": 69,
+        "y": 157
+      },
+      "requestedScale": 1,
+      "scale": 1,
+      "sourceName": "attack_0009.png",
+      "targetSize": {
+        "h": 503,
+        "w": 375
+      }
+    },
+    {
+      "alignment": {
+        "h": 455,
+        "w": 342,
+        "x": 451,
+        "y": 163
+      },
+      "bbox": {
+        "h": 455,
+        "w": 342,
+        "x": 451,
+        "y": 163
+      },
+      "name": "0010.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 65,
+        "desiredY": 165,
+        "x": 65,
+        "y": 165
+      },
+      "requestedScale": 1,
+      "scale": 1,
+      "sourceName": "attack_0010.png",
+      "targetSize": {
+        "h": 495,
+        "w": 382
+      }
+    },
+    {
+      "alignment": {
+        "h": 443,
+        "w": 347,
+        "x": 459,
+        "y": 176
+      },
+      "bbox": {
+        "h": 443,
+        "w": 347,
+        "x": 459,
+        "y": 176
+      },
+      "name": "0011.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 63,
+        "desiredY": 177,
+        "x": 63,
+        "y": 177
+      },
+      "requestedScale": 1,
+      "scale": 1,
+      "sourceName": "attack_0011.png",
+      "targetSize": {
+        "h": 483,
+        "w": 387
+      }
+    },
+    {
+      "alignment": {
+        "h": 443,
+        "w": 347,
+        "x": 459,
+        "y": 176
+      },
+      "bbox": {
+        "h": 443,
+        "w": 347,
+        "x": 459,
+        "y": 176
+      },
+      "name": "0012.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 63,
+        "desiredY": 177,
+        "x": 63,
+        "y": 177
+      },
+      "requestedScale": 1,
+      "scale": 1,
+      "sourceName": "attack_0012.png",
+      "targetSize": {
+        "h": 483,
+        "w": 387
+      }
+    },
+    {
+      "alignment": {
+        "h": 430,
+        "w": 354,
+        "x": 465,
+        "y": 189
+      },
+      "bbox": {
+        "h": 430,
+        "w": 354,
+        "x": 465,
+        "y": 189
+      },
+      "name": "0013.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 59,
+        "desiredY": 190,
+        "x": 59,
+        "y": 190
+      },
+      "requestedScale": 1,
+      "scale": 1,
+      "sourceName": "attack_0013.png",
+      "targetSize": {
+        "h": 470,
+        "w": 394
+      }
+    },
+    {
+      "alignment": {
+        "h": 416,
+        "w": 357,
+        "x": 469,
+        "y": 203
+      },
+      "bbox": {
+        "h": 416,
+        "w": 357,
+        "x": 469,
+        "y": 203
+      },
+      "name": "0014.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 58,
+        "desiredY": 204,
+        "x": 58,
+        "y": 204
+      },
+      "requestedScale": 1,
+      "scale": 1,
+      "sourceName": "attack_0014.png",
+      "targetSize": {
+        "h": 456,
+        "w": 397
+      }
+    },
+    {
+      "alignment": {
+        "h": 416,
+        "w": 357,
+        "x": 469,
+        "y": 203
+      },
+      "bbox": {
+        "h": 416,
+        "w": 357,
+        "x": 469,
+        "y": 203
+      },
+      "name": "0015.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 58,
+        "desiredY": 204,
+        "x": 58,
+        "y": 204
+      },
+      "requestedScale": 1,
+      "scale": 1,
+      "sourceName": "attack_0015.png",
+      "targetSize": {
+        "h": 456,
+        "w": 397
+      }
+    },
+    {
+      "alignment": {
+        "h": 406,
+        "w": 358,
+        "x": 471,
+        "y": 213
+      },
+      "bbox": {
+        "h": 406,
+        "w": 358,
+        "x": 471,
+        "y": 213
+      },
+      "name": "0016.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 57,
+        "desiredY": 214,
+        "x": 57,
+        "y": 214
+      },
+      "requestedScale": 1,
+      "scale": 1,
+      "sourceName": "attack_0016.png",
+      "targetSize": {
+        "h": 446,
+        "w": 398
+      }
+    },
+    {
+      "alignment": {
+        "h": 399,
+        "w": 358,
+        "x": 472,
+        "y": 220
+      },
+      "bbox": {
+        "h": 399,
+        "w": 358,
+        "x": 472,
+        "y": 220
+      },
+      "name": "0017.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 57,
+        "desiredY": 221,
+        "x": 57,
+        "y": 221
+      },
+      "requestedScale": 1,
+      "scale": 1,
+      "sourceName": "attack_0017.png",
+      "targetSize": {
+        "h": 439,
+        "w": 398
+      }
+    },
+    {
+      "alignment": {
+        "h": 398,
+        "w": 358,
+        "x": 472,
+        "y": 221
+      },
+      "bbox": {
+        "h": 398,
+        "w": 358,
+        "x": 472,
+        "y": 221
+      },
+      "name": "0018.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 57,
+        "desiredY": 222,
+        "x": 57,
+        "y": 222
+      },
+      "requestedScale": 1,
+      "scale": 1,
+      "sourceName": "attack_0018.png",
+      "targetSize": {
+        "h": 438,
+        "w": 398
+      }
+    },
+    {
+      "alignment": {
+        "h": 395,
+        "w": 358,
+        "x": 473,
+        "y": 224
+      },
+      "bbox": {
+        "h": 395,
+        "w": 358,
+        "x": 473,
+        "y": 224
+      },
+      "name": "0019.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 57,
+        "desiredY": 225,
+        "x": 57,
+        "y": 225
+      },
+      "requestedScale": 1,
+      "scale": 1,
+      "sourceName": "attack_0019.png",
+      "targetSize": {
+        "h": 435,
+        "w": 398
+      }
+    },
+    {
+      "alignment": {
+        "h": 392,
+        "w": 357,
+        "x": 474,
+        "y": 227
+      },
+      "bbox": {
+        "h": 392,
+        "w": 357,
+        "x": 474,
+        "y": 227
+      },
+      "name": "0020.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 58,
+        "desiredY": 228,
+        "x": 58,
+        "y": 228
+      },
+      "requestedScale": 1,
+      "scale": 1,
+      "sourceName": "attack_0020.png",
+      "targetSize": {
+        "h": 432,
+        "w": 397
+      }
+    },
+    {
+      "alignment": {
+        "h": 391,
+        "w": 357,
+        "x": 474,
+        "y": 228
+      },
+      "bbox": {
+        "h": 391,
+        "w": 357,
+        "x": 474,
+        "y": 228
+      },
+      "name": "0021.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 58,
+        "desiredY": 229,
+        "x": 58,
+        "y": 229
+      },
+      "requestedScale": 1,
+      "scale": 1,
+      "sourceName": "attack_0021.png",
+      "targetSize": {
+        "h": 431,
+        "w": 397
+      }
+    },
+    {
+      "alignment": {
+        "h": 391,
+        "w": 357,
+        "x": 474,
+        "y": 228
+      },
+      "bbox": {
+        "h": 391,
+        "w": 357,
+        "x": 474,
+        "y": 228
+      },
+      "name": "0022.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 58,
+        "desiredY": 229,
+        "x": 58,
+        "y": 229
+      },
+      "requestedScale": 1,
+      "scale": 1,
+      "sourceName": "attack_0022.png",
+      "targetSize": {
+        "h": 431,
+        "w": 397
+      }
+    },
+    {
+      "alignment": {
+        "h": 391,
+        "w": 357,
+        "x": 474,
+        "y": 228
+      },
+      "bbox": {
+        "h": 391,
+        "w": 357,
+        "x": 474,
+        "y": 228
+      },
+      "name": "0023.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 58,
+        "desiredY": 229,
+        "x": 58,
+        "y": 229
+      },
+      "requestedScale": 1,
+      "scale": 1,
+      "sourceName": "attack_0023.png",
+      "targetSize": {
+        "h": 431,
+        "w": 397
+      }
+    },
+    {
+      "alignment": {
+        "h": 391,
+        "w": 357,
+        "x": 474,
+        "y": 228
+      },
+      "bbox": {
+        "h": 391,
+        "w": 357,
+        "x": 474,
+        "y": 228
+      },
+      "name": "0024.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 58,
+        "desiredY": 229,
+        "x": 58,
+        "y": 229
+      },
+      "requestedScale": 1,
+      "scale": 1,
+      "sourceName": "attack_0024.png",
+      "targetSize": {
+        "h": 431,
+        "w": 397
+      }
+    },
+    {
+      "alignment": {
+        "h": 391,
+        "w": 357,
+        "x": 474,
+        "y": 228
+      },
+      "bbox": {
+        "h": 391,
+        "w": 357,
+        "x": 474,
+        "y": 228
+      },
+      "name": "0025.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 58,
+        "desiredY": 229,
+        "x": 58,
+        "y": 229
+      },
+      "requestedScale": 1,
+      "scale": 1,
+      "sourceName": "attack_0025.png",
+      "targetSize": {
+        "h": 431,
+        "w": 397
+      }
+    },
+    {
+      "alignment": {
+        "h": 391,
+        "w": 357,
+        "x": 474,
+        "y": 228
+      },
+      "bbox": {
+        "h": 391,
+        "w": 357,
+        "x": 474,
+        "y": 228
+      },
+      "name": "0026.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 58,
+        "desiredY": 229,
+        "x": 58,
+        "y": 229
+      },
+      "requestedScale": 1,
+      "scale": 1,
+      "sourceName": "attack_0026.png",
+      "targetSize": {
+        "h": 431,
+        "w": 397
+      }
+    },
+    {
+      "alignment": {
+        "h": 391,
+        "w": 357,
+        "x": 474,
+        "y": 228
+      },
+      "bbox": {
+        "h": 391,
+        "w": 357,
+        "x": 474,
+        "y": 228
+      },
+      "name": "0027.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 58,
+        "desiredY": 229,
+        "x": 58,
+        "y": 229
+      },
+      "requestedScale": 1,
+      "scale": 1,
+      "sourceName": "attack_0027.png",
+      "targetSize": {
+        "h": 431,
+        "w": 397
+      }
+    },
+    {
+      "alignment": {
+        "h": 391,
+        "w": 357,
+        "x": 474,
+        "y": 228
+      },
+      "bbox": {
+        "h": 391,
+        "w": 357,
+        "x": 474,
+        "y": 228
+      },
+      "name": "0028.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 58,
+        "desiredY": 229,
+        "x": 58,
+        "y": 229
+      },
+      "requestedScale": 1,
+      "scale": 1,
+      "sourceName": "attack_0028.png",
+      "targetSize": {
+        "h": 431,
+        "w": 397
+      }
+    },
+    {
+      "alignment": {
+        "h": 391,
+        "w": 357,
+        "x": 474,
+        "y": 228
+      },
+      "bbox": {
+        "h": 391,
+        "w": 357,
+        "x": 474,
+        "y": 228
+      },
+      "name": "0029.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 58,
+        "desiredY": 229,
+        "x": 58,
+        "y": 229
+      },
+      "requestedScale": 1,
+      "scale": 1,
+      "sourceName": "attack_0029.png",
+      "targetSize": {
+        "h": 431,
+        "w": 397
+      }
+    },
+    {
+      "alignment": {
+        "h": 391,
+        "w": 357,
+        "x": 474,
+        "y": 228
+      },
+      "bbox": {
+        "h": 391,
+        "w": 357,
+        "x": 474,
+        "y": 228
+      },
+      "name": "0030.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 58,
+        "desiredY": 229,
+        "x": 58,
+        "y": 229
+      },
+      "requestedScale": 1,
+      "scale": 1,
+      "sourceName": "attack_0030.png",
+      "targetSize": {
+        "h": 431,
+        "w": 397
+      }
+    },
+    {
+      "alignment": {
+        "h": 391,
+        "w": 358,
+        "x": 474,
+        "y": 228
+      },
+      "bbox": {
+        "h": 391,
+        "w": 358,
+        "x": 474,
+        "y": 228
+      },
+      "name": "0031.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 57,
+        "desiredY": 229,
+        "x": 57,
+        "y": 229
+      },
+      "requestedScale": 1,
+      "scale": 1,
+      "sourceName": "attack_0031.png",
+      "targetSize": {
+        "h": 431,
+        "w": 398
+      }
+    },
+    {
+      "alignment": {
+        "h": 392,
+        "w": 358,
+        "x": 474,
+        "y": 227
+      },
+      "bbox": {
+        "h": 392,
+        "w": 358,
+        "x": 474,
+        "y": 227
+      },
+      "name": "0032.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 57,
+        "desiredY": 228,
+        "x": 57,
+        "y": 228
+      },
+      "requestedScale": 1,
+      "scale": 1,
+      "sourceName": "attack_0032.png",
+      "targetSize": {
+        "h": 432,
+        "w": 398
+      }
+    },
+    {
+      "alignment": {
+        "h": 413,
+        "w": 353,
+        "x": 471,
+        "y": 206
+      },
+      "bbox": {
+        "h": 413,
+        "w": 353,
+        "x": 471,
+        "y": 206
+      },
+      "name": "0033.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 60,
+        "desiredY": 207,
+        "x": 60,
+        "y": 207
+      },
+      "requestedScale": 1,
+      "scale": 1,
+      "sourceName": "attack_0033.png",
+      "targetSize": {
+        "h": 453,
+        "w": 393
+      }
+    },
+    {
+      "alignment": {
+        "h": 487,
+        "w": 333,
+        "x": 466,
+        "y": 96
+      },
+      "bbox": {
+        "h": 487,
+        "w": 333,
+        "x": 466,
+        "y": 96
+      },
+      "name": "0034.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 70,
+        "desiredY": 133,
+        "x": 70,
+        "y": 133
+      },
+      "requestedScale": 1,
+      "scale": 1,
+      "sourceName": "attack_0034.png",
+      "targetSize": {
+        "h": 527,
+        "w": 373
+      }
+    },
+    {
+      "alignment": {
+        "h": 485,
+        "w": 333,
+        "x": 466,
+        "y": 91
+      },
+      "bbox": {
+        "h": 485,
+        "w": 333,
+        "x": 466,
+        "y": 91
+      },
+      "name": "0035.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 70,
+        "desiredY": 135,
+        "x": 70,
+        "y": 135
+      },
+      "requestedScale": 1,
+      "scale": 1,
+      "sourceName": "attack_0035.png",
+      "targetSize": {
+        "h": 525,
+        "w": 373
+      }
+    },
+    {
+      "alignment": {
+        "h": 485,
+        "w": 333,
+        "x": 466,
+        "y": 96
+      },
+      "bbox": {
+        "h": 485,
+        "w": 333,
+        "x": 466,
+        "y": 96
+      },
+      "name": "0036.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 70,
+        "desiredY": 135,
+        "x": 70,
+        "y": 135
+      },
+      "requestedScale": 1,
+      "scale": 1,
+      "sourceName": "attack_0036.png",
+      "targetSize": {
+        "h": 525,
+        "w": 373
+      }
+    },
+    {
+      "alignment": {
+        "h": 429,
+        "w": 353,
+        "x": 470,
+        "y": 187
+      },
+      "bbox": {
+        "h": 429,
+        "w": 353,
+        "x": 470,
+        "y": 187
+      },
+      "name": "0037.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 60,
+        "desiredY": 191,
+        "x": 60,
+        "y": 191
+      },
+      "requestedScale": 1,
+      "scale": 1,
+      "sourceName": "attack_0037.png",
+      "targetSize": {
+        "h": 469,
+        "w": 393
+      }
+    },
+    {
+      "alignment": {
+        "h": 383,
+        "w": 357,
+        "x": 473,
+        "y": 236
+      },
+      "bbox": {
+        "h": 383,
+        "w": 357,
+        "x": 473,
+        "y": 236
+      },
+      "name": "0038.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 58,
+        "desiredY": 237,
+        "x": 58,
+        "y": 237
+      },
+      "requestedScale": 1,
+      "scale": 1,
+      "sourceName": "attack_0038.png",
+      "targetSize": {
+        "h": 423,
+        "w": 397
+      }
+    },
+    {
+      "alignment": {
+        "h": 382,
+        "w": 360,
+        "x": 471,
+        "y": 237
+      },
+      "bbox": {
+        "h": 382,
+        "w": 360,
+        "x": 471,
+        "y": 237
+      },
+      "name": "0039.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 56,
+        "desiredY": 238,
+        "x": 56,
+        "y": 238
+      },
+      "requestedScale": 1,
+      "scale": 1,
+      "sourceName": "attack_0039.png",
+      "targetSize": {
+        "h": 422,
+        "w": 400
+      }
+    },
+    {
+      "alignment": {
+        "h": 385,
+        "w": 357,
+        "x": 473,
+        "y": 234
+      },
+      "bbox": {
+        "h": 385,
+        "w": 357,
+        "x": 473,
+        "y": 234
+      },
+      "name": "0040.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 58,
+        "desiredY": 235,
+        "x": 58,
+        "y": 235
+      },
+      "requestedScale": 1,
+      "scale": 1,
+      "sourceName": "attack_0040.png",
+      "targetSize": {
+        "h": 425,
+        "w": 397
+      }
+    },
+    {
+      "alignment": {
+        "h": 410,
+        "w": 352,
+        "x": 471,
+        "y": 209
+      },
+      "bbox": {
+        "h": 410,
+        "w": 352,
+        "x": 471,
+        "y": 209
+      },
+      "name": "0041.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 60,
+        "desiredY": 210,
+        "x": 60,
+        "y": 210
+      },
+      "requestedScale": 1,
+      "scale": 1,
+      "sourceName": "attack_0041.png",
+      "targetSize": {
+        "h": 450,
+        "w": 392
+      }
+    },
+    {
+      "alignment": {
+        "h": 488,
+        "w": 337,
+        "x": 467,
+        "y": 123
+      },
+      "bbox": {
+        "h": 488,
+        "w": 337,
+        "x": 467,
+        "y": 123
+      },
+      "name": "0042.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 68,
+        "desiredY": 132,
+        "x": 68,
+        "y": 132
+      },
+      "requestedScale": 1,
+      "scale": 1,
+      "sourceName": "attack_0042.png",
+      "targetSize": {
+        "h": 528,
+        "w": 377
+      }
+    },
+    {
+      "alignment": {
+        "h": 489,
+        "w": 334,
+        "x": 466,
+        "y": 59
+      },
+      "bbox": {
+        "h": 489,
+        "w": 334,
+        "x": 466,
+        "y": 59
+      },
+      "name": "0043.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 69,
+        "desiredY": 131,
+        "x": 69,
+        "y": 131
+      },
+      "requestedScale": 1,
+      "scale": 1,
+      "sourceName": "attack_0043.png",
+      "targetSize": {
+        "h": 529,
+        "w": 374
+      }
+    },
+    {
+      "alignment": {
+        "h": 489,
+        "w": 334,
+        "x": 465,
+        "y": 50
+      },
+      "bbox": {
+        "h": 489,
+        "w": 334,
+        "x": 465,
+        "y": 50
+      },
+      "name": "0044.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 69,
+        "desiredY": 131,
+        "x": 69,
+        "y": 131
+      },
+      "requestedScale": 1,
+      "scale": 1,
+      "sourceName": "attack_0044.png",
+      "targetSize": {
+        "h": 529,
+        "w": 374
+      }
+    },
+    {
+      "alignment": {
+        "h": 488,
+        "w": 334,
+        "x": 465,
+        "y": 48
+      },
+      "bbox": {
+        "h": 488,
+        "w": 334,
+        "x": 465,
+        "y": 48
+      },
+      "name": "0045.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 69,
+        "desiredY": 132,
+        "x": 69,
+        "y": 132
+      },
+      "requestedScale": 1,
+      "scale": 1,
+      "sourceName": "attack_0045.png",
+      "targetSize": {
+        "h": 528,
+        "w": 374
+      }
+    },
+    {
+      "alignment": {
+        "h": 488,
+        "w": 334,
+        "x": 465,
+        "y": 49
+      },
+      "bbox": {
+        "h": 488,
+        "w": 334,
+        "x": 465,
+        "y": 49
+      },
+      "name": "0046.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 69,
+        "desiredY": 132,
+        "x": 69,
+        "y": 132
+      },
+      "requestedScale": 1,
+      "scale": 1,
+      "sourceName": "attack_0046.png",
+      "targetSize": {
+        "h": 528,
+        "w": 374
+      }
+    },
+    {
+      "alignment": {
+        "h": 488,
+        "w": 333,
+        "x": 466,
+        "y": 60
+      },
+      "bbox": {
+        "h": 488,
+        "w": 333,
+        "x": 466,
+        "y": 60
+      },
+      "name": "0047.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 70,
+        "desiredY": 132,
+        "x": 70,
+        "y": 132
+      },
+      "requestedScale": 1,
+      "scale": 1,
+      "sourceName": "attack_0047.png",
+      "targetSize": {
+        "h": 528,
+        "w": 373
+      }
+    },
+    {
+      "alignment": {
+        "h": 353,
+        "w": 491,
+        "x": 416,
+        "y": 269
+      },
+      "bbox": {
+        "h": 353,
+        "w": 491,
+        "x": 416,
+        "y": 269
+      },
+      "name": "0048.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": -9,
+        "desiredY": 267,
+        "x": -9,
+        "y": 267
+      },
+      "requestedScale": 1,
+      "scale": 1,
+      "sourceName": "attack_0048.png",
+      "targetSize": {
+        "h": 393,
+        "w": 531
+      }
+    },
+    {
+      "alignment": {
+        "h": 357,
+        "w": 452,
+        "x": 436,
+        "y": 263
+      },
+      "bbox": {
+        "h": 357,
+        "w": 452,
+        "x": 436,
+        "y": 263
+      },
+      "name": "0049.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 10,
+        "desiredY": 263,
+        "x": 10,
+        "y": 263
+      },
+      "requestedScale": 1,
+      "scale": 1,
+      "sourceName": "attack_0049.png",
+      "targetSize": {
+        "h": 397,
+        "w": 492
+      }
+    },
+    {
+      "alignment": {
+        "h": 361,
+        "w": 422,
+        "x": 450,
+        "y": 257
+      },
+      "bbox": {
+        "h": 361,
+        "w": 422,
+        "x": 450,
+        "y": 257
+      },
+      "name": "0050.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 25,
+        "desiredY": 259,
+        "x": 25,
+        "y": 259
+      },
+      "requestedScale": 1,
+      "scale": 1,
+      "sourceName": "attack_0050.png",
+      "targetSize": {
+        "h": 401,
+        "w": 462
+      }
+    },
+    {
+      "alignment": {
+        "h": 361,
+        "w": 421,
+        "x": 450,
+        "y": 257
+      },
+      "bbox": {
+        "h": 361,
+        "w": 421,
+        "x": 450,
+        "y": 257
+      },
+      "name": "0051.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 26,
+        "desiredY": 259,
+        "x": 26,
+        "y": 259
+      },
+      "requestedScale": 1,
+      "scale": 1,
+      "sourceName": "attack_0051.png",
+      "targetSize": {
+        "h": 401,
+        "w": 461
+      }
+    },
+    {
+      "alignment": {
+        "h": 383,
+        "w": 401,
+        "x": 455,
+        "y": 236
+      },
+      "bbox": {
+        "h": 383,
+        "w": 401,
+        "x": 455,
+        "y": 236
+      },
+      "name": "0052.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 36,
+        "desiredY": 237,
+        "x": 36,
+        "y": 237
+      },
+      "requestedScale": 1,
+      "scale": 1,
+      "sourceName": "attack_0052.png",
+      "targetSize": {
+        "h": 423,
+        "w": 441
+      }
+    },
+    {
+      "alignment": {
+        "h": 438,
+        "w": 360,
+        "x": 468,
+        "y": 181
+      },
+      "bbox": {
+        "h": 438,
+        "w": 360,
+        "x": 468,
+        "y": 181
+      },
+      "name": "0053.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 56,
+        "desiredY": 182,
+        "x": 56,
+        "y": 182
+      },
+      "requestedScale": 1,
+      "scale": 1,
+      "sourceName": "attack_0053.png",
+      "targetSize": {
+        "h": 478,
+        "w": 400
+      }
+    },
+    {
+      "alignment": {
+        "h": 469,
+        "w": 334,
+        "x": 444,
+        "y": 149
+      },
+      "bbox": {
+        "h": 469,
+        "w": 334,
+        "x": 444,
+        "y": 149
+      },
+      "name": "0054.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 69,
+        "desiredY": 151,
+        "x": 69,
+        "y": 151
+      },
+      "requestedScale": 1,
+      "scale": 1,
+      "sourceName": "attack_0054.png",
+      "targetSize": {
+        "h": 509,
+        "w": 374
+      }
+    },
+    {
+      "alignment": {
+        "h": 474,
+        "w": 341,
+        "x": 439,
+        "y": 144
+      },
+      "bbox": {
+        "h": 474,
+        "w": 341,
+        "x": 439,
+        "y": 144
+      },
+      "name": "0055.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 66,
+        "desiredY": 146,
+        "x": 66,
+        "y": 146
+      },
+      "requestedScale": 1,
+      "scale": 1,
+      "sourceName": "attack_0055.png",
+      "targetSize": {
+        "h": 514,
+        "w": 381
+      }
+    },
+    {
+      "alignment": {
+        "h": 477,
+        "w": 346,
+        "x": 435,
+        "y": 141
+      },
+      "bbox": {
+        "h": 477,
+        "w": 346,
+        "x": 435,
+        "y": 141
+      },
+      "name": "0056.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 63,
+        "desiredY": 143,
+        "x": 63,
+        "y": 143
+      },
+      "requestedScale": 1,
+      "scale": 1,
+      "sourceName": "attack_0056.png",
+      "targetSize": {
+        "h": 517,
+        "w": 386
+      }
+    },
+    {
+      "alignment": {
+        "h": 478,
+        "w": 327,
+        "x": 433,
+        "y": 139
+      },
+      "bbox": {
+        "h": 478,
+        "w": 327,
+        "x": 433,
+        "y": 139
+      },
+      "name": "0057.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 73,
+        "desiredY": 142,
+        "x": 73,
+        "y": 142
+      },
+      "requestedScale": 1,
+      "scale": 1,
+      "sourceName": "attack_0057.png",
+      "targetSize": {
+        "h": 518,
+        "w": 367
+      }
+    },
+    {
+      "alignment": {
+        "h": 478,
+        "w": 329,
+        "x": 433,
+        "y": 139
+      },
+      "bbox": {
+        "h": 478,
+        "w": 329,
+        "x": 433,
+        "y": 139
+      },
+      "name": "0058.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 72,
+        "desiredY": 142,
+        "x": 72,
+        "y": 142
+      },
+      "requestedScale": 1,
+      "scale": 1,
+      "sourceName": "attack_0058.png",
+      "targetSize": {
+        "h": 518,
+        "w": 369
+      }
+    },
+    {
+      "alignment": {
+        "h": 478,
+        "w": 333,
+        "x": 433,
+        "y": 139
+      },
+      "bbox": {
+        "h": 478,
+        "w": 333,
+        "x": 433,
+        "y": 139
+      },
+      "name": "0059.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 70,
+        "desiredY": 142,
+        "x": 70,
+        "y": 142
+      },
+      "requestedScale": 1,
+      "scale": 1,
+      "sourceName": "attack_0059.png",
+      "targetSize": {
+        "h": 518,
+        "w": 373
+      }
+    },
+    {
+      "alignment": {
+        "h": 478,
+        "w": 332,
+        "x": 433,
+        "y": 139
+      },
+      "bbox": {
+        "h": 478,
+        "w": 332,
+        "x": 433,
+        "y": 139
+      },
+      "name": "0060.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 70,
+        "desiredY": 142,
+        "x": 70,
+        "y": 142
+      },
+      "requestedScale": 1,
+      "scale": 1,
+      "sourceName": "attack_0060.png",
+      "targetSize": {
+        "h": 518,
+        "w": 372
+      }
+    },
+    {
+      "alignment": {
+        "h": 478,
+        "w": 330,
+        "x": 433,
+        "y": 139
+      },
+      "bbox": {
+        "h": 478,
+        "w": 330,
+        "x": 433,
+        "y": 139
+      },
+      "name": "0061.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 71,
+        "desiredY": 142,
+        "x": 71,
+        "y": 142
+      },
+      "requestedScale": 1,
+      "scale": 1,
+      "sourceName": "attack_0061.png",
+      "targetSize": {
+        "h": 518,
+        "w": 370
+      }
+    },
+    {
+      "alignment": {
+        "h": 478,
+        "w": 330,
+        "x": 433,
+        "y": 139
+      },
+      "bbox": {
+        "h": 478,
+        "w": 330,
+        "x": 433,
+        "y": 139
+      },
+      "name": "0062.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 71,
+        "desiredY": 142,
+        "x": 71,
+        "y": 142
+      },
+      "requestedScale": 1,
+      "scale": 1,
+      "sourceName": "attack_0062.png",
+      "targetSize": {
+        "h": 518,
+        "w": 370
+      }
+    }
+  ],
+  "json": "astrotoad_attack.json",
+  "loop": true,
+  "sheet": "astrotoad_attack.png",
+  "source": {
+    "backgroundMode": "solid-color",
+    "cutoutMode": "outline",
+    "edgeCleanup": 8,
+    "input": "png-sequence",
+    "outlineDilate": 0,
+    "outlineThreshold": 93,
+    "scale": 1,
+    "tolerance": 79
+  }
+}

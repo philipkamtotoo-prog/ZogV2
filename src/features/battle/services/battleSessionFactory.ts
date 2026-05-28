@@ -5,7 +5,7 @@
  */
 
 import type { ActorTemplate } from '../../../core/battle/initialState';
-import { DEFAULT_ROSTER, type RosterActor } from '../../actors/actorRoster';
+import { DEFAULT_ROSTER, getUnlockedActors, type RosterActor } from '../../actors/actorRoster';
 import { randomInt } from '../../../core/battle/rng';
 import { createBattleEngine, type EngineHooks } from '../../../engine/battleEngine';
 import { createLLMActorBrainProvider } from '../../../llm/llmActorBrainProvider';
@@ -24,8 +24,9 @@ import {
   createStageBrief,
 } from '../../reports/reporterMemoryCollector';
 
-function drawEpisodeRoster(seed: string, rerollIndex: number, count = 5): RosterActor[] {
-  const pool = [...DEFAULT_ROSTER];
+function drawEpisodeRoster(seed: string, rerollIndex: number, count = 5, unlockedActorIds: string[] = []): RosterActor[] {
+  const unlockedPool = getUnlockedActors(unlockedActorIds);
+  const pool = unlockedPool.length > 0 ? [...unlockedPool] : [...DEFAULT_ROSTER.filter((actor) => actor.defaultUnlocked)];
   const picked: RosterActor[] = [];
 
   for (let i = 0; i < count && pool.length > 0; i++) {
@@ -37,8 +38,8 @@ function drawEpisodeRoster(seed: string, rerollIndex: number, count = 5): Roster
   return picked;
 }
 
-function buildRosterTemplates(seed: string, rerollIndex: number): ActorTemplate[] {
-  return drawEpisodeRoster(seed, rerollIndex).map((r) => ({
+function buildRosterTemplates(seed: string, rerollIndex: number, unlockedActorIds: string[]): ActorTemplate[] {
+  return drawEpisodeRoster(seed, rerollIndex, 5, unlockedActorIds).map((r) => ({
     actorId: r.actorId,
     name: r.name,
     ATK: r.baseATK,
@@ -80,6 +81,7 @@ export interface BattleSessionResult {
 export function createBattleSession(
   seed: string,
   rerollIndex: number,
+  unlockedActorIds: string[],
   getState: () => BattleStoreSnapshot,
   setState: SetStateFn,
   engineRef: { current: ReturnType<typeof createBattleEngine> | null }
@@ -112,7 +114,7 @@ export function createBattleSession(
     maxRetries: 2,
   });
 
-  const templates = buildRosterTemplates(seed, rerollIndex);
+  const templates = buildRosterTemplates(seed, rerollIndex, unlockedActorIds);
   const engineId = `engine_${Date.now()}`;
   const capturedId = engineId;
 

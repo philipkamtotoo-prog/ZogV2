@@ -1,0 +1,2041 @@
+{
+  "actorId": "astrotord",
+  "animationKey": "idle",
+  "anchor": {
+    "x": 0.5,
+    "y": 1
+  },
+  "canvas": {
+    "height": 640,
+    "width": 512
+  },
+  "fps": 12,
+  "frames": [
+    {
+      "alignment": {
+        "h": 586,
+        "w": 408,
+        "x": 430,
+        "y": 85
+      },
+      "bbox": {
+        "h": 636,
+        "w": 828,
+        "x": 430,
+        "y": 84
+      },
+      "name": "0001.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 77,
+        "desiredY": 154,
+        "x": 77,
+        "y": 154
+      },
+      "requestedScale": 0.8,
+      "scale": 0.8,
+      "sourceName": "idel_0001.png",
+      "targetSize": {
+        "h": 525,
+        "w": 694
+      }
+    },
+    {
+      "alignment": {
+        "h": 586,
+        "w": 408,
+        "x": 430,
+        "y": 85
+      },
+      "bbox": {
+        "h": 636,
+        "w": 828,
+        "x": 430,
+        "y": 84
+      },
+      "name": "0002.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 77,
+        "desiredY": 154,
+        "x": 77,
+        "y": 154
+      },
+      "requestedScale": 0.8,
+      "scale": 0.8,
+      "sourceName": "idel_0002.png",
+      "targetSize": {
+        "h": 525,
+        "w": 694
+      }
+    },
+    {
+      "alignment": {
+        "h": 586,
+        "w": 408,
+        "x": 430,
+        "y": 85
+      },
+      "bbox": {
+        "h": 636,
+        "w": 828,
+        "x": 430,
+        "y": 84
+      },
+      "name": "0003.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 77,
+        "desiredY": 154,
+        "x": 77,
+        "y": 154
+      },
+      "requestedScale": 0.8,
+      "scale": 0.8,
+      "sourceName": "idel_0003.png",
+      "targetSize": {
+        "h": 525,
+        "w": 694
+      }
+    },
+    {
+      "alignment": {
+        "h": 585,
+        "w": 409,
+        "x": 430,
+        "y": 86
+      },
+      "bbox": {
+        "h": 636,
+        "w": 829,
+        "x": 429,
+        "y": 84
+      },
+      "name": "0004.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 76,
+        "desiredY": 154,
+        "x": 76,
+        "y": 154
+      },
+      "requestedScale": 0.8,
+      "scale": 0.8,
+      "sourceName": "idel_0004.png",
+      "targetSize": {
+        "h": 525,
+        "w": 695
+      }
+    },
+    {
+      "alignment": {
+        "h": 585,
+        "w": 411,
+        "x": 429,
+        "y": 86
+      },
+      "bbox": {
+        "h": 636,
+        "w": 829,
+        "x": 429,
+        "y": 84
+      },
+      "name": "0005.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 76,
+        "desiredY": 154,
+        "x": 76,
+        "y": 154
+      },
+      "requestedScale": 0.8,
+      "scale": 0.8,
+      "sourceName": "idel_0005.png",
+      "targetSize": {
+        "h": 525,
+        "w": 695
+      }
+    },
+    {
+      "alignment": {
+        "h": 586,
+        "w": 417,
+        "x": 427,
+        "y": 85
+      },
+      "bbox": {
+        "h": 638,
+        "w": 831,
+        "x": 427,
+        "y": 82
+      },
+      "name": "0006.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 73,
+        "desiredY": 153,
+        "x": 73,
+        "y": 153
+      },
+      "requestedScale": 0.8,
+      "scale": 0.8,
+      "sourceName": "idel_0006.png",
+      "targetSize": {
+        "h": 526,
+        "w": 697
+      }
+    },
+    {
+      "alignment": {
+        "h": 588,
+        "w": 429,
+        "x": 424,
+        "y": 83
+      },
+      "bbox": {
+        "h": 640,
+        "w": 839,
+        "x": 419,
+        "y": 80
+      },
+      "name": "0007.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 64,
+        "desiredY": 151,
+        "x": 64,
+        "y": 151
+      },
+      "requestedScale": 0.8,
+      "scale": 0.8,
+      "sourceName": "idel_0007.png",
+      "targetSize": {
+        "h": 528,
+        "w": 703
+      }
+    },
+    {
+      "alignment": {
+        "h": 589,
+        "w": 434,
+        "x": 422,
+        "y": 82
+      },
+      "bbox": {
+        "h": 640,
+        "w": 844,
+        "x": 414,
+        "y": 80
+      },
+      "name": "0008.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 60,
+        "desiredY": 151,
+        "x": 60,
+        "y": 151
+      },
+      "requestedScale": 0.8,
+      "scale": 0.8,
+      "sourceName": "idel_0008.png",
+      "targetSize": {
+        "h": 528,
+        "w": 707
+      }
+    },
+    {
+      "alignment": {
+        "h": 590,
+        "w": 442,
+        "x": 420,
+        "y": 81
+      },
+      "bbox": {
+        "h": 642,
+        "w": 854,
+        "x": 404,
+        "y": 78
+      },
+      "name": "0009.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 50,
+        "desiredY": 150,
+        "x": 50,
+        "y": 150
+      },
+      "requestedScale": 0.8,
+      "scale": 0.8,
+      "sourceName": "idel_0009.png",
+      "targetSize": {
+        "h": 530,
+        "w": 715
+      }
+    },
+    {
+      "alignment": {
+        "h": 591,
+        "w": 453,
+        "x": 418,
+        "y": 80
+      },
+      "bbox": {
+        "h": 644,
+        "w": 868,
+        "x": 390,
+        "y": 76
+      },
+      "name": "0010.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 36,
+        "desiredY": 148,
+        "x": 36,
+        "y": 148
+      },
+      "requestedScale": 0.8,
+      "scale": 0.8,
+      "sourceName": "idel_0010.png",
+      "targetSize": {
+        "h": 531,
+        "w": 726
+      }
+    },
+    {
+      "alignment": {
+        "h": 591,
+        "w": 456,
+        "x": 418,
+        "y": 80
+      },
+      "bbox": {
+        "h": 644,
+        "w": 875,
+        "x": 383,
+        "y": 76
+      },
+      "name": "0011.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 30,
+        "desiredY": 148,
+        "x": 30,
+        "y": 148
+      },
+      "requestedScale": 0.8,
+      "scale": 0.8,
+      "sourceName": "idel_0011.png",
+      "targetSize": {
+        "h": 531,
+        "w": 732
+      }
+    },
+    {
+      "alignment": {
+        "h": 592,
+        "w": 465,
+        "x": 417,
+        "y": 79
+      },
+      "bbox": {
+        "h": 644,
+        "w": 886,
+        "x": 372,
+        "y": 76
+      },
+      "name": "0012.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 18,
+        "desiredY": 148,
+        "x": 18,
+        "y": 148
+      },
+      "requestedScale": 0.8,
+      "scale": 0.8,
+      "sourceName": "idel_0012.png",
+      "targetSize": {
+        "h": 531,
+        "w": 741
+      }
+    },
+    {
+      "alignment": {
+        "h": 592,
+        "w": 469,
+        "x": 416,
+        "y": 79
+      },
+      "bbox": {
+        "h": 644,
+        "w": 900,
+        "x": 358,
+        "y": 76
+      },
+      "name": "0013.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 6,
+        "desiredY": 148,
+        "x": 6,
+        "y": 148
+      },
+      "requestedScale": 0.8,
+      "scale": 0.8,
+      "sourceName": "idel_0013.png",
+      "targetSize": {
+        "h": 531,
+        "w": 752
+      }
+    },
+    {
+      "alignment": {
+        "h": 592,
+        "w": 470,
+        "x": 416,
+        "y": 79
+      },
+      "bbox": {
+        "h": 646,
+        "w": 904,
+        "x": 354,
+        "y": 74
+      },
+      "name": "0014.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 2,
+        "desiredY": 146,
+        "x": 2,
+        "y": 146
+      },
+      "requestedScale": 0.8,
+      "scale": 0.8,
+      "sourceName": "idel_0014.png",
+      "targetSize": {
+        "h": 533,
+        "w": 755
+      }
+    },
+    {
+      "alignment": {
+        "h": 592,
+        "w": 476,
+        "x": 416,
+        "y": 79
+      },
+      "bbox": {
+        "h": 658,
+        "w": 910,
+        "x": 348,
+        "y": 62
+      },
+      "name": "0015.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": -5,
+        "desiredY": 137,
+        "x": -5,
+        "y": 137
+      },
+      "requestedScale": 0.8,
+      "scale": 0.8,
+      "sourceName": "idel_0015.png",
+      "targetSize": {
+        "h": 542,
+        "w": 760
+      }
+    },
+    {
+      "alignment": {
+        "h": 591,
+        "w": 468,
+        "x": 416,
+        "y": 80
+      },
+      "bbox": {
+        "h": 670,
+        "w": 918,
+        "x": 340,
+        "y": 50
+      },
+      "name": "0016.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": -8,
+        "desiredY": 127,
+        "x": -8,
+        "y": 127
+      },
+      "requestedScale": 0.8,
+      "scale": 0.8,
+      "sourceName": "idel_0016.png",
+      "targetSize": {
+        "h": 552,
+        "w": 766
+      }
+    },
+    {
+      "alignment": {
+        "h": 590,
+        "w": 462,
+        "x": 417,
+        "y": 81
+      },
+      "bbox": {
+        "h": 674,
+        "w": 920,
+        "x": 338,
+        "y": 46
+      },
+      "name": "0017.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": -8,
+        "desiredY": 124,
+        "x": -8,
+        "y": 124
+      },
+      "requestedScale": 0.8,
+      "scale": 0.8,
+      "sourceName": "idel_0017.png",
+      "targetSize": {
+        "h": 555,
+        "w": 768
+      }
+    },
+    {
+      "alignment": {
+        "h": 587,
+        "w": 450,
+        "x": 419,
+        "y": 84
+      },
+      "bbox": {
+        "h": 681,
+        "w": 923,
+        "x": 335,
+        "y": 39
+      },
+      "name": "0018.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": -7,
+        "desiredY": 118,
+        "x": -7,
+        "y": 118
+      },
+      "requestedScale": 0.8,
+      "scale": 0.8,
+      "sourceName": "idel_0018.png",
+      "targetSize": {
+        "h": 561,
+        "w": 770
+      }
+    },
+    {
+      "alignment": {
+        "h": 583,
+        "w": 429,
+        "x": 424,
+        "y": 88
+      },
+      "bbox": {
+        "h": 664,
+        "w": 919,
+        "x": 339,
+        "y": 56
+      },
+      "name": "0019.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 0,
+        "desiredY": 132,
+        "x": 0,
+        "y": 132
+      },
+      "requestedScale": 0.8,
+      "scale": 0.8,
+      "sourceName": "idel_0019.png",
+      "targetSize": {
+        "h": 547,
+        "w": 767
+      }
+    },
+    {
+      "alignment": {
+        "h": 582,
+        "w": 422,
+        "x": 426,
+        "y": 89
+      },
+      "bbox": {
+        "h": 671,
+        "w": 918,
+        "x": 340,
+        "y": 49
+      },
+      "name": "0020.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 2,
+        "desiredY": 126,
+        "x": 2,
+        "y": 126
+      },
+      "requestedScale": 0.8,
+      "scale": 0.8,
+      "sourceName": "idel_0020.png",
+      "targetSize": {
+        "h": 553,
+        "w": 766
+      }
+    },
+    {
+      "alignment": {
+        "h": 582,
+        "w": 412,
+        "x": 429,
+        "y": 89
+      },
+      "bbox": {
+        "h": 680,
+        "w": 916,
+        "x": 342,
+        "y": 40
+      },
+      "name": "0021.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 6,
+        "desiredY": 119,
+        "x": 6,
+        "y": 119
+      },
+      "requestedScale": 0.8,
+      "scale": 0.8,
+      "sourceName": "idel_0021.png",
+      "targetSize": {
+        "h": 560,
+        "w": 765
+      }
+    },
+    {
+      "alignment": {
+        "h": 583,
+        "w": 408,
+        "x": 430,
+        "y": 88
+      },
+      "bbox": {
+        "h": 672,
+        "w": 910,
+        "x": 348,
+        "y": 48
+      },
+      "name": "0022.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 11,
+        "desiredY": 126,
+        "x": 11,
+        "y": 126
+      },
+      "requestedScale": 0.8,
+      "scale": 0.8,
+      "sourceName": "idel_0022.png",
+      "targetSize": {
+        "h": 554,
+        "w": 760
+      }
+    },
+    {
+      "alignment": {
+        "h": 584,
+        "w": 408,
+        "x": 430,
+        "y": 87
+      },
+      "bbox": {
+        "h": 676,
+        "w": 912,
+        "x": 346,
+        "y": 44
+      },
+      "name": "0023.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 10,
+        "desiredY": 122,
+        "x": 10,
+        "y": 122
+      },
+      "requestedScale": 0.8,
+      "scale": 0.8,
+      "sourceName": "idel_0023.png",
+      "targetSize": {
+        "h": 557,
+        "w": 762
+      }
+    },
+    {
+      "alignment": {
+        "h": 585,
+        "w": 408,
+        "x": 430,
+        "y": 86
+      },
+      "bbox": {
+        "h": 687,
+        "w": 914,
+        "x": 344,
+        "y": 33
+      },
+      "name": "0024.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 8,
+        "desiredY": 114,
+        "x": 8,
+        "y": 114
+      },
+      "requestedScale": 0.8,
+      "scale": 0.8,
+      "sourceName": "idel_0024.png",
+      "targetSize": {
+        "h": 566,
+        "w": 763
+      }
+    },
+    {
+      "alignment": {
+        "h": 585,
+        "w": 409,
+        "x": 430,
+        "y": 86
+      },
+      "bbox": {
+        "h": 669,
+        "w": 916,
+        "x": 342,
+        "y": 51
+      },
+      "name": "0025.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 6,
+        "desiredY": 128,
+        "x": 6,
+        "y": 128
+      },
+      "requestedScale": 0.8,
+      "scale": 0.8,
+      "sourceName": "idel_0025.png",
+      "targetSize": {
+        "h": 551,
+        "w": 765
+      }
+    },
+    {
+      "alignment": {
+        "h": 585,
+        "w": 409,
+        "x": 430,
+        "y": 86
+      },
+      "bbox": {
+        "h": 674,
+        "w": 914,
+        "x": 344,
+        "y": 46
+      },
+      "name": "0026.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 8,
+        "desiredY": 124,
+        "x": 8,
+        "y": 124
+      },
+      "requestedScale": 0.8,
+      "scale": 0.8,
+      "sourceName": "idel_0026.png",
+      "targetSize": {
+        "h": 555,
+        "w": 763
+      }
+    },
+    {
+      "alignment": {
+        "h": 585,
+        "w": 409,
+        "x": 430,
+        "y": 86
+      },
+      "bbox": {
+        "h": 682,
+        "w": 912,
+        "x": 346,
+        "y": 38
+      },
+      "name": "0027.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 9,
+        "desiredY": 118,
+        "x": 9,
+        "y": 118
+      },
+      "requestedScale": 0.8,
+      "scale": 0.8,
+      "sourceName": "idel_0027.png",
+      "targetSize": {
+        "h": 562,
+        "w": 762
+      }
+    },
+    {
+      "alignment": {
+        "h": 585,
+        "w": 409,
+        "x": 430,
+        "y": 86
+      },
+      "bbox": {
+        "h": 692,
+        "w": 906,
+        "x": 352,
+        "y": 28
+      },
+      "name": "0028.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 14,
+        "desiredY": 110,
+        "x": 14,
+        "y": 110
+      },
+      "requestedScale": 0.8,
+      "scale": 0.8,
+      "sourceName": "idel_0028.png",
+      "targetSize": {
+        "h": 570,
+        "w": 757
+      }
+    },
+    {
+      "alignment": {
+        "h": 585,
+        "w": 409,
+        "x": 430,
+        "y": 86
+      },
+      "bbox": {
+        "h": 697,
+        "w": 906,
+        "x": 352,
+        "y": 23
+      },
+      "name": "0029.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 14,
+        "desiredY": 106,
+        "x": 14,
+        "y": 106
+      },
+      "requestedScale": 0.8,
+      "scale": 0.8,
+      "sourceName": "idel_0029.png",
+      "targetSize": {
+        "h": 574,
+        "w": 757
+      }
+    },
+    {
+      "alignment": {
+        "h": 585,
+        "w": 409,
+        "x": 430,
+        "y": 86
+      },
+      "bbox": {
+        "h": 685,
+        "w": 886,
+        "x": 372,
+        "y": 35
+      },
+      "name": "0030.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 30,
+        "desiredY": 115,
+        "x": 30,
+        "y": 115
+      },
+      "requestedScale": 0.8,
+      "scale": 0.8,
+      "sourceName": "idel_0030.png",
+      "targetSize": {
+        "h": 564,
+        "w": 741
+      }
+    },
+    {
+      "alignment": {
+        "h": 585,
+        "w": 409,
+        "x": 430,
+        "y": 86
+      },
+      "bbox": {
+        "h": 638,
+        "w": 829,
+        "x": 429,
+        "y": 82
+      },
+      "name": "0031.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 76,
+        "desiredY": 153,
+        "x": 76,
+        "y": 153
+      },
+      "requestedScale": 0.8,
+      "scale": 0.8,
+      "sourceName": "idel_0031.png",
+      "targetSize": {
+        "h": 526,
+        "w": 695
+      }
+    },
+    {
+      "alignment": {
+        "h": 585,
+        "w": 409,
+        "x": 430,
+        "y": 86
+      },
+      "bbox": {
+        "h": 638,
+        "w": 829,
+        "x": 429,
+        "y": 82
+      },
+      "name": "0032.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 76,
+        "desiredY": 153,
+        "x": 76,
+        "y": 153
+      },
+      "requestedScale": 0.8,
+      "scale": 0.8,
+      "sourceName": "idel_0032.png",
+      "targetSize": {
+        "h": 526,
+        "w": 695
+      }
+    },
+    {
+      "alignment": {
+        "h": 585,
+        "w": 409,
+        "x": 430,
+        "y": 86
+      },
+      "bbox": {
+        "h": 638,
+        "w": 829,
+        "x": 429,
+        "y": 82
+      },
+      "name": "0033.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 76,
+        "desiredY": 153,
+        "x": 76,
+        "y": 153
+      },
+      "requestedScale": 0.8,
+      "scale": 0.8,
+      "sourceName": "idel_0033.png",
+      "targetSize": {
+        "h": 526,
+        "w": 695
+      }
+    },
+    {
+      "alignment": {
+        "h": 585,
+        "w": 409,
+        "x": 430,
+        "y": 86
+      },
+      "bbox": {
+        "h": 638,
+        "w": 829,
+        "x": 429,
+        "y": 82
+      },
+      "name": "0034.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 76,
+        "desiredY": 153,
+        "x": 76,
+        "y": 153
+      },
+      "requestedScale": 0.8,
+      "scale": 0.8,
+      "sourceName": "idel_0034.png",
+      "targetSize": {
+        "h": 526,
+        "w": 695
+      }
+    },
+    {
+      "alignment": {
+        "h": 584,
+        "w": 410,
+        "x": 430,
+        "y": 87
+      },
+      "bbox": {
+        "h": 636,
+        "w": 830,
+        "x": 428,
+        "y": 84
+      },
+      "name": "0035.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 74,
+        "desiredY": 154,
+        "x": 74,
+        "y": 154
+      },
+      "requestedScale": 0.8,
+      "scale": 0.8,
+      "sourceName": "idel_0035.png",
+      "targetSize": {
+        "h": 525,
+        "w": 696
+      }
+    },
+    {
+      "alignment": {
+        "h": 584,
+        "w": 416,
+        "x": 428,
+        "y": 87
+      },
+      "bbox": {
+        "h": 636,
+        "w": 831,
+        "x": 427,
+        "y": 84
+      },
+      "name": "0036.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 73,
+        "desiredY": 154,
+        "x": 73,
+        "y": 154
+      },
+      "requestedScale": 0.8,
+      "scale": 0.8,
+      "sourceName": "idel_0036.png",
+      "targetSize": {
+        "h": 525,
+        "w": 697
+      }
+    },
+    {
+      "alignment": {
+        "h": 586,
+        "w": 429,
+        "x": 423,
+        "y": 85
+      },
+      "bbox": {
+        "h": 639,
+        "w": 835,
+        "x": 423,
+        "y": 81
+      },
+      "name": "0037.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 68,
+        "desiredY": 152,
+        "x": 68,
+        "y": 152
+      },
+      "requestedScale": 0.8,
+      "scale": 0.8,
+      "sourceName": "idel_0037.png",
+      "targetSize": {
+        "h": 527,
+        "w": 700
+      }
+    },
+    {
+      "alignment": {
+        "h": 587,
+        "w": 434,
+        "x": 422,
+        "y": 84
+      },
+      "bbox": {
+        "h": 640,
+        "w": 837,
+        "x": 421,
+        "y": 80
+      },
+      "name": "0038.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 66,
+        "desiredY": 151,
+        "x": 66,
+        "y": 151
+      },
+      "requestedScale": 0.8,
+      "scale": 0.8,
+      "sourceName": "idel_0038.png",
+      "targetSize": {
+        "h": 528,
+        "w": 702
+      }
+    },
+    {
+      "alignment": {
+        "h": 588,
+        "w": 443,
+        "x": 419,
+        "y": 83
+      },
+      "bbox": {
+        "h": 640,
+        "w": 844,
+        "x": 414,
+        "y": 80
+      },
+      "name": "0039.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 59,
+        "desiredY": 151,
+        "x": 59,
+        "y": 151
+      },
+      "requestedScale": 0.8,
+      "scale": 0.8,
+      "sourceName": "idel_0039.png",
+      "targetSize": {
+        "h": 528,
+        "w": 707
+      }
+    },
+    {
+      "alignment": {
+        "h": 590,
+        "w": 457,
+        "x": 416,
+        "y": 81
+      },
+      "bbox": {
+        "h": 642,
+        "w": 856,
+        "x": 402,
+        "y": 78
+      },
+      "name": "0040.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 46,
+        "desiredY": 150,
+        "x": 46,
+        "y": 150
+      },
+      "requestedScale": 0.8,
+      "scale": 0.8,
+      "sourceName": "idel_0040.png",
+      "targetSize": {
+        "h": 530,
+        "w": 717
+      }
+    },
+    {
+      "alignment": {
+        "h": 591,
+        "w": 460,
+        "x": 416,
+        "y": 80
+      },
+      "bbox": {
+        "h": 642,
+        "w": 859,
+        "x": 399,
+        "y": 78
+      },
+      "name": "0041.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 42,
+        "desiredY": 150,
+        "x": 42,
+        "y": 150
+      },
+      "requestedScale": 0.8,
+      "scale": 0.8,
+      "sourceName": "idel_0041.png",
+      "targetSize": {
+        "h": 530,
+        "w": 719
+      }
+    },
+    {
+      "alignment": {
+        "h": 591,
+        "w": 470,
+        "x": 414,
+        "y": 80
+      },
+      "bbox": {
+        "h": 642,
+        "w": 869,
+        "x": 389,
+        "y": 78
+      },
+      "name": "0042.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 32,
+        "desiredY": 150,
+        "x": 32,
+        "y": 150
+      },
+      "requestedScale": 0.8,
+      "scale": 0.8,
+      "sourceName": "idel_0042.png",
+      "targetSize": {
+        "h": 530,
+        "w": 727
+      }
+    },
+    {
+      "alignment": {
+        "h": 592,
+        "w": 478,
+        "x": 413,
+        "y": 79
+      },
+      "bbox": {
+        "h": 644,
+        "w": 885,
+        "x": 373,
+        "y": 76
+      },
+      "name": "0043.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 17,
+        "desiredY": 148,
+        "x": 17,
+        "y": 148
+      },
+      "requestedScale": 0.8,
+      "scale": 0.8,
+      "sourceName": "idel_0043.png",
+      "targetSize": {
+        "h": 531,
+        "w": 740
+      }
+    },
+    {
+      "alignment": {
+        "h": 592,
+        "w": 482,
+        "x": 413,
+        "y": 79
+      },
+      "bbox": {
+        "h": 644,
+        "w": 890,
+        "x": 368,
+        "y": 76
+      },
+      "name": "0044.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 11,
+        "desiredY": 148,
+        "x": 11,
+        "y": 148
+      },
+      "requestedScale": 0.8,
+      "scale": 0.8,
+      "sourceName": "idel_0044.png",
+      "targetSize": {
+        "h": 531,
+        "w": 744
+      }
+    },
+    {
+      "alignment": {
+        "h": 592,
+        "w": 482,
+        "x": 412,
+        "y": 79
+      },
+      "bbox": {
+        "h": 644,
+        "w": 898,
+        "x": 360,
+        "y": 76
+      },
+      "name": "0045.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 6,
+        "desiredY": 148,
+        "x": 6,
+        "y": 148
+      },
+      "requestedScale": 0.8,
+      "scale": 0.8,
+      "sourceName": "idel_0045.png",
+      "targetSize": {
+        "h": 531,
+        "w": 750
+      }
+    },
+    {
+      "alignment": {
+        "h": 592,
+        "w": 483,
+        "x": 412,
+        "y": 79
+      },
+      "bbox": {
+        "h": 655,
+        "w": 908,
+        "x": 350,
+        "y": 65
+      },
+      "name": "0046.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": -3,
+        "desiredY": 139,
+        "x": -3,
+        "y": 139
+      },
+      "requestedScale": 0.8,
+      "scale": 0.8,
+      "sourceName": "idel_0046.png",
+      "targetSize": {
+        "h": 540,
+        "w": 758
+      }
+    },
+    {
+      "alignment": {
+        "h": 592,
+        "w": 486,
+        "x": 412,
+        "y": 79
+      },
+      "bbox": {
+        "h": 660,
+        "w": 912,
+        "x": 346,
+        "y": 60
+      },
+      "name": "0047.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": -7,
+        "desiredY": 135,
+        "x": -7,
+        "y": 135
+      },
+      "requestedScale": 0.8,
+      "scale": 0.8,
+      "sourceName": "idel_0047.png",
+      "targetSize": {
+        "h": 544,
+        "w": 762
+      }
+    },
+    {
+      "alignment": {
+        "h": 592,
+        "w": 489,
+        "x": 412,
+        "y": 79
+      },
+      "bbox": {
+        "h": 668,
+        "w": 917,
+        "x": 341,
+        "y": 52
+      },
+      "name": "0048.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": -12,
+        "desiredY": 129,
+        "x": -12,
+        "y": 129
+      },
+      "requestedScale": 0.8,
+      "scale": 0.8,
+      "sourceName": "idel_0048.png",
+      "targetSize": {
+        "h": 550,
+        "w": 766
+      }
+    },
+    {
+      "alignment": {
+        "h": 591,
+        "w": 476,
+        "x": 413,
+        "y": 80
+      },
+      "bbox": {
+        "h": 678,
+        "w": 923,
+        "x": 335,
+        "y": 42
+      },
+      "name": "0049.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": -13,
+        "desiredY": 121,
+        "x": -13,
+        "y": 121
+      },
+      "requestedScale": 0.8,
+      "scale": 0.8,
+      "sourceName": "idel_0049.png",
+      "targetSize": {
+        "h": 558,
+        "w": 770
+      }
+    },
+    {
+      "alignment": {
+        "h": 590,
+        "w": 470,
+        "x": 414,
+        "y": 81
+      },
+      "bbox": {
+        "h": 681,
+        "w": 924,
+        "x": 334,
+        "y": 39
+      },
+      "name": "0050.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": -12,
+        "desiredY": 118,
+        "x": -12,
+        "y": 118
+      },
+      "requestedScale": 0.8,
+      "scale": 0.8,
+      "sourceName": "idel_0050.png",
+      "targetSize": {
+        "h": 561,
+        "w": 771
+      }
+    },
+    {
+      "alignment": {
+        "h": 588,
+        "w": 458,
+        "x": 416,
+        "y": 83
+      },
+      "bbox": {
+        "h": 660,
+        "w": 921,
+        "x": 337,
+        "y": 60
+      },
+      "name": "0051.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": -6,
+        "desiredY": 135,
+        "x": -6,
+        "y": 135
+      },
+      "requestedScale": 0.8,
+      "scale": 0.8,
+      "sourceName": "idel_0051.png",
+      "targetSize": {
+        "h": 544,
+        "w": 769
+      }
+    },
+    {
+      "alignment": {
+        "h": 585,
+        "w": 436,
+        "x": 421,
+        "y": 86
+      },
+      "bbox": {
+        "h": 676,
+        "w": 918,
+        "x": 340,
+        "y": 44
+      },
+      "name": "0052.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 1,
+        "desiredY": 122,
+        "x": 1,
+        "y": 122
+      },
+      "requestedScale": 0.8,
+      "scale": 0.8,
+      "sourceName": "idel_0052.png",
+      "targetSize": {
+        "h": 557,
+        "w": 766
+      }
+    },
+    {
+      "alignment": {
+        "h": 584,
+        "w": 429,
+        "x": 423,
+        "y": 87
+      },
+      "bbox": {
+        "h": 680,
+        "w": 916,
+        "x": 342,
+        "y": 40
+      },
+      "name": "0053.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 4,
+        "desiredY": 119,
+        "x": 4,
+        "y": 119
+      },
+      "requestedScale": 0.8,
+      "scale": 0.8,
+      "sourceName": "idel_0053.png",
+      "targetSize": {
+        "h": 560,
+        "w": 765
+      }
+    },
+    {
+      "alignment": {
+        "h": 583,
+        "w": 417,
+        "x": 427,
+        "y": 88
+      },
+      "bbox": {
+        "h": 668,
+        "w": 908,
+        "x": 350,
+        "y": 52
+      },
+      "name": "0054.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 12,
+        "desiredY": 129,
+        "x": 12,
+        "y": 129
+      },
+      "requestedScale": 0.8,
+      "scale": 0.8,
+      "sourceName": "idel_0054.png",
+      "targetSize": {
+        "h": 550,
+        "w": 758
+      }
+    },
+    {
+      "alignment": {
+        "h": 584,
+        "w": 408,
+        "x": 430,
+        "y": 87
+      },
+      "bbox": {
+        "h": 682,
+        "w": 914,
+        "x": 344,
+        "y": 38
+      },
+      "name": "0055.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 8,
+        "desiredY": 118,
+        "x": 8,
+        "y": 118
+      },
+      "requestedScale": 0.8,
+      "scale": 0.8,
+      "sourceName": "idel_0055.png",
+      "targetSize": {
+        "h": 562,
+        "w": 763
+      }
+    },
+    {
+      "alignment": {
+        "h": 584,
+        "w": 408,
+        "x": 430,
+        "y": 87
+      },
+      "bbox": {
+        "h": 688,
+        "w": 915,
+        "x": 343,
+        "y": 32
+      },
+      "name": "0056.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 7,
+        "desiredY": 113,
+        "x": 7,
+        "y": 113
+      },
+      "requestedScale": 0.8,
+      "scale": 0.8,
+      "sourceName": "idel_0056.png",
+      "targetSize": {
+        "h": 566,
+        "w": 764
+      }
+    },
+    {
+      "alignment": {
+        "h": 585,
+        "w": 408,
+        "x": 430,
+        "y": 86
+      },
+      "bbox": {
+        "h": 666,
+        "w": 916,
+        "x": 342,
+        "y": 54
+      },
+      "name": "0057.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 6,
+        "desiredY": 130,
+        "x": 6,
+        "y": 130
+      },
+      "requestedScale": 0.8,
+      "scale": 0.8,
+      "sourceName": "idel_0057.png",
+      "targetSize": {
+        "h": 549,
+        "w": 765
+      }
+    },
+    {
+      "alignment": {
+        "h": 585,
+        "w": 409,
+        "x": 430,
+        "y": 86
+      },
+      "bbox": {
+        "h": 679,
+        "w": 913,
+        "x": 345,
+        "y": 41
+      },
+      "name": "0058.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 8,
+        "desiredY": 120,
+        "x": 8,
+        "y": 120
+      },
+      "requestedScale": 0.8,
+      "scale": 0.8,
+      "sourceName": "idel_0058.png",
+      "targetSize": {
+        "h": 559,
+        "w": 762
+      }
+    },
+    {
+      "alignment": {
+        "h": 585,
+        "w": 409,
+        "x": 430,
+        "y": 86
+      },
+      "bbox": {
+        "h": 682,
+        "w": 912,
+        "x": 346,
+        "y": 38
+      },
+      "name": "0059.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 9,
+        "desiredY": 118,
+        "x": 9,
+        "y": 118
+      },
+      "requestedScale": 0.8,
+      "scale": 0.8,
+      "sourceName": "idel_0059.png",
+      "targetSize": {
+        "h": 562,
+        "w": 762
+      }
+    },
+    {
+      "alignment": {
+        "h": 585,
+        "w": 409,
+        "x": 430,
+        "y": 86
+      },
+      "bbox": {
+        "h": 690,
+        "w": 909,
+        "x": 349,
+        "y": 30
+      },
+      "name": "0060.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 12,
+        "desiredY": 111,
+        "x": 12,
+        "y": 111
+      },
+      "requestedScale": 0.8,
+      "scale": 0.8,
+      "sourceName": "idel_0060.png",
+      "targetSize": {
+        "h": 568,
+        "w": 759
+      }
+    },
+    {
+      "alignment": {
+        "h": 585,
+        "w": 409,
+        "x": 430,
+        "y": 86
+      },
+      "bbox": {
+        "h": 680,
+        "w": 836,
+        "x": 422,
+        "y": 40
+      },
+      "name": "0061.png",
+      "offsetX": 0,
+      "offsetY": 0,
+      "placement": {
+        "autoFit": false,
+        "characterLocked": true,
+        "clamped": false,
+        "desiredX": 70,
+        "desiredY": 119,
+        "x": 70,
+        "y": 119
+      },
+      "requestedScale": 0.8,
+      "scale": 0.8,
+      "sourceName": "idel_0061.png",
+      "targetSize": {
+        "h": 560,
+        "w": 701
+      }
+    }
+  ],
+  "json": "astrotord_idle.json",
+  "loop": true,
+  "sheet": "astrotord_idle.png",
+  "source": {
+    "backgroundMode": "solid-color",
+    "cutoutMode": "background",
+    "edgeCleanup": 14,
+    "input": "png-sequence",
+    "outlineDilate": 1,
+    "outlineThreshold": 80,
+    "scale": 0.8,
+    "tolerance": 37
+  }
+}

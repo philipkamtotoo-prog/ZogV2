@@ -39,6 +39,7 @@ interface LoungeState {
   gold: number;
   zogAffection: number;
   inventory: Record<string, number>;
+  zogGiftInventory: Record<string, number>;
   battleQuickSlots: (ItemId | null)[];
   lastActiveTime: number;
   begAttempts: number;
@@ -70,6 +71,9 @@ interface LoungeStore extends LoungeState {
   spendGold: (amount: number) => boolean;
   addItem: (itemId: ItemId) => void;
   removeItem: (itemId: ItemId) => boolean;
+  buyZogGiftById: (giftId: string, quantity?: number) => boolean;
+  addZogGift: (giftId: string, quantity?: number) => void;
+  removeZogGift: (giftId: string) => boolean;
   setBattleQuickSlot: (slotIndex: number, itemId: ItemId | null) => void;
   giftZog: (cost: number) => boolean;
   giftZogById: (giftId: string) => ZogGiftResult | null;
@@ -115,6 +119,7 @@ function pickState(s: LoungeStore): LoungeState {
     gold: s.gold,
     zogAffection: s.zogAffection,
     inventory: s.inventory,
+    zogGiftInventory: s.zogGiftInventory,
     battleQuickSlots: normalizeBattleQuickSlots(s.battleQuickSlots),
     lastActiveTime: s.lastActiveTime,
     begAttempts: s.begAttempts,
@@ -141,10 +146,20 @@ function normalizeBattleQuickSlots(value: unknown): (ItemId | null)[] {
   });
 }
 
+function normalizeCountMap(value: unknown): Record<string, number> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+  return Object.entries(value as Record<string, unknown>).reduce<Record<string, number>>((next, [key, raw]) => {
+    const count = typeof raw === 'number' && Number.isFinite(raw) ? Math.max(0, Math.floor(raw)) : 0;
+    if (count > 0) next[key] = count;
+    return next;
+  }, {});
+}
+
 const defaults: LoungeState & Pick<LoungeStore, 'chatMessages' | 'isZogTyping'> = {
   gold: 100,
   zogAffection: 0,
   inventory: {},
+  zogGiftInventory: {},
   battleQuickSlots: [null, null, null, null],
   lastActiveTime: Date.now(),
   begAttempts: 0,
@@ -177,6 +192,8 @@ function normalizeLoadedState(state: Partial<LoungeState>): Partial<LoungeState>
   );
   return {
     ...state,
+    inventory: normalizeCountMap(state.inventory),
+    zogGiftInventory: normalizeCountMap(state.zogGiftInventory),
     battleQuickSlots: normalizeBattleQuickSlots(state.battleQuickSlots),
     fridgeLevel: level,
     keyboardLevel: level,
@@ -265,6 +282,60 @@ export const useLoungeStore = create<LoungeStore>((set, get) => ({
     return true;
   },
 
+  buyZogGiftById: (giftId, quantity = 1) => {
+    const gift = getZogGiftById(giftId);
+    if (!gift) return false;
+    const safeQuantity = Math.max(1, Math.floor(quantity));
+    const totalCost = gift.cost * safeQuantity;
+    const { gold } = get();
+    if (gold < totalCost) return false;
+
+    set((s) => {
+      const next = {
+        ...s,
+        gold: s.gold - totalCost,
+        zogGiftInventory: {
+          ...s.zogGiftInventory,
+          [giftId]: (s.zogGiftInventory[giftId] ?? 0) + safeQuantity,
+        },
+      };
+      saveState(pickState(next as LoungeStore));
+      return next;
+    });
+    return true;
+  },
+
+  addZogGift: (giftId, quantity = 1) => {
+    if (!getZogGiftById(giftId)) return;
+    const safeQuantity = Math.max(1, Math.floor(quantity));
+    set((s) => {
+      const next = {
+        ...s,
+        zogGiftInventory: {
+          ...s.zogGiftInventory,
+          [giftId]: (s.zogGiftInventory[giftId] ?? 0) + safeQuantity,
+        },
+      };
+      saveState(pickState(next as LoungeStore));
+      return next;
+    });
+  },
+
+  removeZogGift: (giftId) => {
+    const { zogGiftInventory } = get();
+    if ((zogGiftInventory[giftId] ?? 0) <= 0) return false;
+    set((s) => {
+      const nextInventory = { ...s.zogGiftInventory, [giftId]: (s.zogGiftInventory[giftId] ?? 0) - 1 };
+      if (nextInventory[giftId] <= 0) {
+        delete nextInventory[giftId];
+      }
+      const next = { ...s, zogGiftInventory: nextInventory };
+      saveState(pickState(next as LoungeStore));
+      return next;
+    });
+    return true;
+  },
+
   setBattleQuickSlot: (slotIndex, itemId) => {
     if (slotIndex < 0 || slotIndex >= 4) return;
     set((s) => {
@@ -301,16 +372,20 @@ export const useLoungeStore = create<LoungeStore>((set, get) => ({
     const gift = getZogGiftById(giftId);
     if (!gift) return null;
 
-    const { gold, zogAffection, zogGiftAttempts } = get();
-    if (gold < gift.cost) return null;
+    const { zogGiftInventory, zogAffection, zogGiftAttempts } = get();
+    if ((zogGiftInventory[giftId] ?? 0) <= 0) return null;
 
     const result = rollZogGiftResult(giftId, zogAffection, zogGiftAttempts);
     if (!result) return null;
 
     set((s) => {
+      const nextInventory = { ...s.zogGiftInventory, [giftId]: (s.zogGiftInventory[giftId] ?? 0) - 1 };
+      if (nextInventory[giftId] <= 0) {
+        delete nextInventory[giftId];
+      }
       const next = {
         ...s,
-        gold: s.gold - gift.cost,
+        zogGiftInventory: nextInventory,
         zogAffection: s.zogAffection + result.totalAffection,
         zogGiftAttempts: s.zogGiftAttempts + 1,
         lastZogGiftResult: result,

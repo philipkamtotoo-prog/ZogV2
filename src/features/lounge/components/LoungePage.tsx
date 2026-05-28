@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { LoungePixiCanvas } from '../renderer/LoungePixiCanvas';
 import { useLoungeStore } from '../loungeStore';
 import { DEFAULT_ROSTER } from '../../actors/actorRoster';
-import { FixedStage, assetPath as gameAssetPath } from '../../../shared/game-ui';
+import { CurrencyAmount, CurrencyDisplay, FixedStage, assetPath as gameAssetPath } from '../../../shared/game-ui';
 import { ZogFridgePanel } from './ZogFridgePanel';
 
 interface LoungePageProps {
@@ -12,6 +12,7 @@ interface LoungePageProps {
   onOpenReports: () => void;
   onOpenRoster: () => void;
   onOpenSettings: () => void;
+  shopActive?: boolean;
 }
 
 const SCENE_WIDTH = 2162;
@@ -56,6 +57,7 @@ const decorativeLayers: LayerConfig[] = [
   { key: 'icon-chain', src: asset('\u6302icon\u7684\u94fe\u6761.png'), left: 1637, top: 2, width: 439, height: 152, zIndex: 8 },
   { key: 'broker-icon', src: asset('\u7ecf\u7eaa\u4ebaicon.png'), left: 1595, top: 86, width: 116, height: 144, zIndex: 9 },
   { key: 'backpack-icon', src: asset('\u80cc\u5305icon.png'), left: 1757, top: 116, width: 94, height: 99, zIndex: 9 },
+  { key: 'shop-icon-fallback', src: asset('\u5546\u5e97icon.png'), left: 1878, top: 77, width: 122, height: 167, zIndex: 8 },
   { key: 'settings-icon', src: asset('\u8bbe\u7f6eicon.png'), left: 2004, top: 104, width: 103, height: 114, zIndex: 9 },
   { key: 'settings-label-mark', src: asset('\u8bbe\u7f6e\u94ed\u724c.png'), left: 2000, top: 190, width: 124, height: 101, rotate: 43.8, zIndex: 10 },
   { key: 'settings-label', src: asset('settings.png'), left: 2004, top: 200.01, width: 105, height: 78, rotate: 39.27, zIndex: 11 },
@@ -71,6 +73,7 @@ export function LoungePage({
   onOpenReports,
   onOpenRoster,
   onOpenSettings,
+  shopActive = false,
 }: LoungePageProps) {
   const gold = useLoungeStore((s) => s.gold);
   const zogAffection = useLoungeStore((s) => s.zogAffection);
@@ -102,6 +105,11 @@ export function LoungePage({
     DEFAULT_ROSTER.forEach((actor) => addActorSalary(actor.actorId, 300));
   };
 
+  const handleHotspotClick = (hotspot: HotspotConfig) => {
+    setHoveredHotspot(null);
+    hotspot.onClick();
+  };
+
   return (
     <div
       style={{
@@ -120,7 +128,7 @@ export function LoungePage({
             <LoungePixiCanvas
               width={SCENE_WIDTH}
               height={SCENE_HEIGHT}
-              shopHovered={hoveredHotspot === 'shop'}
+              shopHovered={hoveredHotspot === 'shop' || shopActive}
             />
 
             <div
@@ -137,8 +145,13 @@ export function LoungePage({
                 letterSpacing: '0.04em',
               }}
             >
-              <div style={{ fontSize: 24, fontWeight: 800 }}>金币</div>
-              <div style={{ marginTop: 8, fontSize: 52, fontWeight: 900 }}>{gold.toLocaleString()}</div>
+              <CurrencyDisplay
+                label="金币"
+                value={gold}
+                variant="gold"
+                style={{ justifyContent: 'center', fontSize: 24, fontWeight: 800 }}
+                valueClassName="lounge-currency-value"
+              />
             </div>
 
             <div
@@ -157,13 +170,18 @@ export function LoungePage({
             >
               <div style={{ fontSize: 22, fontWeight: 800 }}>Zog 好感度</div>
               <div style={{ marginTop: 8, fontSize: 44, fontWeight: 900 }}>{zogAffection.toLocaleString()}</div>
-              <div style={{ marginTop: 8, fontSize: 22, fontWeight: 800 }}>S 币合计 {totalSalary.toLocaleString()}</div>
+              <CurrencyDisplay
+                label="S币合计"
+                value={totalSalary}
+                variant="scoin"
+                style={{ justifyContent: 'center', marginTop: 8, fontSize: 22, fontWeight: 800 }}
+              />
             </div>
 
             {hotspots.map((hotspot) => (
               <button
                 key={hotspot.key}
-                onClick={hotspot.onClick}
+                onClick={() => handleHotspotClick(hotspot)}
                 onMouseEnter={() => setHoveredHotspot(hotspot.key)}
                 onMouseLeave={() => setHoveredHotspot((current) => (current === hotspot.key ? null : current))}
                 aria-label={hotspot.label}
@@ -191,6 +209,9 @@ export function LoungePage({
           left: 18,
           bottom: 18,
           zIndex: 80,
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 4,
           padding: '10px 14px',
           border: '1px solid rgba(255, 223, 142, 0.42)',
           background: 'rgba(32, 16, 20, 0.9)',
@@ -200,7 +221,7 @@ export function LoungePage({
           fontSize: 13,
         }}
       >
-        Cheat +5000G / 全员 +300S
+        Cheat +<CurrencyAmount value={5000} variant="gold" /> / 全员 +<CurrencyAmount value={300} variant="scoin" />
       </button>
 
       <div
@@ -239,6 +260,7 @@ function SceneLayer({
     (hoveredHotspot === 'tv' && layer.key === 'tv') ||
     (hoveredHotspot === 'broker' && layer.key === 'broker-icon') ||
     (hoveredHotspot === 'backpack' && layer.key === 'backpack-icon') ||
+    (hoveredHotspot === 'shop' && layer.key === 'shop-icon-fallback') ||
     (hoveredHotspot === 'settings' && isSettingsLayer);
   const transformParts = [];
   if (layer.rotate) {

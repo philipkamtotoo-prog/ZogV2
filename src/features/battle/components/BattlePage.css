@@ -139,8 +139,9 @@
 .battle-top-gold {
   z-index: 5;
   box-sizing: border-box;
-  display: grid;
-  grid-template-columns: max-content max-content;
+  display: inline-grid;
+  grid-auto-flow: column;
+  grid-auto-columns: max-content;
   justify-content: end;
   align-items: center;
   gap: 4px;
@@ -158,6 +159,12 @@
   text-shadow:
     0 2px 0 rgba(0, 0, 0, 0.72),
     0 0 8px rgba(255, 196, 48, 0.52);
+}
+
+.battle-top-gold .game-currency-icon {
+  width: 28px;
+  height: 28px;
+  filter: drop-shadow(0 2px 0 rgba(0, 0, 0, 0.48));
 }
 
 .battle-top-gold strong {

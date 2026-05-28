@@ -123,9 +123,10 @@ export const useBattleStore = create<BattleStore>((set, get) => ({
     const itemUses = useLoungeStore.getState().fridgeItemUseLimit;
 
     engineRef.current = null;
-    const session = createBattleSession(battleSeed, rerollIndex, get, set as Parameters<typeof createBattleSession>[3], engineRef);
+    const unlockedActorIds = useLoungeStore.getState().unlockedActorIds;
+    const session = createBattleSession(battleSeed, rerollIndex, unlockedActorIds, get, set as Parameters<typeof createBattleSession>[4], engineRef);
 
-    session.engine.init(battleSeed, 5, session.templates, itemUses, {
+    session.engine.init(battleSeed, session.templates.length, session.templates, itemUses, {
       actorPromptInjections,
       selectedMutation: selectedMutation ?? undefined,
     });
@@ -411,9 +412,10 @@ export const useBattleStore = create<BattleStore>((set, get) => ({
     const itemUses = useLoungeStore.getState().fridgeItemUseLimit;
 
     engineRef.current = null;
-    const session = createBattleSession(battleState.battleSeed, nextRerollIndex, get, set as Parameters<typeof createBattleSession>[3], engineRef);
+    const unlockedActorIds = useLoungeStore.getState().unlockedActorIds;
+    const session = createBattleSession(battleState.battleSeed, nextRerollIndex, unlockedActorIds, get, set as Parameters<typeof createBattleSession>[4], engineRef);
 
-    session.engine.init(battleState.battleSeed, 5, session.templates, itemUses, {
+    session.engine.init(battleState.battleSeed, session.templates.length, session.templates, itemUses, {
       selectedMutation: get().selectedMutation ?? undefined,
       actorPromptInjections: [],
     });
@@ -436,8 +438,6 @@ export const useBattleStore = create<BattleStore>((set, get) => ({
   buyMutationLiquid: () => {
     const { battleState, mutationCandidates, selectedMutation, rerollIndex } = get();
     if (!battleState || mutationCandidates.length > 0 || selectedMutation) return;
-    const spent = useLoungeStore.getState().spendGold(MUTATION_LIQUID_COST);
-    if (!spent) return;
     set({ mutationCandidates: drawMutationCandidates(battleState.battleSeed, rerollIndex) });
   },
 
@@ -447,6 +447,8 @@ export const useBattleStore = create<BattleStore>((set, get) => ({
     const mutation = getMutationById(mutationId);
     const engineState = engine.getState();
     if (!engineState) return;
+    const spent = useLoungeStore.getState().spendGold(MUTATION_LIQUID_COST);
+    if (!spent) return;
     const mutated = applyMutationToBattleState(engineState.battleState, mutation);
     engineState.battleState = mutated;
     engine.recordFactEvent({

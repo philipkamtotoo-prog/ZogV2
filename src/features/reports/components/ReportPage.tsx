@@ -1,5 +1,7 @@
+import type { CSSProperties, ReactNode } from 'react';
 import { useReportStore } from '../reportStore';
 import type { BillLineItem } from '../bill';
+import { CurrencyAmount } from '../../../shared/game-ui';
 
 interface ReportPageProps {
   onBack: () => void;
@@ -84,7 +86,9 @@ export function ReportPage({ onBack }: ReportPageProps) {
           {currentReport.salaryAwards.map((award) => (
             <div key={award.actorId} style={rowStyle}>
               <span>{award.name} #{award.rank}</span>
-              <span>{award.rankSalary}S + {award.mvpBonus}S MVP = {award.totalSalary}S</span>
+              <span>
+                <CurrencyAmount value={award.rankSalary} variant="scoin" /> + <CurrencyAmount value={award.mvpBonus} variant="scoin" /> MVP = <CurrencyAmount value={award.totalSalary} variant="scoin" />
+              </span>
             </div>
           ))}
         </Section>
@@ -138,7 +142,7 @@ export function ReportPage({ onBack }: ReportPageProps) {
           <div style={{ borderTop: '1px solid #444', marginTop: 8, paddingTop: 8, ...rowStyle }}>
             <span>Net</span>
             <span style={{ color: currentBill.netGold >= 0 ? '#4caf50' : '#f44336' }}>
-              {currentBill.netGold >= 0 ? '+' : ''}{currentBill.netGold}G
+              <CurrencyAmount showSign value={currentBill.netGold} variant="gold" />
             </span>
           </div>
         </Section>
@@ -147,7 +151,7 @@ export function ReportPage({ onBack }: ReportPageProps) {
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div style={{ marginBottom: 16 }}>
       <div style={{ color: '#88ccff', fontSize: 12, fontWeight: 'bold', marginBottom: 4, textTransform: 'uppercase' }}>
@@ -158,15 +162,20 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-function Tag({ color, children }: { color: string; children: React.ReactNode }) {
+function Tag({ color, children }: { color: string; children: ReactNode }) {
   return <span style={{ color, fontSize: 10, marginLeft: 4, fontWeight: 'bold' }}>{children}</span>;
 }
 
-function formatBillLineAmount(item: BillLineItem): string {
+function formatBillLineAmount(item: BillLineItem): ReactNode {
   const sign = item.type === 'INCOME' ? '+' : '-';
   const currency = item.currency ?? 'G';
   if (currency === 'AFFECTION') return `${sign}${item.amount} affection`;
-  return `${sign}${item.amount}${currency}`;
+  return (
+    <>
+      {sign}
+      <CurrencyAmount value={item.amount} variant={currency === 'S' ? 'scoin' : 'gold'} />
+    </>
+  );
 }
 
 function getBillLineColor(item: BillLineItem): string {
@@ -174,7 +183,7 @@ function getBillLineColor(item: BillLineItem): string {
   return item.type === 'INCOME' ? '#4caf50' : '#f44336';
 }
 
-const rowStyle: React.CSSProperties = {
+const rowStyle: CSSProperties = {
   display: 'flex',
   justifyContent: 'space-between',
   padding: '2px 0',
@@ -183,7 +192,7 @@ const rowStyle: React.CSSProperties = {
   gap: 12,
 };
 
-const backBtnStyle: React.CSSProperties = {
+const backBtnStyle: CSSProperties = {
   padding: '6px 16px',
   borderRadius: 4,
   border: 'none',

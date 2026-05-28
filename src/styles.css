@@ -45,3 +45,10 @@ input,
 textarea {
   font-size: 100%;
 }
+
+.lounge-currency-value {
+  display: block;
+  margin-left: 4px;
+  font-size: 52px;
+  font-weight: 900;
+}

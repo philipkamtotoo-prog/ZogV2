@@ -24,6 +24,7 @@ export class LoungePixiRuntime {
         antialias: true,
         resolution: window.devicePixelRatio || 1,
         autoDensity: true,
+        preference: 'webgl',
       });
 
       if (this.destroyRequested) {
@@ -35,7 +36,16 @@ export class LoungePixiRuntime {
       container.appendChild(app.canvas);
       this.mounted = true;
       this.scene = new LoungeScene(app.stage, width, height);
-      await this.scene.initialize();
+
+      try {
+        await this.scene.initialize();
+      } catch (error) {
+        this.scene.destroy();
+        this.scene = null;
+        this.destroyPixiApp(app);
+        if (this.app === app) this.app = null;
+        throw error;
+      }
 
       if (this.destroyRequested) {
         this.scene.destroy();
@@ -87,7 +97,7 @@ export class LoungePixiRuntime {
 
   private destroyPixiApp(app: Application): void {
     try {
-      app.destroy(true, { children: true, texture: true });
+      app.destroy(true, { children: true, texture: false });
     } catch (error) {
       console.warn('[LoungePixiRuntime] Pixi destroy skipped after partial init:', error);
     } finally {

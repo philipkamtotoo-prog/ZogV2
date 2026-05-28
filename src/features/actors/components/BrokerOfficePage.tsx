@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { useEffect, useMemo, useState, type CSSProperties, type MouseEvent } from 'react';
 import { DEFAULT_ROSTER, type RosterActor } from '../actorRoster';
 import { ACTOR_GIFT_TIERS, useLoungeStore } from '../../lounge/loungeStore';
 import { CurrencyDisplay, FixedStage, assetPath as gameAssetPath } from '../../../shared/game-ui';
 import { BrokerPixiCanvas } from './BrokerPixiCanvas';
+import { hasActorArt } from '../renderer/actorArtRegistry';
 import { LampGlow } from './LampGlow';
 import './BrokerOfficePage.css';
 
@@ -115,6 +116,12 @@ const STAT_VALUE_LAYOUT: { key: StatKey; left: number; top: number; width: numbe
 const S_BALANCE_LAYOUT = { left: 1690, top: 606, width: 258, height: 32 };
 const GOLD_BALANCE_LAYOUT = { left: 1690, top: 736, width: 258, height: 32 };
 
+// IMPORTANT: Broker actor Pixi portrait slot.
+// This box is the only React-owned position/size for the broker actor portrait canvas.
+// Adjust left/top/width/height here when the portrait layer needs to move inside the broker office art.
+// Actor-specific anchor, scale, and bottom-center placement live in actorArtRegistry.ts, not in this page.
+const BROKER_ACTOR_PIXI_SLOT = { left: 779.67, top: 133, width: 636, height: 841 };
+
 export function BrokerOfficePage({ onBack }: BrokerOfficePageProps) {
   const {
     gold,
@@ -148,6 +155,7 @@ export function BrokerOfficePage({ onBack }: BrokerOfficePageProps) {
   }, [actorAffection, unlockedActorIds]);
 
   const [selectedActorId, setSelectedActorId] = useState<string | null>(null);
+  const [actorActionRequestId, setActorActionRequestId] = useState(0);
 
   useEffect(() => {
     if (actors.length === 0) {
@@ -167,13 +175,30 @@ export function BrokerOfficePage({ onBack }: BrokerOfficePageProps) {
   const selectedActor = actors.find((actor) => actor.actorId === selectedActorId) ?? actors[0] ?? null;
   const selectedActorSalary = selectedActor ? actorSalary[selectedActor.actorId] ?? 0 : 0;
   const selectedActorPurchases = selectedActor ? actorPurchases[selectedActor.actorId] ?? [] : [];
+  const selectedActorHasArt = hasActorArt(selectedActor?.actorId);
+
+  const requestActorAction = () => {
+    setActorActionRequestId((current) => current + 1);
+  };
+
+  const handleBrokerPageClick = (event: MouseEvent<HTMLDivElement>) => {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+
+    const isControlClick = Boolean(
+      target.closest('.broker-list-card, .broker-exit-button, .broker-appearance-button, .broker-gift-button'),
+    );
+    if (isControlClick) return;
+
+    requestActorAction();
+  };
 
   return (
-    <div className="broker-page">
+    <div className="broker-page" onClick={handleBrokerPageClick}>
       <FixedStage className="broker-stage" fit="cover" height={STAGE_HEIGHT} viewportClassName="broker-viewport" width={STAGE_WIDTH}>
         <img alt="" className="broker-art" src={BACKGROUND_ASSET} />
         <img alt="" className="broker-art" src={TITLE_ASSET} style={absBox(239, 81, 381, 108)} />
-        <img alt="" className="broker-art" src={PIXI_FRAME_ASSET} style={absBox(779.67, 133, 636, 841)} />
+        <img alt="" className="broker-art" src={PIXI_FRAME_ASSET} style={absBox(BROKER_ACTOR_PIXI_SLOT.left, BROKER_ACTOR_PIXI_SLOT.top, BROKER_ACTOR_PIXI_SLOT.width, BROKER_ACTOR_PIXI_SLOT.height)} />
         <LampGlow />
         <img alt="" className="broker-art" src={CUP_ASSET} style={absBox(-31.33, 1029, 332, 323)} />
 
@@ -233,9 +258,12 @@ export function BrokerOfficePage({ onBack }: BrokerOfficePageProps) {
           </div>
         </section>
 
-        <div className="broker-pixi-shell" style={absBox(779.67, 133, 636, 841)}>
-          <BrokerPixiCanvas />
-          <div className="broker-pixi-placeholder">{'Pixi \u6f14\u5458\u7acb\u7ed8\u9884\u7559\u5c42'}</div>
+        <div className="broker-pixi-shell" style={absBox(BROKER_ACTOR_PIXI_SLOT.left, BROKER_ACTOR_PIXI_SLOT.top, BROKER_ACTOR_PIXI_SLOT.width, BROKER_ACTOR_PIXI_SLOT.height)}>
+          <BrokerPixiCanvas
+            actionRequestId={actorActionRequestId}
+            actorId={selectedActor?.actorId}
+          />
+          {!selectedActorHasArt ? <div className="broker-pixi-placeholder">{'Pixi \u6f14\u5458\u7acb\u7ed8\u9884\u7559\u5c42'}</div> : null}
         </div>
 
         {selectedActor?.unlocked ? (

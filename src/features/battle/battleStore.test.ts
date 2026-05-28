@@ -7,6 +7,7 @@ function resetLounge() {
     gold: 100,
     zogAffection: 0,
     inventory: {},
+    zogGiftInventory: {},
     lastActiveTime: Date.now(),
     begAttempts: 0,
     lastBegTime: 0,
@@ -19,6 +20,8 @@ function resetLounge() {
     actorSalary: {},
     actorPurchases: {},
     actorPermanentPrompts: {},
+    zogGiftAttempts: 0,
+    lastZogGiftResult: null,
   });
 }
 
@@ -56,5 +59,19 @@ describe('battleStore control flow', () => {
 
     await vi.advanceTimersByTimeAsync(850);
     expect(useBattleStore.getState().battleState!.actorActionIndex).toBeGreaterThan(progressedActionIndex);
+  });
+
+  it('only draws unlocked actors into battle setup', () => {
+    useLoungeStore.setState({ unlockedActorIds: ['glitch_witch'] });
+
+    useBattleStore.getState().initBattle('unlocked_actor_pool_test');
+
+    const actorIds = useBattleStore.getState().battleState!.actors.map((actor) => actor.actorId);
+    expect(actorIds).toHaveLength(4);
+    expect(actorIds).toContain('tdog');
+    expect(actorIds).toContain('cybercat');
+    expect(actorIds).toContain('nanobot');
+    expect(actorIds).toContain('glitch_witch');
+    expect(actorIds).not.toContain('dodo_bishop');
   });
 });

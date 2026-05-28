@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type CSSProperties, type DragEvent } from 'react';
 import { getAllItems, type ItemDef, type ItemId } from '../../../core/economy/items';
-import { assetPath as gameAssetPath } from '../../../shared/game-ui';
-import { ZOG_GIFTS } from '../../zog/zogAffinity';
+import { CurrencyAmount, assetPath as gameAssetPath } from '../../../shared/game-ui';
+import { ZOG_GIFTS, getZogGiftAffectionRange } from '../../zog/zogAffinity';
 import { useLoungeStore } from '../loungeStore';
 import { BackpackGlowPixiCanvas } from './BackpackGlowPixiCanvas';
 import './BackpackPage.css';
@@ -101,6 +101,7 @@ export function BackpackPage({ onBack }: BackpackPageProps) {
     fridgeItemUseLimit,
     gold,
     inventory,
+    zogGiftInventory,
     setBattleQuickSlot,
   } = useLoungeStore();
   const backpackScale = useBackpackScale();
@@ -127,10 +128,9 @@ export function BackpackPage({ onBack }: BackpackPageProps) {
   };
 
   return (
-    <div className="backpack-overlay" role="dialog" aria-modal="true" aria-label="背包浮层" onMouseDown={onBack}>
+    <div className="backpack-overlay" role="dialog" aria-modal="true" aria-label="背包浮层">
       <div
         className="backpack-modal"
-        onMouseDown={(event) => event.stopPropagation()}
         style={{ width: STAGE_WIDTH * backpackScale, height: STAGE_HEIGHT * backpackScale }}
       >
         <div className="backpack-stage" style={{ transform: `scale(${backpackScale})` }}>
@@ -175,6 +175,7 @@ export function BackpackPage({ onBack }: BackpackPageProps) {
             />
           ) : (
             <SnackInventoryContent
+              inventory={zogGiftInventory}
               onSelect={setSelectedSnackId}
               selectedSnackId={selectedSnack?.giftId}
             />
@@ -265,20 +266,22 @@ function ItemDescriptionPanel({ inventory, item }: { inventory: Record<string, n
       </div>
       <p className="backpack-description-rule">{item.description}</p>
       <p className="backpack-description-flavor">{item.flavorText}</p>
-      <small>库存 x{inventory[item.itemId] ?? 0} / 价格 {item.cost}G</small>
+      <small>库存 x{inventory[item.itemId] ?? 0} / 价格 <CurrencyAmount value={item.cost} variant="gold" /></small>
     </section>
   );
 }
 
 function SnackInventoryContent({
+  inventory,
   onSelect,
   selectedSnackId,
 }: {
+  inventory: Record<string, number>;
   onSelect: (giftId: string) => void;
   selectedSnackId?: string;
 }) {
   const selectedSnack = ZOG_GIFTS.find((gift) => gift.giftId === selectedSnackId) ?? ZOG_GIFTS[0];
-  const selectedRange = getSnackAffectionRange(selectedSnack);
+  const selectedRange = getZogGiftAffectionRange(selectedSnack);
 
   return (
     <>
@@ -286,6 +289,7 @@ function SnackInventoryContent({
         <div className="backpack-snack-grid">
           {ZOG_GIFTS.map((gift) => {
             const iconFile = SNACK_ICONS[gift.giftId];
+            const count = inventory[gift.giftId] ?? 0;
             return (
               <button
                 className={`backpack-snack-card${gift.giftId === selectedSnack?.giftId ? ' is-selected' : ''}`}
@@ -296,7 +300,8 @@ function SnackInventoryContent({
                 <img className="backpack-item-base" alt="" src={BACKPACK_ASSETS.itemBaseLarge} draggable={false} />
                 {iconFile ? <img className="backpack-snack-icon" alt="" src={itemIcon(iconFile)} draggable={false} /> : null}
                 <span>{gift.name}</span>
-                <small>好感：{getSnackAffectionRange(gift)}</small>
+                <b className="backpack-snack-count">x{count}</b>
+                <small>好感：{getZogGiftAffectionRange(gift)}</small>
               </button>
             );
           })}
@@ -319,7 +324,7 @@ function SnackInventoryContent({
           </div>
           <p className="backpack-description-rule">{selectedSnack.flavor}</p>
           <p className="backpack-description-flavor">{SNACK_FLAVOR_TEXT[selectedSnack.giftId] ?? ''}</p>
-          <small>库存 - / 售价 {selectedSnack.cost}G</small>
+          <small>库存 x{inventory[selectedSnack.giftId] ?? 0} / 售价 <CurrencyAmount value={selectedSnack.cost} variant="gold" /></small>
         </section>
       ) : null}
     </>
@@ -370,13 +375,6 @@ function QuickSlotBar({
 
 function normalizeQuickSlots(value: (ItemId | null)[] | undefined): (ItemId | null)[] {
   return Array.from({ length: 4 }, (_, index) => value?.[index] ?? null);
-}
-
-function getSnackAffectionRange(gift: (typeof ZOG_GIFTS)[number]): string {
-  const modifiers = [...gift.positiveEffects, ...gift.negativeEffects].map((effect) => effect.affectionModifier);
-  const min = gift.affection + Math.min(...modifiers);
-  const max = gift.affection + Math.max(...modifiers);
-  return `+${min}~+${max}`;
 }
 
 function useBackpackScale(): number {

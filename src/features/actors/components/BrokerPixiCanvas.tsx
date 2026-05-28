@@ -1,8 +1,14 @@
 import { useEffect, useRef } from 'react';
-import { Application } from 'pixi.js';
+import { BrokerPixiRuntime } from '../renderer/runtime/BrokerPixiRuntime';
 
-export function BrokerPixiCanvas() {
-  const containerRef = useRef<HTMLDivElement>(null);
+interface BrokerPixiCanvasProps {
+  actorId: string | null | undefined;
+  actionRequestId: number;
+}
+
+export function BrokerPixiCanvas({ actorId, actionRequestId }: BrokerPixiCanvasProps) {
+  const containerRef = useRef<HTMLButtonElement>(null);
+  const runtimeRef = useRef<BrokerPixiRuntime | null>(null);
 
   useEffect(() => {
     if (!containerRef.current) {
@@ -10,30 +16,17 @@ export function BrokerPixiCanvas() {
     }
 
     const container = containerRef.current;
-    const app = new Application();
+    const runtime = new BrokerPixiRuntime();
     let resizeObserver: ResizeObserver | null = null;
     let disposed = false;
-    let mounted = false;
+    runtimeRef.current = runtime;
 
     const mount = async () => {
-      const rect = container.getBoundingClientRect();
-
-      await app.init({
-        width: Math.max(1, Math.round(rect.width)),
-        height: Math.max(1, Math.round(rect.height)),
-        backgroundAlpha: 0,
-        antialias: true,
-        autoDensity: true,
-        resolution: window.devicePixelRatio || 1,
-      });
+      await runtime.mount(container, actorId);
 
       if (disposed) {
-        app.destroy(true, { children: true, texture: true });
         return;
       }
-
-      mounted = true;
-      container.appendChild(app.canvas);
 
       resizeObserver = new ResizeObserver((entries) => {
         const entry = entries[0];
@@ -42,7 +35,7 @@ export function BrokerPixiCanvas() {
         }
 
         const { width, height } = entry.contentRect;
-        app.renderer.resize(Math.max(1, Math.round(width)), Math.max(1, Math.round(height)));
+        runtime.resize(width, height);
       });
 
       resizeObserver.observe(container);
@@ -55,18 +48,26 @@ export function BrokerPixiCanvas() {
     return () => {
       disposed = true;
       resizeObserver?.disconnect();
-
-      if (!mounted) {
-        return;
-      }
-
-      try {
-        app.destroy(true, { children: true, texture: true });
-      } catch (error) {
-        console.warn('[BrokerPixiCanvas] Pixi destroy skipped after partial init:', error);
-      }
+      runtime.destroy();
+      runtimeRef.current = null;
     };
   }, []);
 
-  return <div className="broker-pixi-canvas" ref={containerRef} />;
+  useEffect(() => {
+    runtimeRef.current?.showActor(actorId);
+  }, [actorId]);
+
+  useEffect(() => {
+    if (actionRequestId <= 0) return;
+    runtimeRef.current?.playRandomInteractiveAction(actorId);
+  }, [actorId, actionRequestId]);
+
+  return (
+    <button
+      aria-label="播放演员动作"
+      className="broker-pixi-canvas"
+      ref={containerRef}
+      type="button"
+    />
+  );
 }

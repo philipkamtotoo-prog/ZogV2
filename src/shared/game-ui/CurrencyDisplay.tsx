@@ -23,14 +23,41 @@ export function CurrencyDisplay({
   variant = 'plain',
 }: CurrencyDisplayProps) {
   const normalizedValue = normalizeCurrencyValue(value);
+  const iconSrc = variant === 'gold'
+    ? '/道具icon/G币icon.png'
+    : variant === 'scoin'
+      ? '/道具icon/S币icon.png'
+      : null;
 
   return (
     <div className={['game-currency-display', `is-${variant}`, className].filter(Boolean).join(' ')} style={style}>
-      <span className={labelClassName}>{label}</span>
+      {label ? <span className={labelClassName}>{label}</span> : null}
+      {iconSrc ? <img className="game-currency-icon" alt={variant === 'gold' ? 'G币' : 'S币'} src={iconSrc} draggable={false} /> : null}
       <strong className={valueClassName} title={`${normalizedValue}`}>
         {formatCompactCurrency(normalizedValue)}
       </strong>
     </div>
+  );
+}
+
+export function CurrencyAmount({
+  value,
+  variant,
+  showSign = false,
+}: {
+  value: number;
+  variant: Exclude<CurrencyDisplayVariant, 'plain'>;
+  showSign?: boolean;
+}) {
+  const normalizedValue = Math.floor(Number.isFinite(value) ? value : 0);
+  const sign = showSign ? (normalizedValue > 0 ? '+' : normalizedValue < 0 ? '-' : '') : '';
+  const iconSrc = variant === 'gold' ? '/道具icon/G币icon.png' : '/道具icon/S币icon.png';
+
+  return (
+    <span className={['game-currency-amount', `is-${variant}`].join(' ')}>
+      <span>{sign}{formatCompactCurrency(Math.abs(normalizedValue))}</span>
+      <img className="game-currency-icon" alt={variant === 'gold' ? 'G币' : 'S币'} src={iconSrc} draggable={false} />
+    </span>
   );
 }
 
@@ -48,4 +75,3 @@ function normalizeCurrencyValue(value: number): number {
 function trimCompactNumber(value: number): string {
   return value >= 100 ? value.toFixed(0) : value.toFixed(1).replace(/\.0$/, '');
 }
-

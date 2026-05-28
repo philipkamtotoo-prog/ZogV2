@@ -6,6 +6,7 @@ function resetLounge(partial: Partial<ReturnType<typeof useLoungeStore.getState>
     gold: 100,
     zogAffection: 0,
     inventory: {},
+    zogGiftInventory: {},
     lastActiveTime: Date.now(),
     begAttempts: 0,
     lastBegTime: 0,
@@ -62,13 +63,31 @@ describe('loungeStore Phase 0 economy rules', () => {
   it('applies a rolled effect when gifting Zog by gift id', () => {
     resetLounge({ gold: 500 });
 
+    expect(useLoungeStore.getState().buyZogGiftById('glowing-can')).toBe(true);
+    expect(useLoungeStore.getState().gold).toBe(350);
+    expect(useLoungeStore.getState().zogGiftInventory['glowing-can']).toBe(1);
+
     const result = useLoungeStore.getState().giftZogById('glowing-can');
 
     expect(result?.giftId).toBe('glowing-can');
     expect(result?.totalAffection).toBeGreaterThan(0);
     expect(useLoungeStore.getState().gold).toBe(350);
+    expect(useLoungeStore.getState().zogGiftInventory['glowing-can']).toBeUndefined();
     expect(useLoungeStore.getState().zogAffection).toBe(result?.totalAffection);
     expect(useLoungeStore.getState().zogGiftAttempts).toBe(1);
     expect(useLoungeStore.getState().lastZogGiftResult?.giftId).toBe('glowing-can');
+  });
+
+  it('stores multiple Zog gifts before they are used', () => {
+    resetLounge({ gold: 450 });
+
+    expect(useLoungeStore.getState().buyZogGiftById('expired-star-chips', 3)).toBe(true);
+    expect(useLoungeStore.getState().gold).toBe(300);
+    expect(useLoungeStore.getState().zogGiftInventory['expired-star-chips']).toBe(3);
+
+    const result = useLoungeStore.getState().giftZogById('expired-star-chips');
+
+    expect(result?.giftId).toBe('expired-star-chips');
+    expect(useLoungeStore.getState().zogGiftInventory['expired-star-chips']).toBe(2);
   });
 });

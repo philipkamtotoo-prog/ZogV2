@@ -243,8 +243,19 @@
 }
 
 .broker-pixi-canvas {
+  display: block;
   width: 100%;
   height: 100%;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+}
+
+.broker-pixi-canvas canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
 }
 
 .broker-pixi-placeholder {
@@ -323,6 +334,11 @@
   font: inherit;
   color: inherit;
   line-height: inherit;
+}
+
+.broker-balance-floating .game-currency-icon {
+  width: 28px;
+  height: 28px;
 }
 
 .broker-stats {

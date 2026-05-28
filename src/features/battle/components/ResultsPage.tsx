@@ -6,6 +6,7 @@ import { useLoungeStore } from '../../lounge/loungeStore';
 import { createLLMRoleRegistry } from '../../../llm/clients/llmRoleRegistry';
 import { createFinalReporterProvider } from '../../../llm/finalReporterProvider';
 import { useEffect, useRef } from 'react';
+import { CurrencyAmount } from '../../../shared/game-ui';
 
 export function ResultsPage() {
   const { finalScores, battleState, goToLobby, betSlip, getBetPayout } = useBattleStore();
@@ -79,11 +80,11 @@ export function ResultsPage() {
           </div>
           <div style={{ fontSize: 12, color: '#ccc' }}>
             押注: {battleState?.actors.find((a) => a.actorId === betSlip.actorId)?.name} |
-            下注: {betSlip.amount}G |
+            下注: <CurrencyAmount value={betSlip.amount} variant="gold" /> |
             赔率: x{betSlip.odds.toFixed(1)} |
             {payout > 0
-              ? <span style={{ color: '#4caf50' }}> 赢得 +{payout}G</span>
-              : <span style={{ color: '#f44336' }}> 损失 -{betSlip.amount}G</span>
+              ? <span style={{ color: '#4caf50' }}> 赢得 <CurrencyAmount showSign value={payout} variant="gold" /></span>
+              : <span style={{ color: '#f44336' }}> 损失 -<CurrencyAmount value={betSlip.amount} variant="gold" /></span>
             }
           </div>
         </div>
@@ -111,7 +112,7 @@ export function ResultsPage() {
               <td style={{ padding: 6 }}>{s.name}</td>
               <td style={{ padding: 6, textAlign: 'right', fontWeight: 'bold' }}>{s.finalScore}</td>
               <td style={{ padding: 6, textAlign: 'right', fontSize: 12 }}>{s.breakdown.totalDamageDealt.toFixed(0)}</td>
-              <td style={{ padding: 6, textAlign: 'right', fontSize: 12 }}>{s.salaryAward}S</td>
+              <td style={{ padding: 6, textAlign: 'right', fontSize: 12 }}><CurrencyAmount value={s.salaryAward} variant="scoin" /></td>
               <td style={{ padding: 6, textAlign: 'center', fontSize: 12 }}>
                 {s.rank <= battleState!.actors.filter((a) => a.isAlive).length ? (
                   <span style={{ color: '#4caf50' }}>存活</span>
@@ -143,7 +144,7 @@ export function ResultsPage() {
           <div style={{ borderTop: '1px solid #444', marginTop: 8, paddingTop: 4, display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: 13 }}>
             <span style={{ color: '#eee' }}>合计</span>
             <span style={{ color: currentBill.netGold >= 0 ? '#4caf50' : '#f44336' }}>
-              {currentBill.netGold >= 0 ? '+' : ''}{currentBill.netGold}G
+              <CurrencyAmount showSign value={currentBill.netGold} variant="gold" />
             </span>
           </div>
         </div>
@@ -168,11 +169,16 @@ export function ResultsPage() {
   );
 }
 
-function formatBillLineAmount(item: BillLineItem): string {
+function formatBillLineAmount(item: BillLineItem): React.ReactNode {
   const sign = item.type === 'INCOME' ? '+' : '-';
   const currency = item.currency ?? 'G';
   if (currency === 'AFFECTION') return `${sign}${item.amount} affection`;
-  return `${sign}${item.amount}${currency}`;
+  return (
+    <>
+      {sign}
+      <CurrencyAmount value={item.amount} variant={currency === 'S' ? 'scoin' : 'gold'} />
+    </>
+  );
 }
 
 function getBillLineColor(item: BillLineItem): string {

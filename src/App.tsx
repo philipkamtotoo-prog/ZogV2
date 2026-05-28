@@ -20,6 +20,7 @@ function App() {
   const [loungeView, setLoungeView] = useState<AppView>('LOUNGE');
   const [isBackpackOpen, setIsBackpackOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isShopOpen, setIsShopOpen] = useState(false);
 
   const resolvedView: AppView =
     battleView === 'BETTING' ? 'BETTING' :
@@ -30,14 +31,15 @@ function App() {
 
   return (
     <div style={{ background: '#050505', color: '#eee', minHeight: '100vh' }}>
-      {resolvedView === 'LOUNGE' && (
+      {(resolvedView === 'LOUNGE' || resolvedView === 'BETTING') && (
         <LoungePage
           onEnterTV={() => useBattleStore.getState().initBattle()}
           onOpenBackpack={() => setIsBackpackOpen(true)}
-          onOpenShop={() => setLoungeView('SHOP')}
+          onOpenShop={() => setIsShopOpen(true)}
           onOpenReports={() => setLoungeView('REPORTS')}
           onOpenRoster={() => setLoungeView('ROSTER')}
           onOpenSettings={() => setIsSettingsOpen(true)}
+          shopActive={isShopOpen}
         />
       )}
       {resolvedView === 'BACKPACK' && <BackpackPage onBack={() => setLoungeView('LOUNGE')} />}
@@ -53,7 +55,8 @@ function App() {
         />
       )}
       {resolvedView === 'REPORT_DETAIL' && <ReportPage onBack={() => setLoungeView('REPORTS')} />}
-      {resolvedView === 'LOUNGE' && isBackpackOpen && <BackpackPage onBack={() => setIsBackpackOpen(false)} />}
+      {(resolvedView === 'LOUNGE' || resolvedView === 'BETTING') && isBackpackOpen && <BackpackPage onBack={() => setIsBackpackOpen(false)} />}
+      {(resolvedView === 'LOUNGE' || resolvedView === 'BETTING') && isShopOpen && <ShopPage onBack={() => setIsShopOpen(false)} />}
       {isSettingsOpen && <SettingsPage onBack={() => setIsSettingsOpen(false)} />}
     </div>
   );

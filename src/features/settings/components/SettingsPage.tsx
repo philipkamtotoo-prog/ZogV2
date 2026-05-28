@@ -142,10 +142,9 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
   };
 
   return (
-    <div className="settings-overlay" role="dialog" aria-modal="true" aria-label="设置浮层" onMouseDown={onBack}>
+    <div className="settings-overlay" role="dialog" aria-modal="true" aria-label="设置浮层">
       <div
         className="settings-modal"
-        onMouseDown={(event) => event.stopPropagation()}
         style={{ width: STAGE_WIDTH * settingsScale, height: STAGE_HEIGHT * settingsScale }}
       >
         <div className="settings-stage" style={{ transform: `scale(${settingsScale})` }}>

@@ -6,7 +6,6 @@ import {
   Texture,
   type SpritesheetData,
 } from 'pixi.js';
-import { GlowFilter } from 'pixi-filters/glow';
 
 const SHOP_ICON_LEFT = 1878;
 const SHOP_ICON_TOP = 77;
@@ -35,10 +34,9 @@ export class LoungeScene {
   private height: number;
   private shopContainer: Container;
   private shopAnimation: AnimatedSprite | null = null;
-  private shopGlowAnimation: AnimatedSprite | null = null;
-  private shopGlowFilter: GlowFilter | null = null;
   private shopSpritesheet: Spritesheet | null = null;
   private initialized = false;
+  private destroyed = false;
 
   constructor(stage: Container, width: number, height: number) {
     this.stage = stage;
@@ -56,7 +54,7 @@ export class LoungeScene {
   }
 
   async initialize(): Promise<void> {
-    if (this.initialized) return;
+    if (this.initialized || this.destroyed) return;
 
     const [jsonData, sheetTexture] = await Promise.all([
       fetch(SHOP_SHEET_JSON_URL).then(async (response) => {
@@ -68,7 +66,7 @@ export class LoungeScene {
       Assets.load<Texture>(SHOP_SHEET_IMAGE_URL),
     ]);
 
-    if (this.initialized) return;
+    if (this.initialized || this.destroyed) return;
 
     const spritesheetData: TexturePackerData = {
       ...jsonData,
@@ -81,6 +79,11 @@ export class LoungeScene {
     const spritesheet = new Spritesheet(sheetTexture.source, spritesheetData);
     await spritesheet.parse();
 
+    if (this.initialized || this.destroyed) {
+      spritesheet.destroy(false);
+      return;
+    }
+
     const frameTextures = Object.entries(spritesheet.textures)
       .sort(([leftKey], [rightKey]) => extractFrameNumber(leftKey) - extractFrameNumber(rightKey))
       .map(([, texture]) => texture);
@@ -90,31 +93,10 @@ export class LoungeScene {
     }
 
     const animation = new AnimatedSprite(frameTextures);
-    const glowAnimation = new AnimatedSprite(frameTextures);
     const scale = Math.min(
       SHOP_ICON_WIDTH / animation.texture.width,
       SHOP_ICON_HEIGHT / animation.texture.height
     );
-    const glowFilter = new GlowFilter({
-      distance: 30,
-      outerStrength: 8.5,
-      innerStrength: 1.6,
-      color: 0xb8ff6a,
-      alpha: 0.72,
-      quality: 0.35,
-      knockout: false,
-    });
-    glowFilter.padding = 56;
-
-    glowAnimation.anchor.set(0.5);
-    glowAnimation.scale.set(scale);
-    glowAnimation.animationSpeed = 0.22;
-    glowAnimation.loop = true;
-    glowAnimation.alpha = 0.88;
-    glowAnimation.tint = 0xd8ff93;
-    glowAnimation.blendMode = 'add';
-    glowAnimation.filters = [glowFilter];
-    glowAnimation.play();
 
     animation.anchor.set(0.5);
     animation.scale.set(scale);
@@ -122,12 +104,9 @@ export class LoungeScene {
     animation.loop = true;
     animation.play();
 
-    this.shopGlowAnimation = glowAnimation;
     this.shopAnimation = animation;
-    this.shopGlowFilter = glowFilter;
     this.shopSpritesheet = spritesheet;
 
-    this.shopContainer.addChild(glowAnimation);
     this.shopContainer.addChild(animation);
     this.initialized = true;
     this.resize(this.width, this.height);
@@ -143,29 +122,20 @@ export class LoungeScene {
   }
 
   setShopHover(hovered: boolean): void {
+    if (this.destroyed) return;
+
     this.shopContainer.scale.set(hovered ? 1.08 : 1);
-
-    if (this.shopGlowFilter) {
-      this.shopGlowFilter.outerStrength = hovered ? 11.5 : 8.5;
-      this.shopGlowFilter.innerStrength = hovered ? 2.3 : 1.6;
-      this.shopGlowFilter.distance = hovered ? 36 : 30;
-      this.shopGlowFilter.alpha = hovered ? 0.92 : 0.72;
-    }
-
-    if (this.shopGlowAnimation) {
-      this.shopGlowAnimation.alpha = hovered ? 1 : 0.88;
-    }
   }
 
   destroy(): void {
-    this.stage.removeChildren();
+    if (this.destroyed) return;
+
+    this.destroyed = true;
+    this.shopContainer.removeFromParent();
     this.shopAnimation?.destroy();
-    this.shopGlowAnimation?.destroy();
     this.shopContainer.destroy();
     this.shopSpritesheet?.destroy(false);
     this.shopAnimation = null;
-    this.shopGlowAnimation = null;
-    this.shopGlowFilter = null;
     this.shopSpritesheet = null;
     this.initialized = false;
   }

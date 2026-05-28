@@ -1,0 +1,628 @@
+.backpack-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(circle at 50% 48%, rgba(32, 17, 36, 0.16), rgba(0, 0, 0, 0.72) 72%),
+    rgba(0, 0, 0, 0.46);
+  color: #24170b;
+}
+
+.backpack-modal {
+  position: relative;
+}
+
+.backpack-stage {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1187px;
+  height: 938px;
+  overflow: visible;
+  font-family: "Xiaolai", "Comic Sans MS", "Trebuchet MS", sans-serif;
+  transform-origin: top left;
+}
+
+.backpack-panel-art,
+.backpack-content-mask,
+.backpack-purple-board,
+.backpack-title,
+.backpack-decor,
+.backpack-dodo {
+  position: absolute;
+  user-select: none;
+  pointer-events: none;
+}
+
+.backpack-panel-art {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  z-index: 1;
+}
+
+.backpack-purple-board {
+  z-index: 2;
+  object-fit: fill;
+}
+
+.backpack-content-mask {
+  z-index: 3;
+  object-fit: fill;
+}
+
+.backpack-pixi-glow {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+}
+
+.backpack-pixi-glow canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.backpack-title-glow-layer {
+  position: absolute;
+  z-index: 5;
+  pointer-events: none;
+  opacity: 1;
+  filter:
+    brightness(1.75)
+    saturate(2.5)
+    drop-shadow(0 0 7px rgba(179, 249, 253, 1))
+    drop-shadow(0 0 18px rgba(0, 255, 246, 0.96))
+    drop-shadow(0 0 30px rgba(255, 56, 246, 0.86))
+    drop-shadow(0 0 46px rgba(211, 217, 66, 0.9));
+  mix-blend-mode: screen;
+  animation: backpack-title-neon-pulse 0.86s steps(2, end) infinite;
+}
+
+.backpack-title-glow-layer img {
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+}
+
+.backpack-title-glow-layer::after {
+  content: "";
+  position: absolute;
+  inset: -18px;
+  background:
+    radial-gradient(circle at 38% 48%, rgba(0, 255, 246, 0.42), transparent 36%),
+    radial-gradient(circle at 66% 46%, rgba(255, 48, 240, 0.34), transparent 32%),
+    radial-gradient(circle at 52% 66%, rgba(211, 217, 66, 0.32), transparent 42%);
+  opacity: 0.9;
+  filter: blur(10px) saturate(2.3);
+  mix-blend-mode: screen;
+  animation: backpack-title-neon-burst 0.52s steps(2, end) infinite;
+}
+
+.backpack-title {
+  z-index: 6;
+  object-fit: contain;
+}
+
+.backpack-decor {
+  z-index: 5;
+  object-fit: contain;
+}
+
+.backpack-dodo {
+  z-index: 6;
+  object-fit: contain;
+  transform-origin: 52% 78%;
+  animation: backpack-dodo-nod 3.8s ease-in-out infinite;
+}
+
+.backpack-close,
+.backpack-tab-button {
+  position: absolute;
+  z-index: 8;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+}
+
+.backpack-close img,
+.backpack-tab-button img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.backpack-close {
+  filter: drop-shadow(0 4px 3px rgba(0, 0, 0, 0.38));
+  transition: transform 140ms ease, filter 140ms ease;
+  transform-origin: center;
+}
+
+.backpack-close:hover {
+  transform: scale(1.08) rotate(3deg);
+  filter:
+    brightness(1.08)
+    drop-shadow(0 0 13px rgba(255, 132, 80, 0.78))
+    drop-shadow(0 6px 4px rgba(0, 0, 0, 0.32));
+}
+
+.backpack-currency,
+.backpack-battle-grid,
+.backpack-snack-scroll,
+.backpack-snack-grid,
+.backpack-description,
+.backpack-quickbar,
+.backpack-use-limit {
+  position: absolute;
+  z-index: 7;
+  box-sizing: border-box;
+}
+
+.backpack-currency {
+  display: grid;
+  grid-template-columns: 34% 1fr;
+  align-items: center;
+  gap: 2%;
+  color: #fff1bd;
+  text-shadow:
+    0 2px 0 rgba(0, 0, 0, 0.72),
+    0 0 9px rgba(255, 220, 79, 0.56);
+}
+
+.backpack-currency img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.backpack-currency strong {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 25px;
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.backpack-battle-grid {
+  overflow: visible;
+}
+
+.backpack-item-card,
+.backpack-snack-card {
+  position: absolute;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: #221409;
+  cursor: grab;
+  text-align: center;
+  filter: drop-shadow(0 4px 2px rgba(88, 49, 22, 0.22));
+}
+
+.backpack-item-card:active {
+  cursor: grabbing;
+}
+
+.backpack-item-card.is-selected,
+.backpack-snack-card.is-selected {
+  filter:
+    drop-shadow(0 0 7px rgba(255, 230, 108, 0.86))
+    drop-shadow(0 4px 2px rgba(88, 49, 22, 0.22));
+}
+
+.backpack-item-base {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  pointer-events: none;
+}
+
+.backpack-item-name {
+  position: absolute;
+  left: 11%;
+  right: 11%;
+  top: 11%;
+  overflow: hidden;
+  font-size: 22px;
+  font-weight: 900;
+  line-height: 1.08;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.backpack-item-icon {
+  position: absolute;
+  left: 27%;
+  top: 25%;
+  width: 46%;
+  height: 45%;
+  object-fit: contain;
+}
+
+.backpack-item-icon.is-draggable-icon {
+  cursor: grab;
+  pointer-events: auto;
+}
+
+.backpack-item-icon.is-draggable-icon:active {
+  cursor: grabbing;
+}
+
+.backpack-item-count {
+  position: absolute;
+  right: 15%;
+  top: 25%;
+  min-width: 24px;
+  padding: 1px 5px 2px;
+  border-radius: 4px;
+  background: #2e6a2f;
+  color: #efffe9;
+  font-size: 14px;
+  font-weight: 900;
+  line-height: 1;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.48);
+}
+
+.backpack-item-effect {
+  position: absolute;
+  left: 18%;
+  bottom: 12%;
+  display: grid;
+  place-items: center;
+  min-width: 78px;
+  min-height: 25px;
+  color: #2b1709;
+  font-size: 17px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.backpack-item-effect mark {
+  display: block;
+  min-width: 68px;
+  padding: 6px 10px 5px;
+  border: 1px solid rgba(120, 78, 28, 0.34);
+  border-radius: 6px;
+  background:
+    radial-gradient(circle at 25% 10%, rgba(255, 255, 215, 0.86), transparent 42%),
+    linear-gradient(180deg, rgba(255, 236, 154, 0.98), rgba(238, 181, 71, 0.95));
+  color: #2b1709;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.62),
+    0 0 8px rgba(255, 213, 84, 0.42);
+}
+
+.backpack-description {
+  display: grid;
+  grid-template-rows: auto 132px auto auto minmax(0, 1fr) auto;
+  gap: 10px;
+  padding: 24px 18px 18px;
+  overflow: hidden;
+}
+
+.backpack-description h3 {
+  margin: 0;
+  overflow: hidden;
+  color: #201107;
+  font-size: 25px;
+  line-height: 1.08;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.backpack-description > img {
+  justify-self: center;
+  width: 126px;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 2px rgba(68, 38, 17, 0.32));
+}
+
+.backpack-description-stats {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px;
+  padding-top: 9px;
+  border-top: 1px solid rgba(92, 56, 30, 0.35);
+}
+
+.backpack-description-line {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  min-width: 0;
+}
+
+.backpack-description-line strong {
+  color: #211208;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.backpack-description-line span {
+  display: block;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: #381c0a;
+  font-size: 14px;
+  font-weight: 900;
+  line-height: 1.18;
+}
+
+.backpack-description p {
+  min-height: 0;
+  margin: 0;
+  font-weight: 800;
+  line-height: 1.26;
+}
+
+.backpack-description-rule {
+  color: #5b2419;
+  font-size: 18px;
+  line-height: 1.22;
+}
+
+.backpack-description-flavor {
+  align-self: end;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(92, 56, 30, 0.28);
+  color: #000;
+  font-size: 15px;
+  line-height: 1.26;
+}
+
+.backpack-description small {
+  color: #261408;
+  font-size: 17px;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.backpack-snack-scroll {
+  overflow-y: auto;
+  overflow-x: hidden;
+  width: 724px !important;
+  padding-right: 28px;
+  scrollbar-gutter: stable;
+}
+
+.backpack-snack-grid {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(3, 219px);
+  grid-auto-rows: 224px;
+  gap: 12px 13px;
+  width: 683px;
+  min-height: 696px;
+  padding-bottom: 12px;
+}
+
+.backpack-snack-card {
+  position: relative;
+  width: 219px;
+  height: 224px;
+  cursor: pointer;
+}
+
+.backpack-snack-icon {
+  position: absolute;
+  left: 19%;
+  top: 28%;
+  width: 62%;
+  height: 42%;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.backpack-snack-card span {
+  position: absolute;
+  left: 11%;
+  right: 9%;
+  top: 12%;
+  overflow: hidden;
+  color: #261608;
+  font-size: 22px;
+  font-weight: 900;
+  line-height: 1.08;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.backpack-snack-count {
+  position: absolute;
+  right: 13%;
+  top: 25%;
+  min-width: 28px;
+  padding: 2px 6px 3px;
+  border-radius: 5px;
+  background: #2e6a2f;
+  color: #efffe9;
+  font-size: 15px;
+  font-weight: 900;
+  line-height: 1;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.48);
+}
+
+.backpack-snack-card small {
+  position: absolute;
+  left: 50%;
+  bottom: 11%;
+  min-width: 126px;
+  padding: 5px 10px 4px;
+  border: 1px solid rgba(120, 78, 28, 0.34);
+  border-radius: 6px;
+  background:
+    radial-gradient(circle at 25% 10%, rgba(255, 255, 215, 0.86), transparent 42%),
+    linear-gradient(180deg, rgba(255, 236, 154, 0.98), rgba(238, 181, 71, 0.95));
+  color: #48260f;
+  font-size: 16px;
+  font-weight: 900;
+  line-height: 1.1;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.62),
+    0 0 8px rgba(255, 213, 84, 0.32);
+  text-overflow: ellipsis;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+.backpack-description.is-snack {
+  grid-template-rows: auto 144px auto auto minmax(0, 1fr) auto;
+}
+
+.backpack-quickbar {
+  position: absolute;
+  inset: 0;
+  z-index: 7;
+  pointer-events: none;
+}
+
+.backpack-quick-slot {
+  position: absolute;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.backpack-quick-slot::after {
+  content: "";
+  position: absolute;
+  inset: 12%;
+  border: 1px dashed rgba(80, 46, 21, 0.24);
+  border-radius: 8px;
+  pointer-events: none;
+}
+
+.backpack-quick-slot.has-item::after {
+  display: none;
+}
+
+.backpack-quick-base {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  pointer-events: none;
+}
+
+.backpack-quick-icon {
+  position: absolute;
+  left: 19%;
+  top: 12%;
+  width: 62%;
+  height: 64%;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.backpack-quick-slot span {
+  position: absolute;
+  right: 12%;
+  bottom: 10%;
+  color: #211308;
+  font-size: 18px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.backpack-use-limit {
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  color: #9f250d;
+  font-size: 21px;
+  font-weight: 900;
+  line-height: 1;
+  text-shadow:
+    0 1px 0 rgba(255, 238, 181, 0.95),
+    0 0 6px rgba(255, 213, 84, 0.36);
+}
+
+@keyframes backpack-title-neon-pulse {
+  0%, 100% {
+    opacity: 0.42;
+    transform: translateZ(0) scale(1);
+    filter:
+      brightness(1.15)
+      saturate(1.8)
+      drop-shadow(0 0 4px rgba(179, 249, 253, 0.72))
+      drop-shadow(0 0 14px rgba(0, 255, 246, 0.7))
+      drop-shadow(0 0 24px rgba(255, 56, 246, 0.5));
+  }
+  8%, 18%, 54% {
+    opacity: 1;
+    transform: translateZ(0) scale(1.04);
+    filter:
+      brightness(3.2)
+      contrast(1.18)
+      saturate(4)
+      drop-shadow(0 0 8px rgba(255, 255, 255, 1))
+      drop-shadow(0 0 22px rgba(179, 249, 253, 1))
+      drop-shadow(0 0 40px rgba(0, 255, 246, 1))
+      drop-shadow(0 0 64px rgba(255, 56, 246, 0.95))
+      drop-shadow(0 0 84px rgba(211, 217, 66, 0.95));
+  }
+  24%, 62% {
+    opacity: 0.22;
+    transform: translateZ(0) scale(0.995);
+  }
+}
+
+@keyframes backpack-title-neon-burst {
+  0%, 100% {
+    opacity: 0.18;
+    transform: scale(0.98);
+  }
+  12%, 38% {
+    opacity: 1;
+    transform: scale(1.12);
+  }
+}
+
+@keyframes backpack-dodo-nod {
+  0%,
+  100% {
+    transform: rotate(0deg) translateY(0);
+  }
+
+  46% {
+    transform: rotate(0deg) translateY(0);
+  }
+
+  54% {
+    transform: rotate(4deg) translateY(2px);
+  }
+
+  62% {
+    transform: rotate(-2deg) translateY(1px);
+  }
+}
+
+.backpack-snack-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+
+.backpack-snack-scroll::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(99, 55, 25, 0.36);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .backpack-title-glow-layer,
+  .backpack-dodo {
+    animation: none;
+  }
+}

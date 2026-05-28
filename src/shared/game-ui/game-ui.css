@@ -25,8 +25,26 @@
 
 .game-currency-display {
   display: inline-grid;
-  grid-template-columns: max-content max-content;
+  grid-auto-flow: column;
+  grid-auto-columns: max-content;
   align-items: center;
+  gap: 5px;
+}
+
+.game-currency-icon {
+  display: block;
+  width: 1.15em;
+  height: 1.15em;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+}
+
+.game-currency-amount {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  white-space: nowrap;
 }
 
 .game-currency-display strong {
@@ -36,4 +54,3 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-

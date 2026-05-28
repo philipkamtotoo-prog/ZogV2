@@ -58,6 +58,10 @@ export function LoungePixiCanvas({
         height,
         zIndex: 9,
         pointerEvents: 'none',
+        filter: shopHovered
+          ? 'drop-shadow(0 0 5px rgba(184, 255, 106, 0.95)) drop-shadow(0 0 13px rgba(184, 255, 106, 0.78)) drop-shadow(0 0 26px rgba(184, 255, 106, 0.46))'
+          : 'drop-shadow(0 0 4px rgba(184, 255, 106, 0.68)) drop-shadow(0 0 11px rgba(184, 255, 106, 0.42))',
+        transition: 'filter 160ms ease',
       }}
     />
   );
