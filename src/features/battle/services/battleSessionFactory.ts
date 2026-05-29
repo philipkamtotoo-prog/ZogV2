@@ -6,6 +6,7 @@
 
 import type { ActorTemplate } from '../../../core/battle/initialState';
 import { DEFAULT_ROSTER, getUnlockedActors, type RosterActor } from '../../actors/actorRoster';
+import { applyPotentialToRosterActor, type ActorPotentialStats } from '../../actors/actorPotential';
 import { randomInt } from '../../../core/battle/rng';
 import { createBattleEngine, type EngineHooks } from '../../../engine/battleEngine';
 import { createLLMActorBrainProvider } from '../../../llm/llmActorBrainProvider';
@@ -38,8 +39,15 @@ function drawEpisodeRoster(seed: string, rerollIndex: number, count = 5, unlocke
   return picked;
 }
 
-function buildRosterTemplates(seed: string, rerollIndex: number, unlockedActorIds: string[]): ActorTemplate[] {
-  return drawEpisodeRoster(seed, rerollIndex, 5, unlockedActorIds).map((r) => ({
+function buildRosterTemplates(
+  seed: string,
+  rerollIndex: number,
+  unlockedActorIds: string[],
+  actorPotential: Record<string, ActorPotentialStats> = {},
+): ActorTemplate[] {
+  return drawEpisodeRoster(seed, rerollIndex, 5, unlockedActorIds).map((baseActor) => {
+    const r = applyPotentialToRosterActor(baseActor, actorPotential[baseActor.actorId]);
+    return {
     actorId: r.actorId,
     name: r.name,
     ATK: r.baseATK,
@@ -47,7 +55,8 @@ function buildRosterTemplates(seed: string, rerollIndex: number, unlockedActorId
     SPD: r.baseSPD,
     baseThreat: r.baseThreat,
     maxHP: r.baseHP ?? 100,
-  }));
+    };
+  });
 }
 
 interface BattleStoreSnapshot {
@@ -82,6 +91,7 @@ export function createBattleSession(
   seed: string,
   rerollIndex: number,
   unlockedActorIds: string[],
+  actorPotential: Record<string, ActorPotentialStats>,
   getState: () => BattleStoreSnapshot,
   setState: SetStateFn,
   engineRef: { current: ReturnType<typeof createBattleEngine> | null }
@@ -114,7 +124,7 @@ export function createBattleSession(
     maxRetries: 2,
   });
 
-  const templates = buildRosterTemplates(seed, rerollIndex, unlockedActorIds);
+  const templates = buildRosterTemplates(seed, rerollIndex, unlockedActorIds, actorPotential);
   const engineId = `engine_${Date.now()}`;
   const capturedId = engineId;
 

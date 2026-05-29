@@ -1,6 +1,12 @@
 import { useEffect, useMemo, useState, type CSSProperties, type MouseEvent } from 'react';
 import { DEFAULT_ROSTER, type RosterActor } from '../actorRoster';
-import { ACTOR_GIFT_TIERS, useLoungeStore } from '../../lounge/loungeStore';
+import {
+  ACTOR_GIFT_TIERS,
+  ACTOR_POTENTIAL_TRAIN_SHARD_COST,
+  ACTOR_SHARDS_TO_UNLOCK,
+  useLoungeStore,
+} from '../../lounge/loungeStore';
+import { ACTOR_POTENTIAL_MAX_POINTS, createEmptyActorPotential } from '../actorPotential';
 import { CurrencyDisplay, FixedStage, assetPath as gameAssetPath } from '../../../shared/game-ui';
 import { BrokerPixiCanvas } from './BrokerPixiCanvas';
 import { hasActorArt } from '../renderer/actorArtRegistry';
@@ -129,8 +135,12 @@ export function BrokerOfficePage({ onBack }: BrokerOfficePageProps) {
     actorAffection,
     actorSalary,
     actorPurchases,
+    actorContractShards,
+    actorPotential,
     giftActor,
     spendActorSalary,
+    unlockActorByShards,
+    trainActorPotential,
   } = useLoungeStore();
 
   const actors = useMemo<BrokerActorEntry[]>(() => {
@@ -175,7 +185,19 @@ export function BrokerOfficePage({ onBack }: BrokerOfficePageProps) {
   const selectedActor = actors.find((actor) => actor.actorId === selectedActorId) ?? actors[0] ?? null;
   const selectedActorSalary = selectedActor ? actorSalary[selectedActor.actorId] ?? 0 : 0;
   const selectedActorPurchases = selectedActor ? actorPurchases[selectedActor.actorId] ?? [] : [];
+  const selectedActorShards = selectedActor ? actorContractShards[selectedActor.actorId] ?? 0 : 0;
+  const selectedActorPotential = selectedActor
+    ? actorPotential[selectedActor.actorId] ?? createEmptyActorPotential()
+    : createEmptyActorPotential();
+  const canUnlockSelectedByShards = Boolean(
+    selectedActor && !selectedActor.unlocked && selectedActorShards >= ACTOR_SHARDS_TO_UNLOCK,
+  );
+  const canTrainSelectedPotential = Boolean(
+    selectedActor?.unlocked && selectedActorShards >= ACTOR_POTENTIAL_TRAIN_SHARD_COST,
+  );
   const selectedActorHasArt = hasActorArt(selectedActor?.actorId);
+  const [isPotentialPanelOpen, setIsPotentialPanelOpen] = useState(false);
+  const [potentialMessage, setPotentialMessage] = useState<string | null>(null);
 
   const requestActorAction = () => {
     setActorActionRequestId((current) => current + 1);
@@ -186,7 +208,7 @@ export function BrokerOfficePage({ onBack }: BrokerOfficePageProps) {
     if (!(target instanceof HTMLElement)) return;
 
     const isControlClick = Boolean(
-      target.closest('.broker-list-card, .broker-exit-button, .broker-appearance-button, .broker-gift-button'),
+      target.closest('.broker-list-card, .broker-exit-button, .broker-appearance-button, .broker-gift-button, .broker-shard-button, .broker-potential-button, .broker-potential-panel'),
     );
     if (isControlClick) return;
 
@@ -281,6 +303,82 @@ export function BrokerOfficePage({ onBack }: BrokerOfficePageProps) {
               variant="scoin"
             />
           </>
+        ) : null}
+
+        {selectedActor ? (
+          <button
+            className="broker-potential-button"
+            onClick={() => {
+              setPotentialMessage(null);
+              setIsPotentialPanelOpen(true);
+            }}
+            style={{
+              ...absBox(1740, 314, 210, 66),
+              zIndex: 12,
+              border: '1px solid rgba(83, 45, 24, 0.32)',
+              background: 'rgba(255, 232, 173, 0.52)',
+              color: '#2d2115',
+              cursor: 'pointer',
+              fontWeight: 900,
+              textAlign: 'left',
+              padding: '7px 10px',
+            }}
+            type="button"
+          >
+            <div>合同碎片 {selectedActorShards}/{ACTOR_SHARDS_TO_UNLOCK}</div>
+            <div style={{ fontSize: 12 }}>潜能 {selectedActorPotential.totalPotentialPoints}/{ACTOR_POTENTIAL_MAX_POINTS}</div>
+          </button>
+        ) : null}
+
+        {selectedActor && isPotentialPanelOpen ? (
+          <section className="broker-potential-panel" style={potentialPanelStyle}>
+            <button
+              onClick={() => setIsPotentialPanelOpen(false)}
+              style={potentialCloseStyle}
+              type="button"
+            >
+              ×
+            </button>
+            <h2 style={{ margin: '0 0 8px' }}>{selectedActor.name} 养成</h2>
+            <p style={{ margin: '0 0 10px', color: '#4f3c28' }}>
+              合同碎片 {selectedActorShards}/{ACTOR_SHARDS_TO_UNLOCK} · 训练消耗 {ACTOR_POTENTIAL_TRAIN_SHARD_COST} 碎片
+            </p>
+            <div style={potentialGridStyle}>
+              <span>HP +{selectedActorPotential.hpBonus}</span>
+              <span>ATK +{selectedActorPotential.atkBonus}</span>
+              <span>DEF +{selectedActorPotential.defBonus}</span>
+              <span>SPD +{selectedActorPotential.spdBonus}</span>
+              <span>THREAT -{selectedActorPotential.threatReduction}</span>
+              <span>总潜能 {selectedActorPotential.totalPotentialPoints}/{ACTOR_POTENTIAL_MAX_POINTS}</span>
+            </div>
+            <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+              <button
+                className="broker-shard-button"
+                disabled={!canUnlockSelectedByShards}
+                onClick={() => {
+                  const ok = unlockActorByShards(selectedActor.actorId);
+                  setPotentialMessage(ok ? '碎片签约成功。' : '碎片不足或演员已解锁。');
+                }}
+                style={potentialActionStyle(canUnlockSelectedByShards)}
+                type="button"
+              >
+                碎片签约
+              </button>
+              <button
+                className="broker-potential-button"
+                disabled={!canTrainSelectedPotential}
+                onClick={() => {
+                  const result = trainActorPotential(selectedActor.actorId);
+                  setPotentialMessage(result?.toast ?? '训练失败：需要已解锁演员和足够碎片。');
+                }}
+                style={potentialActionStyle(canTrainSelectedPotential)}
+                type="button"
+              >
+                潜能训练
+              </button>
+            </div>
+            {potentialMessage ? <p style={{ margin: '10px 0 0', fontWeight: 900 }}>{potentialMessage}</p> : null}
+          </section>
         ) : null}
 
         {APPEARANCE_OPTIONS.map((appearance) => {
@@ -378,6 +476,54 @@ function absBox(left: number, top: number, width: number, height: number): CSSPr
 
 function sourceCenteredBox(centerX: number, centerY: number, width: number, height: number): CSSProperties {
   return absBox(centerX - SOURCE_STAGE_OFFSET_X - width / 2, centerY - height / 2, width, height);
+}
+
+const potentialPanelStyle: CSSProperties = {
+  position: 'absolute',
+  left: 1380,
+  top: 260,
+  width: 560,
+  minHeight: 300,
+  zIndex: 80,
+  padding: 22,
+  border: '2px solid rgba(75, 47, 25, 0.52)',
+  background: 'rgba(246, 222, 168, 0.96)',
+  color: '#2d2115',
+  boxShadow: '0 18px 60px rgba(0, 0, 0, 0.38)',
+};
+
+const potentialCloseStyle: CSSProperties = {
+  position: 'absolute',
+  right: 10,
+  top: 8,
+  width: 34,
+  height: 34,
+  border: '1px solid rgba(75, 47, 25, 0.35)',
+  background: 'rgba(255,255,255,0.36)',
+  cursor: 'pointer',
+  fontSize: 22,
+  fontWeight: 900,
+};
+
+const potentialGridStyle: CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+  gap: 8,
+  padding: 12,
+  border: '1px dashed rgba(75, 47, 25, 0.36)',
+  background: 'rgba(255,255,255,0.28)',
+  fontWeight: 800,
+};
+
+function potentialActionStyle(enabled: boolean): CSSProperties {
+  return {
+    padding: '8px 12px',
+    border: '1px solid rgba(69, 48, 31, 0.38)',
+    background: enabled ? '#8bd461' : 'rgba(255,255,255,0.42)',
+    color: enabled ? '#172412' : 'rgba(45, 33, 21, 0.52)',
+    cursor: enabled ? 'pointer' : 'not-allowed',
+    fontWeight: 900,
+  };
 }
 
 function getAffinityProgress(affection: number): { tier: number; percent: number; display: string } {

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { getAllItems, type ItemDef } from '../../../core/economy/items';
 import { ZOG_GIFTS, getZogGiftAffectionRange, type ZogGiftDef } from '../../zog/zogAffinity';
-import { EQUIPMENT_UPGRADE_COSTS, FRIDGE_USES, KEYBOARD_LIMITS, useLoungeStore } from '../../lounge/loungeStore';
+import { EQUIPMENT_UPGRADE_COSTS, FRIDGE_USES, KEYBOARD_LIMITS, getRandomActorShardPurchaseCost, useLoungeStore } from '../../lounge/loungeStore';
 import { CurrencyAmount } from '../../../shared/game-ui';
 import { buyItem } from '../shopStore';
 import { ShopGlowPixiCanvas } from './ShopGlowPixiCanvas';
@@ -92,10 +92,21 @@ const TAB_ART: Record<ShopTab, { icon: string; text: string; label: string }> = 
 };
 
 export function ShopPage({ onBack }: ShopPageProps) {
-  const { gold, inventory, zogGiftInventory, fridgeLevel, keyboardLevel, upgradeEquipment, buyZogGiftById } = useLoungeStore();
+  const {
+    gold,
+    inventory,
+    zogGiftInventory,
+    fridgeLevel,
+    keyboardLevel,
+    randomShardPurchaseCount,
+    upgradeEquipment,
+    buyZogGiftById,
+    buyRandomActorShard,
+  } = useLoungeStore();
   const shopScale = useShopScale();
   const [activeTab, setActiveTab] = useState<ShopTab>('battle');
   const [quantity, setQuantity] = useState(1);
+  const [shopToast, setShopToast] = useState<string | null>(null);
   const battleEntries = useMemo<ShopEntry[]>(() => getAllItems().map((item) => ({
     kind: 'battle',
     id: item.itemId,
@@ -121,6 +132,8 @@ export function ShopPage({ onBack }: ShopPageProps) {
   const equipmentLevel = Math.max(fridgeLevel, keyboardLevel);
   const nextEquipmentCost = EQUIPMENT_UPGRADE_COSTS[equipmentLevel] ?? Infinity;
   const canUpgradeEquipment = equipmentLevel < 5 && gold >= nextEquipmentCost;
+  const randomShardCost = getRandomActorShardPurchaseCost(randomShardPurchaseCount);
+  const canBuyRandomShard = gold >= randomShardCost;
   const totalCost = selected ? selected.cost * quantity : 0;
   const canBuySelected = selected ? gold >= totalCost : false;
 
@@ -144,6 +157,11 @@ export function ShopPage({ onBack }: ShopPageProps) {
       return;
     }
     buyZogGiftById(selected.gift.giftId, quantity);
+  };
+
+  const handleBuyRandomShard = () => {
+    const result = buyRandomActorShard();
+    setShopToast(result ? result.toast : 'G 不够，随机碎片售货口拒绝吐票。');
   };
 
   const incrementQuantity = () => {
@@ -197,7 +215,12 @@ export function ShopPage({ onBack }: ShopPageProps) {
             <EquipmentUpgradePanel
               canUpgrade={canUpgradeEquipment}
               equipmentLevel={equipmentLevel}
+              canBuyRandomShard={canBuyRandomShard}
+              randomShardCost={randomShardCost}
+              randomShardPurchaseCount={randomShardPurchaseCount}
+              shardToast={shopToast}
               nextCost={nextEquipmentCost}
+              onBuyRandomShard={handleBuyRandomShard}
               onUpgrade={upgradeEquipment}
             />
           ) : (
@@ -310,15 +333,25 @@ function ShopDetailPanel({
 }
 
 function EquipmentUpgradePanel({
+  canBuyRandomShard,
   canUpgrade,
   equipmentLevel,
   nextCost,
+  onBuyRandomShard,
   onUpgrade,
+  randomShardCost,
+  randomShardPurchaseCount,
+  shardToast,
 }: {
+  canBuyRandomShard: boolean;
   canUpgrade: boolean;
   equipmentLevel: number;
   nextCost: number;
+  onBuyRandomShard: () => void;
   onUpgrade: () => void;
+  randomShardCost: number;
+  randomShardPurchaseCount: number;
+  shardToast: string | null;
 }) {
   return (
     <section className="shop-equipment-panel" style={box(144, 392, 1124, 542)}>
@@ -335,6 +368,17 @@ function EquipmentUpgradePanel({
         </div>
         <button disabled={!canUpgrade} onClick={onUpgrade} type="button">
           {equipmentLevel >= 5 ? 'MAX' : <>升级 <CurrencyAmount value={nextCost} variant="gold" /></>}
+        </button>
+      </div>
+      <div className="shop-tech-placeholder" style={{ marginTop: 18 }}>
+        <div>
+          <strong>随机演员合同碎片</strong>
+          <p>从全部演员里随机获得 1 个绑定合同碎片。购买次数越多越贵，不重置。</p>
+          <p>已购买 {randomShardPurchaseCount} 次，下一次价格 {randomShardCost}G。</p>
+          {shardToast ? <p style={{ color: '#1c7f57', fontWeight: 800 }}>{shardToast}</p> : null}
+        </div>
+        <button disabled={!canBuyRandomShard} onClick={onBuyRandomShard} type="button">
+          购买 <CurrencyAmount value={randomShardCost} variant="gold" />
         </button>
       </div>
     </section>

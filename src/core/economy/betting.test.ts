@@ -58,6 +58,16 @@ describe('betting', () => {
     expect(strongOdds).toBeLessThan(weakOdds);
   });
 
+  it('uses combat-state final stats so potential can affect odds', () => {
+    const actors = [
+      makeActor('boosted', 150, 30, 20, 10, 1),
+      makeActor('normal', 100, 18, 8, 6, 22),
+    ];
+
+    expect(calculateOdds(actors[0], actors)).toBe(1.5);
+    expect(calculateOdds(actors[1], actors)).toBe(2.0);
+  });
+
   it('dead actors are excluded from odds calculation', () => {
     const actors = [
       makeActor('a', 100, 18, 8, 6, 22),

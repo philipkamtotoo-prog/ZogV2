@@ -10,6 +10,7 @@ import { BrokerOfficePage } from './features/actors/components/BrokerOfficePage'
 import { ReportCollectionPage } from './features/reports/components/ReportCollectionPage';
 import { ReportPage } from './features/reports/components/ReportPage';
 import { SettingsPage } from './features/settings/components/SettingsPage';
+import { GachaPanel } from './features/gacha/components/GachaPanel';
 import { useReportStore } from './features/reports/reportStore';
 
 type AppView = 'LOUNGE' | 'BACKPACK' | 'BETTING' | 'BATTLE' | 'RESULTS' | 'SHOP' | 'ROSTER' | 'REPORTS' | 'REPORT_DETAIL';
@@ -21,6 +22,7 @@ function App() {
   const [isBackpackOpen, setIsBackpackOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isShopOpen, setIsShopOpen] = useState(false);
+  const [isGachaOpen, setIsGachaOpen] = useState(false);
 
   const resolvedView: AppView =
     battleView === 'BETTING' ? 'BETTING' :
@@ -39,6 +41,7 @@ function App() {
           onOpenReports={() => setLoungeView('REPORTS')}
           onOpenRoster={() => setLoungeView('ROSTER')}
           onOpenSettings={() => setIsSettingsOpen(true)}
+          onOpenGacha={() => setIsGachaOpen(true)}
           shopActive={isShopOpen}
         />
       )}
@@ -57,6 +60,7 @@ function App() {
       {resolvedView === 'REPORT_DETAIL' && <ReportPage onBack={() => setLoungeView('REPORTS')} />}
       {(resolvedView === 'LOUNGE' || resolvedView === 'BETTING') && isBackpackOpen && <BackpackPage onBack={() => setIsBackpackOpen(false)} />}
       {(resolvedView === 'LOUNGE' || resolvedView === 'BETTING') && isShopOpen && <ShopPage onBack={() => setIsShopOpen(false)} />}
+      {(resolvedView === 'LOUNGE' || resolvedView === 'BETTING') && isGachaOpen && <GachaPanel onClose={() => setIsGachaOpen(false)} />}
       {isSettingsOpen && <SettingsPage onBack={() => setIsSettingsOpen(false)} />}
     </div>
   );

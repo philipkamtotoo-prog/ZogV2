@@ -123,8 +123,17 @@ export const useBattleStore = create<BattleStore>((set, get) => ({
     const itemUses = useLoungeStore.getState().fridgeItemUseLimit;
 
     engineRef.current = null;
-    const unlockedActorIds = useLoungeStore.getState().unlockedActorIds;
-    const session = createBattleSession(battleSeed, rerollIndex, unlockedActorIds, get, set as Parameters<typeof createBattleSession>[4], engineRef);
+    const loungeState = useLoungeStore.getState();
+    const unlockedActorIds = loungeState.unlockedActorIds;
+    const session = createBattleSession(
+      battleSeed,
+      rerollIndex,
+      unlockedActorIds,
+      loungeState.actorPotential,
+      get,
+      set as Parameters<typeof createBattleSession>[5],
+      engineRef
+    );
 
     session.engine.init(battleSeed, session.templates.length, session.templates, itemUses, {
       actorPromptInjections,
@@ -412,8 +421,17 @@ export const useBattleStore = create<BattleStore>((set, get) => ({
     const itemUses = useLoungeStore.getState().fridgeItemUseLimit;
 
     engineRef.current = null;
-    const unlockedActorIds = useLoungeStore.getState().unlockedActorIds;
-    const session = createBattleSession(battleState.battleSeed, nextRerollIndex, unlockedActorIds, get, set as Parameters<typeof createBattleSession>[4], engineRef);
+    const loungeState = useLoungeStore.getState();
+    const unlockedActorIds = loungeState.unlockedActorIds;
+    const session = createBattleSession(
+      battleState.battleSeed,
+      nextRerollIndex,
+      unlockedActorIds,
+      loungeState.actorPotential,
+      get,
+      set as Parameters<typeof createBattleSession>[5],
+      engineRef
+    );
 
     session.engine.init(battleState.battleSeed, session.templates.length, session.templates, itemUses, {
       selectedMutation: get().selectedMutation ?? undefined,

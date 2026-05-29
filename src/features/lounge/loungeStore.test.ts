@@ -1,5 +1,14 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { EQUIPMENT_UPGRADE_COSTS, FRIDGE_USES, KEYBOARD_LIMITS, useLoungeStore, ZOG_GIFT_TIERS } from './loungeStore';
+import {
+  ACTOR_GACHA_SINGLE_COST,
+  ACTOR_SHARDS_TO_UNLOCK,
+  EQUIPMENT_UPGRADE_COSTS,
+  FRIDGE_USES,
+  KEYBOARD_LIMITS,
+  getRandomActorShardPurchaseCost,
+  useLoungeStore,
+  ZOG_GIFT_TIERS,
+} from './loungeStore';
 
 function resetLounge(partial: Partial<ReturnType<typeof useLoungeStore.getState>> = {}) {
   useLoungeStore.setState({
@@ -21,6 +30,12 @@ function resetLounge(partial: Partial<ReturnType<typeof useLoungeStore.getState>
     actorPermanentPrompts: {},
     zogGiftAttempts: 0,
     lastZogGiftResult: null,
+    actorContractShards: {},
+    gachaPullCount: 0,
+    gachaShardPityCount: 0,
+    randomShardPurchaseCount: 0,
+    lastGachaResults: [],
+    actorPotential: {},
     ...partial,
   });
 }
@@ -89,5 +104,59 @@ describe('loungeStore Phase 0 economy rules', () => {
 
     expect(result?.giftId).toBe('expired-star-chips');
     expect(useLoungeStore.getState().zogGiftInventory['expired-star-chips']).toBe(2);
+  });
+
+  it('spends gold and records actor gacha rewards', () => {
+    resetLounge({ gold: ACTOR_GACHA_SINGLE_COST });
+
+    const results = useLoungeStore.getState().pullActorGacha(1);
+
+    expect(results).toHaveLength(1);
+    expect(useLoungeStore.getState().gachaPullCount).toBe(1);
+    expect(useLoungeStore.getState().lastGachaResults).toHaveLength(1);
+    expect(useLoungeStore.getState().gold).toBeGreaterThanOrEqual(0);
+    expect(useLoungeStore.getState().gold).toBeLessThanOrEqual(ACTOR_GACHA_SINGLE_COST);
+  });
+
+  it('unlocks an actor with bound contract shards', () => {
+    resetLounge({
+      actorContractShards: { glitch_witch: ACTOR_SHARDS_TO_UNLOCK },
+    });
+
+    const unlocked = useLoungeStore.getState().unlockActorByShards('glitch_witch');
+
+    expect(unlocked).toBe(true);
+    expect(useLoungeStore.getState().unlockedActorIds).toContain('glitch_witch');
+    expect(useLoungeStore.getState().actorContractShards.glitch_witch).toBeUndefined();
+  });
+
+  it('buys random actor shards with permanent increasing price', () => {
+    resetLounge({ gold: getRandomActorShardPurchaseCost(0) + getRandomActorShardPurchaseCost(1) });
+
+    const first = useLoungeStore.getState().buyRandomActorShard();
+    const second = useLoungeStore.getState().buyRandomActorShard();
+
+    const shardTotal = Object.values(useLoungeStore.getState().actorContractShards).reduce((sum, count) => sum + count, 0);
+    expect(first?.kind).toBe('ACTOR_SHARD');
+    expect(second?.kind).toBe('ACTOR_SHARD');
+    expect(shardTotal).toBe(2);
+    expect(useLoungeStore.getState().randomShardPurchaseCount).toBe(2);
+    expect(useLoungeStore.getState().gold).toBe(0);
+  });
+
+  it('trains unlocked actor potential with bound shards', () => {
+    resetLounge({
+      actorContractShards: { cybercat: 5 },
+    });
+
+    const result = useLoungeStore.getState().trainActorPotential('cybercat');
+    const state = useLoungeStore.getState();
+    const totalStatPotential = state.actorPotential.cybercat?.totalPotentialPoints ?? 0;
+    const salaryReward = state.actorSalary.cybercat ?? 0;
+    const affectionReward = state.actorAffection.cybercat ?? 0;
+
+    expect(result).not.toBeNull();
+    expect(state.actorContractShards.cybercat).toBeUndefined();
+    expect(totalStatPotential + salaryReward + affectionReward).toBeGreaterThan(0);
   });
 });

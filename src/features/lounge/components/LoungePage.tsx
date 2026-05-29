@@ -12,6 +12,7 @@ interface LoungePageProps {
   onOpenReports: () => void;
   onOpenRoster: () => void;
   onOpenSettings: () => void;
+  onOpenGacha: () => void;
   shopActive?: boolean;
 }
 
@@ -73,6 +74,7 @@ export function LoungePage({
   onOpenReports,
   onOpenRoster,
   onOpenSettings,
+  onOpenGacha,
   shopActive = false,
 }: LoungePageProps) {
   const gold = useLoungeStore((s) => s.gold);
@@ -96,6 +98,7 @@ export function LoungePage({
     { key: 'backpack', left: 1742, top: 116, width: 125, height: 155, onClick: onOpenBackpack, label: '打开背包' },
     { key: 'shop', left: 1872, top: 77, width: 128, height: 250, onClick: onOpenShop, label: '打开商店' },
     { key: 'settings', left: 2009, top: 77, width: 175, height: 209, onClick: onOpenSettings, label: '打开设置' },
+    { key: 'plant', left: -32, top: 985, width: 282, height: 290, onClick: onOpenGacha, label: '打开经纪人扭蛋盆栽' },
   ];
 
   const totalSalary = Object.values(actorSalary).reduce((sum, value) => sum + value, 0);
@@ -261,6 +264,7 @@ function SceneLayer({
     (hoveredHotspot === 'broker' && layer.key === 'broker-icon') ||
     (hoveredHotspot === 'backpack' && layer.key === 'backpack-icon') ||
     (hoveredHotspot === 'shop' && layer.key === 'shop-icon-fallback') ||
+    (hoveredHotspot === 'plant' && layer.key === 'plant') ||
     (hoveredHotspot === 'settings' && isSettingsLayer);
   const transformParts = [];
   if (layer.rotate) {

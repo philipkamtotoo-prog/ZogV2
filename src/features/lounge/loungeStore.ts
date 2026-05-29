@@ -9,6 +9,28 @@ import {
   rollZogGiftResult,
   type ZogGiftResult,
 } from '../zog/zogAffinity';
+import {
+  ACTOR_GACHA_SINGLE_COST,
+  ACTOR_GACHA_TEN_COST,
+  ACTOR_SHARDS_TO_UNLOCK,
+  RANDOM_ACTOR_SHARD_BASE_COST,
+  RANDOM_ACTOR_SHARD_COST_STEP,
+  type ActorGachaPullCount,
+  type ActorGachaResult,
+  getActorGachaCost,
+  getRandomActorShardPurchaseCost,
+  isActorUnlocked,
+  rollActorGacha,
+  rollRandomActorShardPurchase,
+} from '../gacha/actorGacha';
+import { DEFAULT_ROSTER } from '../actors/actorRoster';
+import {
+  ACTOR_POTENTIAL_TRAIN_SHARD_COST,
+  type ActorPotentialStats,
+  type ActorPotentialTrainResult,
+  normalizeActorPotentialMap,
+  trainActorPotential as rollActorPotentialTraining,
+} from '../actors/actorPotential';
 
 // Shared upgrade tree for equipment (fridge + keyboard share same level)
 // Lv2/3/4/5 = 300/900/2500/7000G (per数值文档)
@@ -35,6 +57,16 @@ export const PERMANENT_PROMPT_MODIFY_COST_G = 1500;
 export const PERMANENT_PROMPT_CLEAR_COST_G = 1000;
 export const PERMANENT_PROMPT_COST_S = 200;
 
+export {
+  ACTOR_GACHA_SINGLE_COST,
+  ACTOR_GACHA_TEN_COST,
+  ACTOR_SHARDS_TO_UNLOCK,
+  ACTOR_POTENTIAL_TRAIN_SHARD_COST,
+  RANDOM_ACTOR_SHARD_BASE_COST,
+  RANDOM_ACTOR_SHARD_COST_STEP,
+  getRandomActorShardPurchaseCost,
+};
+
 interface LoungeState {
   gold: number;
   zogAffection: number;
@@ -55,6 +87,12 @@ interface LoungeState {
   actorPermanentPrompts: Record<string, string>;
   zogGiftAttempts: number;
   lastZogGiftResult: ZogGiftResult | null;
+  actorContractShards: Record<string, number>;
+  actorPotential: Record<string, ActorPotentialStats>;
+  gachaPullCount: number;
+  gachaShardPityCount: number;
+  randomShardPurchaseCount: number;
+  lastGachaResults: ActorGachaResult[];
 }
 
 export interface ChatMessage {
@@ -90,6 +128,11 @@ interface LoungeStore extends LoungeState {
   setPermanentPrompt: (actorId: string, prompt: string) => boolean;
   modifyPermanentPrompt: (actorId: string, prompt: string) => boolean;
   clearPermanentPrompt: (actorId: string) => boolean;
+  addActorContractShard: (actorId: string, amount: number) => void;
+  unlockActorByShards: (actorId: string) => boolean;
+  pullActorGacha: (count: ActorGachaPullCount) => ActorGachaResult[] | null;
+  buyRandomActorShard: () => ActorGachaResult | null;
+  trainActorPotential: (actorId: string) => ActorPotentialTrainResult | null;
 
   // 客厅聊天
   chatMessages: ChatMessage[];
@@ -135,6 +178,12 @@ function pickState(s: LoungeStore): LoungeState {
     actorPermanentPrompts: s.actorPermanentPrompts,
     zogGiftAttempts: s.zogGiftAttempts ?? 0,
     lastZogGiftResult: s.lastZogGiftResult ?? null,
+    actorContractShards: s.actorContractShards,
+    actorPotential: s.actorPotential,
+    gachaPullCount: s.gachaPullCount ?? 0,
+    gachaShardPityCount: s.gachaShardPityCount ?? 0,
+    randomShardPurchaseCount: s.randomShardPurchaseCount ?? 0,
+    lastGachaResults: s.lastGachaResults ?? [],
   };
 }
 
@@ -175,6 +224,12 @@ const defaults: LoungeState & Pick<LoungeStore, 'chatMessages' | 'isZogTyping'> 
   actorPermanentPrompts: {},
   zogGiftAttempts: 0,
   lastZogGiftResult: null,
+  actorContractShards: {},
+  actorPotential: {},
+  gachaPullCount: 0,
+  gachaShardPityCount: 0,
+  randomShardPurchaseCount: 0,
+  lastGachaResults: [],
   chatMessages: [],
   isZogTyping: false,
 };
@@ -194,11 +249,21 @@ function normalizeLoadedState(state: Partial<LoungeState>): Partial<LoungeState>
     ...state,
     inventory: normalizeCountMap(state.inventory),
     zogGiftInventory: normalizeCountMap(state.zogGiftInventory),
+    actorContractShards: normalizeCountMap(state.actorContractShards),
+    actorPotential: normalizeActorPotentialMap(state.actorPotential),
     battleQuickSlots: normalizeBattleQuickSlots(state.battleQuickSlots),
+    gachaPullCount: normalizeNonNegativeInteger(state.gachaPullCount),
+    gachaShardPityCount: normalizeNonNegativeInteger(state.gachaShardPityCount),
+    randomShardPurchaseCount: normalizeNonNegativeInteger(state.randomShardPurchaseCount),
+    lastGachaResults: Array.isArray(state.lastGachaResults) ? state.lastGachaResults : [],
     fridgeLevel: level,
     keyboardLevel: level,
     fridgeItemUseLimit: FRIDGE_USES[level],
   };
+}
+
+function normalizeNonNegativeInteger(value: unknown): number {
+  return typeof value === 'number' && Number.isFinite(value) ? Math.max(0, Math.floor(value)) : 0;
 }
 
 const saved = normalizeLoadedState(loadState());
@@ -576,6 +641,191 @@ export const useLoungeStore = create<LoungeStore>((set, get) => ({
       return next;
     });
     return true;
+  },
+
+  addActorContractShard: (actorId: string, amount: number) => {
+    const actorExists = DEFAULT_ROSTER.some((actor) => actor.actorId === actorId);
+    const safeAmount = Math.max(0, Math.floor(amount));
+    if (!actorExists || safeAmount <= 0) return;
+    set((s) => {
+      const next = {
+        ...s,
+        actorContractShards: {
+          ...s.actorContractShards,
+          [actorId]: (s.actorContractShards[actorId] ?? 0) + safeAmount,
+        },
+      };
+      saveState(pickState(next as LoungeStore));
+      return next;
+    });
+  },
+
+  unlockActorByShards: (actorId: string) => {
+    const actorExists = DEFAULT_ROSTER.some((actor) => actor.actorId === actorId);
+    const { actorContractShards, unlockedActorIds } = get();
+    if (!actorExists || isActorUnlocked(actorId, unlockedActorIds)) return false;
+    if ((actorContractShards[actorId] ?? 0) < ACTOR_SHARDS_TO_UNLOCK) return false;
+
+    set((s) => {
+      const nextShardCount = (s.actorContractShards[actorId] ?? 0) - ACTOR_SHARDS_TO_UNLOCK;
+      const nextShards = { ...s.actorContractShards, [actorId]: nextShardCount };
+      if (nextShardCount <= 0) {
+        delete nextShards[actorId];
+      }
+      const next = {
+        ...s,
+        actorContractShards: nextShards,
+        unlockedActorIds: [...s.unlockedActorIds, actorId],
+      };
+      saveState(pickState(next as LoungeStore));
+      return next;
+    });
+    return true;
+  },
+
+  pullActorGacha: (count: ActorGachaPullCount) => {
+    const cost = getActorGachaCost(count);
+    const { gold, gachaPullCount, gachaShardPityCount, unlockedActorIds } = get();
+    if (gold < cost) return null;
+
+    const roll = rollActorGacha(count, { gachaPullCount, gachaShardPityCount }, unlockedActorIds);
+
+    set((s) => {
+      const nextUnlockedActorIds = [...s.unlockedActorIds];
+      const nextInventory = { ...s.inventory };
+      const nextZogGiftInventory = { ...s.zogGiftInventory };
+      const nextActorAffection = { ...s.actorAffection };
+      const nextActorSalary = { ...s.actorSalary };
+      const nextActorContractShards = { ...s.actorContractShards };
+      let nextGold = s.gold - cost;
+
+      for (const result of roll.results) {
+        switch (result.kind) {
+          case 'DIRECT_CONTRACT': {
+            if (!result.actorId) break;
+            if (!isActorUnlocked(result.actorId, nextUnlockedActorIds)) {
+              nextUnlockedActorIds.push(result.actorId);
+              break;
+            }
+            const shardAmount = result.shardAmount && result.shardAmount > 0 ? result.shardAmount : 5;
+            nextActorContractShards[result.actorId] =
+              (nextActorContractShards[result.actorId] ?? 0) + shardAmount;
+            break;
+          }
+          case 'ACTOR_SHARD': {
+            if (!result.actorId || !result.shardAmount) break;
+            nextActorContractShards[result.actorId] =
+              (nextActorContractShards[result.actorId] ?? 0) + result.shardAmount;
+            break;
+          }
+          case 'BATTLE_ITEM': {
+            if (!result.itemId) break;
+            nextInventory[result.itemId] = (nextInventory[result.itemId] ?? 0) + (result.amount ?? 1);
+            break;
+          }
+          case 'ZOG_GIFT': {
+            if (!result.giftId) break;
+            nextZogGiftInventory[result.giftId] =
+              (nextZogGiftInventory[result.giftId] ?? 0) + (result.amount ?? 1);
+            break;
+          }
+          case 'ACTOR_AFFECTION': {
+            if (!result.actorId || !result.amount) break;
+            nextActorAffection[result.actorId] = (nextActorAffection[result.actorId] ?? 0) + result.amount;
+            break;
+          }
+          case 'ACTOR_SALARY': {
+            if (!result.actorId || !result.amount) break;
+            nextActorSalary[result.actorId] = (nextActorSalary[result.actorId] ?? 0) + result.amount;
+            break;
+          }
+          case 'GOLD_REFUND': {
+            nextGold += result.goldAmount ?? 0;
+            break;
+          }
+        }
+      }
+
+      const next = {
+        ...s,
+        gold: nextGold,
+        inventory: nextInventory,
+        zogGiftInventory: nextZogGiftInventory,
+        actorAffection: nextActorAffection,
+        actorSalary: nextActorSalary,
+        actorContractShards: nextActorContractShards,
+        unlockedActorIds: nextUnlockedActorIds,
+        gachaPullCount: roll.nextPullCount,
+        gachaShardPityCount: roll.nextShardPityCount,
+        lastGachaResults: roll.results,
+      };
+      saveState(pickState(next as LoungeStore));
+      return next;
+    });
+
+    return roll.results;
+  },
+
+  buyRandomActorShard: () => {
+    const { gold, randomShardPurchaseCount } = get();
+    const cost = getRandomActorShardPurchaseCost(randomShardPurchaseCount);
+    if (gold < cost) return null;
+
+    const result = rollRandomActorShardPurchase(randomShardPurchaseCount);
+    if (!result.actorId || !result.shardAmount) return null;
+
+    set((s) => {
+      const next = {
+        ...s,
+        gold: s.gold - cost,
+        actorContractShards: {
+          ...s.actorContractShards,
+          [result.actorId!]: (s.actorContractShards[result.actorId!] ?? 0) + result.shardAmount!,
+        },
+        randomShardPurchaseCount: s.randomShardPurchaseCount + 1,
+        lastGachaResults: [result],
+      };
+      saveState(pickState(next as LoungeStore));
+      return next;
+    });
+
+    return result;
+  },
+
+  trainActorPotential: (actorId: string) => {
+    const { actorContractShards, actorPotential, unlockedActorIds } = get();
+    const actorExists = DEFAULT_ROSTER.some((actor) => actor.actorId === actorId);
+    if (!actorExists || !isActorUnlocked(actorId, unlockedActorIds)) return null;
+    if ((actorContractShards[actorId] ?? 0) < ACTOR_POTENTIAL_TRAIN_SHARD_COST) return null;
+
+    const result = rollActorPotentialTraining(actorPotential[actorId]);
+
+    set((s) => {
+      const nextShardCount = (s.actorContractShards[actorId] ?? 0) - ACTOR_POTENTIAL_TRAIN_SHARD_COST;
+      const nextShards = { ...s.actorContractShards, [actorId]: nextShardCount };
+      if (nextShardCount <= 0) {
+        delete nextShards[actorId];
+      }
+
+      const next = {
+        ...s,
+        actorContractShards: nextShards,
+        actorPotential: {
+          ...s.actorPotential,
+          [actorId]: result.nextPotential,
+        },
+        actorSalary: result.salaryReward
+          ? { ...s.actorSalary, [actorId]: (s.actorSalary[actorId] ?? 0) + result.salaryReward }
+          : s.actorSalary,
+        actorAffection: result.affectionReward
+          ? { ...s.actorAffection, [actorId]: (s.actorAffection[actorId] ?? 0) + result.affectionReward }
+          : s.actorAffection,
+      };
+      saveState(pickState(next as LoungeStore));
+      return next;
+    });
+
+    return result;
   },
 
   // 客厅聊天

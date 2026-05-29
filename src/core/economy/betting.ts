@@ -1,5 +1,5 @@
 import type { ActorCombatState } from '../battle/types';
-import { DEFAULT_ROSTER, calculatePreBattlePower } from '../../features/actors/actorRoster';
+import { calculatePreBattlePower } from '../../features/actors/actorRoster';
 import type { RosterActor } from '../../features/actors/actorRoster';
 
 export interface BetSlip {
@@ -23,12 +23,6 @@ const ODDS_BY_RANK: Record<number, number> = {
   5: 5.0,
 };
 
-function buildRosterMap(): Map<string, RosterActor> {
-  return new Map(DEFAULT_ROSTER.map((r) => [r.actorId, r]));
-}
-
-const DEFAULT_ROSTER_MAP = buildRosterMap();
-
 /**
  * 计算赔率
  * 1. 先用 preBattlePower 将所有演员排序
@@ -38,24 +32,22 @@ const DEFAULT_ROSTER_MAP = buildRosterMap();
 export function calculateOdds(
   actor: ActorCombatState,
   allActors: ActorCombatState[],
-  rosterMap: Map<string, RosterActor> = DEFAULT_ROSTER_MAP
+  rosterMap?: Map<string, RosterActor>
 ): number {
   const alive = allActors.filter((a) => a.isAlive);
   if (alive.length <= 1) return 1;
 
   // 构建 preBattlePower 排名
   const withPower = alive.map((a) => {
-    const rosterEntry = rosterMap.get(a.actorId);
-    const power = rosterEntry
-      ? calculatePreBattlePower(rosterEntry)
-      : calculatePreBattlePower({
-          baseHP: a.maxHP,
-          baseATK: a.ATK,
-          baseDEF: a.DEF,
-          baseSPD: a.SPD,
-          baseThreat: a.baseThreat,
-          maxHP: a.maxHP,
-        });
+    const rosterEntry = rosterMap?.get(a.actorId);
+    const power = calculatePreBattlePower({
+      baseHP: rosterEntry?.baseHP ?? a.maxHP,
+      baseATK: rosterEntry?.baseATK ?? a.ATK,
+      baseDEF: rosterEntry?.baseDEF ?? a.DEF,
+      baseSPD: rosterEntry?.baseSPD ?? a.SPD,
+      baseThreat: rosterEntry?.baseThreat ?? a.baseThreat,
+      maxHP: rosterEntry?.baseHP ?? a.maxHP,
+    });
     return { actor: a, power };
   });
 
